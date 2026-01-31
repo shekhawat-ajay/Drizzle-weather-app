@@ -71,3 +71,4 @@ build/Release
 # VSCode test
 .vscode-test.agent/
 .agents/
+.agent

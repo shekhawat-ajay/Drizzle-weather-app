@@ -2,7 +2,7 @@ import useTodayWeather from "@/hooks/useTodayWeather";
 import { useContext } from "react";
 import { LocationContext } from "../App";
 import { uvIndexImageMap } from "@/utils/maps/uvIndexImageMap";
-import { getWindDirection } from "@/utils/getWindDirection";
+import { getWindDirection } from "@/utils/maps/getWindDirection";
 import { ResultType } from "@/schema/location";
 
 export default function TodaysForecast() {

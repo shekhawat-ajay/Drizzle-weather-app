@@ -1,7 +1,7 @@
 import useSWR from "swr";
 import { fetcher } from "@/utils/api/apiDataFetcher";
 import { apiRoutes } from "@/utils/api/apiRoutes";
-import { toCamelCase } from "@/utils/transformer";
+import { toCamelCase } from "@/utils/api/transformer";
 import { WeeklyForecastSchema, WeeklyForecastType } from "@/schema/weather";
 
 export default function useWeeklyForecast(latitude: number, longitude: number) {
