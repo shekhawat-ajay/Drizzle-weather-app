@@ -13,9 +13,7 @@ This project is open source and available under the MIT License.
 
 ## Acknowledgments
 
-- Thanks to Open-meteo for providing the weather data API
+- Thanks to [open-meteo](https://open-meteo.com/) for providing the weather data API
 - Thanks to the [Bas](https://bas.dev/) for providing weather icons.
 
 ---
-
-_Last Updated: 2024_

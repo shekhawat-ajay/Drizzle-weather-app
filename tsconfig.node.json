@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+
+    /* Node-specific */
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "allowSyntheticDefaultImports": true,
+
+    /* Allow CommonJS modules */
+    "module": "ESNext",
+    "moduleResolution": "bundler"
+  },
+  "include": [
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "tailwind.config.ts",
+    "postcss.config.ts"
+  ]
+}
