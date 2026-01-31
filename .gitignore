@@ -69,4 +69,5 @@ build/Release
 .DS_*
 
 # VSCode test
-.vscode-test
+.vscode-test.agent/
+.agents/
