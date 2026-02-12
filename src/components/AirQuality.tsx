@@ -58,151 +58,76 @@ export default function AirQuality() {
   const { category: ozoneCategory, textColor: ozoneTextColor } =
     (ozone !== undefined && get03Category(ozone)) || {};
 
+  const pollutants = [
+    { name: "PM₁₀", value: pm10, category: pm10Category, color: pm10TextColor },
+    { name: "PM₂.₅", value: pm2_5, category: pm2_5Category, color: pm2_5TextColor },
+    { name: "CO", value: carbonMonoxide, category: coCategory, color: coTextColor },
+    { name: "NO₂", value: nitrogenDioxide, category: no2Category, color: no2TextColor },
+    { name: "SO₂", value: sulphurDioxide, category: so2Category, color: so2TextColor },
+    { name: "O₃", value: ozone, category: ozoneCategory, color: ozoneTextColor },
+  ];
+
   return (
-    <div className="card bg-base-200 relative min-h-full p-4">
+    <div className="relative h-full rounded-xl border border-base-content/5 bg-base-200 p-5">
       {error && (
-        <div className="flex h-full w-full justify-center">
-          <div className="text-red-500">Something went wrong!</div>
+        <div className="flex h-full items-center justify-center">
+          <p className="text-sm text-error">Something went wrong!</p>
         </div>
       )}
 
       {isLoading && (
-        <div className="absolute inset-0 min-h-[10rem]">
-          <div className="skeleton h-full w-full"></div>
+        <div className="absolute inset-0">
+          <div className="skeleton h-full w-full rounded-xl"></div>
         </div>
       )}
 
       {data && (
-        <div className="flex flex-col items-center space-y-2">
-          <p className="text-xl font-light">Air Quality Index</p>
-
-          <div className="m-2 flex items-center gap-2">
-            <div className="size-3 animate-pulse rounded-full bg-red-500"></div>
-            <p className="text-sm">Live AQI</p>
+        <div>
+          {/* Header */}
+          <div className="mb-4 flex items-baseline justify-between">
+            <h3 className="text-lg font-semibold text-base-content">
+              Air Quality
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="status status-error animate-pulse"></span>
+              <span className="text-xs text-base-content/50">
+                Live · {lastUpdatedTime}
+              </span>
+            </div>
           </div>
-          <p className="text-center text-xs text-neutral-500">
-            Last Updated at {lastUpdatedTime}
-          </p>
 
-          <div className="m-2 flex flex-col items-center gap-4 p-4">
-            <p className={cn("font-mono text-6xl font-semibold", aqiTextColor)}>
+          {/* AQI Hero */}
+          <div className="mb-4 flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 py-5">
+            <p className={cn("font-mono text-5xl font-bold", aqiTextColor)}>
               {aqi}
             </p>
-            <p className="text-xl font-light">{aqiCategory}</p>
+            <p className="mt-1 text-sm text-base-content/60">{aqiCategory}</p>
           </div>
 
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-400">
+          {/* Pollutant Table */}
+          <div className="overflow-x-auto rounded-lg">
+            <table className="table table-zebra table-sm w-full">
               <thead>
-                <tr>
-                  <th className="bg-base-300 border border-gray-400 px-2 py-2 text-sm">
-                    Pollutant
-                  </th>
-                  <th className="bg-base-300 border border-gray-400 px-4 py-2 text-sm">
-                    Concentration (μg/m³)
-                  </th>
-                  <th className="bg-base-300 border border-gray-400 px-4 py-2 text-sm">
-                    Category
-                  </th>
+                <tr className="text-xs text-base-content/50">
+                  <th className="font-medium">Pollutant</th>
+                  <th className="text-center font-medium">μg/m³</th>
+                  <th className="text-right font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="text-center">
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    PM<sub>10</sub>
-                  </td>
-                  <td
-                    className={cn(
-                      "border border-gray-400 px-4 py-2 text-sm",
-                      pm10TextColor,
-                    )}
-                  >
-                    {pm10}
-                  </td>
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    {pm10Category}
-                  </td>
-                </tr>
-                <tr className="text-center">
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    PM<sub>2.5</sub>
-                  </td>
-                  <td
-                    className={cn(
-                      "border border-gray-400 px-4 py-2 text-sm",
-                      pm2_5TextColor,
-                    )}
-                  >
-                    {pm2_5}
-                  </td>
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    {pm2_5Category}
-                  </td>
-                </tr>
-                <tr className="text-center">
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    CO
-                  </td>
-                  <td
-                    className={cn(
-                      "border border-gray-400 px-4 py-2 text-sm",
-                      coTextColor,
-                    )}
-                  >
-                    {carbonMonoxide}
-                  </td>
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    {coCategory}
-                  </td>
-                </tr>
-                <tr className="text-center">
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    NO<sub>2</sub>
-                  </td>
-                  <td
-                    className={cn(
-                      "border border-gray-400 px-4 py-2 text-sm",
-                      no2TextColor,
-                    )}
-                  >
-                    {nitrogenDioxide}
-                  </td>
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    {no2Category}
-                  </td>
-                </tr>
-                <tr className="text-center">
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    SO<sub>2</sub>
-                  </td>
-                  <td
-                    className={cn(
-                      "border border-gray-400 px-4 py-2 text-sm",
-                      so2TextColor,
-                    )}
-                  >
-                    {sulphurDioxide}
-                  </td>
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    {so2Category}
-                  </td>
-                </tr>
-                <tr className="text-center">
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    O<sub>3</sub>
-                  </td>
-                  <td
-                    className={cn(
-                      "border border-gray-400 px-4 py-2 text-sm",
-                      ozoneTextColor,
-                    )}
-                  >
-                    {ozone}
-                  </td>
-                  <td className="border border-gray-400 px-4 py-2 text-sm">
-                    {ozoneCategory}
-                  </td>
-                </tr>
+                {pollutants.map((p) => (
+                  <tr key={p.name}>
+                    <td className="text-sm text-base-content/80">{p.name}</td>
+                    <td className={cn("text-center font-mono text-sm", p.color)}>
+                      {p.value}
+                    </td>
+                    <td className="text-right">
+                      <span className="badge badge-sm badge-ghost text-xs">
+                        {p.category}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

@@ -43,7 +43,7 @@ export default function WeeklyForecast() {
       return "Tomorrow";
     }
 
-    return someDate.toLocaleString("default", { weekday: "long" });
+    return someDate.toLocaleString("default", { weekday: "short" });
   };
 
   const getDate = (time: string) => {
@@ -63,65 +63,59 @@ export default function WeeklyForecast() {
   };
 
   return (
-    <div className="bg-base-200 card relative flex min-h-full p-4">
+    <div className="relative rounded-xl border border-base-content/5 bg-base-200 p-5">
       {error && (
-        <div className="flex h-full w-full justify-center">
-          <div className="text-red-500">Something went wrong!</div>
+        <div className="flex h-full items-center justify-center py-8">
+          <p className="text-sm text-error">Something went wrong!</p>
         </div>
       )}
 
       {isLoading && (
         <div className="absolute inset-0">
-          <div className="skeleton h-full w-full"></div>
+          <div className="skeleton h-full w-full rounded-xl"></div>
         </div>
       )}
 
       {data && (
-        <div className="flex flex-col items-center p-2">
-          <p className="m-4 text-center text-xl font-light">Weekly Forecast</p>
-          <div className="carousel bg-neutral rounded-box max-w-sm p-2">
-            {time?.map((date: string, index: number) => (
-              <div
-                key={date}
-                id={`item${index + 1}`}
-                className="carousel-item bg-base-300 card flex w-full flex-col items-center p-2"
-              >
-                <p className="text-sm">{getDate(date)}</p>
-                <p className="text-sm">{getWeekDay(date)}</p>
-                <img
-                  className="size-12"
-                  src={getWeatherImage(weatherCode?.[index] ?? 0)?.imageSrc}
-                  alt={getWeatherImage(weatherCode?.[index] ?? 0)?.description}
-                />
-                <p className="text-sm">
-                  {getWeatherImage(weatherCode?.[index] ?? 0)?.description}
-                </p>
-                <p className="p-2 font-mono text-lg font-semibold">
-                  {maxTemperature?.[index]}° / {minTemperature?.[index]}°
-                </p>
-                <div className="flex items-center">
-                  <img className="size-11" src="/rain-probability.svg" />
-                  <p className="font-mono text-lg font-semibold">
-                    {precipitationProbability?.[index]} %
+        <div>
+          <h3 className="mb-4 text-lg font-semibold text-base-content">
+            Weekly Forecast
+          </h3>
+
+          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-thin">
+            {time?.map((date: string, index: number) => {
+              const weather = getWeatherImage(weatherCode?.[index] ?? 0);
+              return (
+                <div
+                  key={date}
+                  className="flex min-w-[130px] flex-shrink-0 snap-start flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-4 py-4 transition-colors duration-150 hover:bg-base-200"
+                >
+                  <p className="text-xs text-base-content/50">{getDate(date)}</p>
+                  <p className="text-sm font-medium">{getWeekDay(date)}</p>
+                  <img
+                    className="my-2 size-10"
+                    src={weather?.imageSrc}
+                    alt={weather?.description}
+                  />
+                  <p className="text-xs text-base-content/60">{weather?.description}</p>
+                  <p className="mt-1 font-mono text-sm font-semibold">
+                    {maxTemperature?.[index]}° / {minTemperature?.[index]}°
                   </p>
+                  <div className="mt-2 flex items-center gap-1">
+                    <img className="size-5" src="/rain-probability.svg" alt="rain" />
+                    <span className="font-mono text-xs">
+                      {precipitationProbability?.[index]}%
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-1">
+                    <img className="size-5" src="/wind.svg" alt="wind" />
+                    <span className="font-mono text-xs">
+                      {windSpeed?.[index]} km/h
+                    </span>
+                  </div>
                 </div>
-                <p className="text-xs">Chances of rain</p>
-                <div className="flex items-center gap-2 pt-2">
-                  <img className="size-10" src="/wind.svg" alt="wind-svg" />
-                  <p className="font-mono text-lg font-semibold">
-                    {windSpeed?.[index]} km/h
-                  </p>
-                </div>
-                <p className="text-xs">Wind</p>
-              </div>
-            ))}
-          </div>
-          <div className="flex w-full justify-center gap-2 py-2">
-            {time?.map((_: any, index: number) => (
-              <a key={index} href={`#item${index + 1}`} className="btn btn-xs">
-                {index + 1}
-              </a>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

@@ -61,15 +61,15 @@ export default function CurrentWeather() {
   return (
     <div
       className={cn(
-        "card relative min-h-[10rem] px-6 py-2",
+        "relative overflow-hidden rounded-xl px-6 py-5",
         isDay
-          ? "bg-gradient-to-b from-sky-600 to-sky-300"
-          : "bg-gradient-to-r from-slate-500 to-slate-800",
+          ? "bg-gradient-to-br from-sky-600 to-sky-400"
+          : "bg-gradient-to-br from-slate-700 to-slate-900",
       )}
     >
       {error && (
-        <div className="flex h-full w-full justify-center">
-          <div className="text-red-500">Something went wrong!</div>
+        <div className="flex h-full w-full items-center justify-center py-8">
+          <p className="text-sm text-error-content">Something went wrong!</p>
         </div>
       )}
       {isLoading ? (
@@ -77,52 +77,61 @@ export default function CurrentWeather() {
           <div className="skeleton h-full w-full"></div>
         </div>
       ) : (
-        <div className="grid md:grid-cols-12">
-          <div className="col-span-4 my-auto">
-            <p className="text-xs">{date}</p>
-            <h3 className="mt-2 text-3xl md:mt-4">{name}</h3>
-            <h4 className="text-sm">
-              {state} {country}
-            </h4>
-            <p className="mt-2 text-xs">Updated at {lastUpdatedTime}</p>
+        <div className="grid items-center gap-4 md:grid-cols-12">
+          {/* Location Info */}
+          <div className="col-span-4">
+            <p className="text-xs text-white/60">{date}</p>
+            <h3 className="mt-1 text-2xl font-bold text-white">{name}</h3>
+            <p className="text-sm text-white/70">
+              {state}, {country}
+            </p>
+            <p className="mt-2 text-xs text-white/50">
+              Updated at {lastUpdatedTime}
+            </p>
           </div>
 
-          <div className="col-span-4 mx-auto text-center">
-            <div>
-              <img
-                className="size-40"
-                src={imageSrc}
-                alt={`${imageDescription} svg.`}
-              />
-            </div>
-            <div>{imageDescription}</div>
-              <h2 className="my-2 text-6xl">{temperature}°</h2>
+          {/* Weather Icon & Temp */}
+          <div className="col-span-4 flex flex-col items-center text-center">
+            <img
+              className="size-32"
+              src={imageSrc}
+              alt={`${imageDescription}`}
+            />
+            <p className="mb-2 text-sm text-white/70">{imageDescription}</p>
+            <h2 className="text-5xl font-bold text-white">{temperature}°</h2>
           </div>
 
-          <div className="col-span-4 my-auto text-center">
-            <div className="mt-6 grid grid-cols-12 divide-x-1 md:m-0">
-              <div className="col-span-4 flex flex-col items-center">
+          {/* Stats */}
+          <div className="col-span-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
                 <img
-                  className="size-15"
+                  className="size-8"
                   src="/thermometer-celsius.svg"
-                  alt="thermometer svg"
+                  alt="feels like"
                 />
-                <p className="text-lg">{apparentTemperature}°</p>
-                <p className="text-sm">Feels like</p>
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {apparentTemperature}°
+                </p>
+                <p className="text-xs text-white/60">Feels like</p>
               </div>
-              <div className="col-span-4 flex flex-col items-center">
+              <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
                 <img
-                  className="size-15"
+                  className="size-8"
                   src="/humidity.svg"
-                  alt="humidity svg"
+                  alt="humidity"
                 />
-                <p className="text-lg">{relativeHumidity}%</p>
-                <p className="text-sm">Humidity</p>
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {relativeHumidity}%
+                </p>
+                <p className="text-xs text-white/60">Humidity</p>
               </div>
-              <div className="col-span-4 flex flex-col items-center">
-                <img className="size-15" src="/wind.svg" alt="wind svg." />
-                <p className="text-lg">{windSpeed} km/h</p>
-                <p className="text-sm">Wind Speed</p>
+              <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
+                <img className="size-8" src="/wind.svg" alt="wind speed" />
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {windSpeed}
+                </p>
+                <p className="text-xs text-white/60">km/h</p>
               </div>
             </div>
           </div>

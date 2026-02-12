@@ -107,25 +107,38 @@ export default function SearchBox() {
     const handleClickOutside = (event: MouseEvent) => {
       if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
         setResults([]);
+        setDebouncedQuery("");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Also close on blur (covers cases where wrapper stretches full width)
+  const handleBlur = useCallback(() => {
+    // Small delay so that click on a result item fires before we clear
+    setTimeout(() => {
+      if (inputRef.current && !inputRef.current.contains(document.activeElement)) {
+        setResults([]);
+        setDebouncedQuery("");
+      }
+    }, 150);
+  }, []);
+
 
   return (
     <div
-      className="relative flex flex-col items-center justify-center gap-2"
+      className="relative flex flex-col items-center justify-center"
       ref={inputRef}
+      onBlur={handleBlur}
     >
-      <form onSubmit={handleSearch}>
-        <label className="input bg-neutral my-4 flex w-3xs items-center gap-2 border-none sm:w-md">
+      <form onSubmit={handleSearch} className="w-full flex justify-center">
+        <label className="flex w-full max-w-lg items-center gap-2 rounded-lg border border-base-content/10 bg-base-200 px-4 py-2.5 transition-all duration-200 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20">
           {isLoading ? (
-            <span className="loading loading-spinner loading-sm"></span>
+            <span className="loading loading-spinner loading-sm text-base-content/40"></span>
           ) : (
             <svg
-              className="h-[1em] opacity-50"
+              className="h-4 w-4 text-base-content/40"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
             >
@@ -147,33 +160,32 @@ export default function SearchBox() {
             value={inputQuery}
             placeholder="Search city..."
             onChange={handleInputChange}
+            className="w-full bg-transparent text-sm outline-none border-none placeholder:text-base-content/30"
           />
         </label>
       </form>
       {results.length > 0 && (
         <div
           className={cn(
-            "bg-base-200 absolute top-full z-50 max-h-60 w-3xs rounded sm:w-md",
+            "absolute top-full z-50 mt-2 max-h-60 w-full max-w-lg overflow-hidden rounded-lg border border-base-content/10 bg-base-300",
             results.length >= 4 && "scrollbar-thin overflow-y-auto",
           )}
         >
-          <ul className="divide-y-1">
+          <ul className="divide-y divide-base-content/5">
             {results.map((location) => (
               <li
                 key={location.id}
                 onClick={() => handleSelectLocation(location)}
-                className="cursor-pointer"
+                className="cursor-pointer transition-colors duration-150 hover:bg-base-200"
               >
-                <div className="flex items-start gap-2 p-2">
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <MapPin className="size-4 text-base-content/40" />
                   <div>
-                    <MapPin />
-                  </div>
-                  <div className="">
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-base-content">
                       {location.name}
                     </p>
-                    <p className="text-sm font-normal text-slate-500">
-                      {location.admin1} {location.country}
+                    <p className="text-xs text-base-content/50">
+                      {location.admin1}, {location.country}
                     </p>
                   </div>
                 </div>
@@ -183,8 +195,8 @@ export default function SearchBox() {
         </div>
       )}
       {error && (
-        <div className="absolute top-full z-50 text-center">
-          <p className="text-sm text-red-500">Something went wrong!</p>
+        <div className="absolute top-full z-50 mt-2 text-center">
+          <p className="text-sm text-error">Something went wrong!</p>
         </div>
       )}
     </div>

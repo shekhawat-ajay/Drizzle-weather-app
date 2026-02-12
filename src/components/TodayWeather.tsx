@@ -36,8 +36,14 @@ export default function TodaysForecast() {
 
   const setUvIndexImage = (uvIndex: number) => {
     const floorUvIndex = Math.floor(uvIndex);
-
-    const image = uvIndexImageMap[floorUvIndex];
+    let image;
+    if(floorUvIndex < 1) {
+      image = uvIndexImageMap[1];
+    } else if(floorUvIndex > 11) {
+      image = uvIndexImageMap[11];
+    } else {
+      image = uvIndexImageMap[floorUvIndex];
+    }
     return image;
   };
 
@@ -49,85 +55,79 @@ export default function TodaysForecast() {
   const windDirection = getWindDirection(windDirectionDegree?.[0] ?? 0);
 
   return (
-    <div className="bg-base-200 card relative min-h-full space-y-4 p-4">
+    <div className="relative h-full rounded-xl border border-base-content/5 bg-base-200 p-5">
       {error && (
-        <div className="flex h-full w-full justify-center">
-          <div className="text-red-500">Something went wrong!</div>
+        <div className="flex h-full items-center justify-center">
+          <p className="text-sm text-error">Something went wrong!</p>
         </div>
       )}
 
       {isLoading && (
-        <div className="absolute inset-0 min-h-[10rem]">
-          <div className="skeleton h-full w-full"></div>
+        <div className="absolute inset-0">
+          <div className="skeleton h-full w-full rounded-xl"></div>
         </div>
       )}
 
       {data && (
-        <div className="flex flex-col items-center">
-          <p className="text-xl font-light">{`Today's Forecast`} </p>
-          <div className="">
-            <span className="font-mono text-xl font-semibold">
+        <div>
+          <div className="mb-4 flex items-baseline justify-between">
+            <h3 className="text-lg font-semibold text-base-content">
+              Today's Forecast
+            </h3>
+            <span className="font-mono text-sm font-semibold text-base-content/70">
               {maxTemperature}° / {minTemperature}°
             </span>
           </div>
-          <div className="flex gap-4">
-            <div className="text-center">
-              <img
-                className="mx-auto size-25"
-                src="/sunrise.svg"
-                alt="sunrise svg"
-              />
-              <p className="font-mono text-lg font-semibold">{sunriseTime}</p>
-              <p className="text-sm">Sunrise</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* Sunrise */}
+            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
+              <img className="size-10" src="/sunrise.svg" alt="sunrise" />
+              <p className="mt-2 font-mono text-sm font-semibold">{sunriseTime}</p>
+              <p className="text-xs text-base-content/50">Sunrise</p>
             </div>
-            <div className="text-center">
-              <img
-                className="mx-auto size-25"
-                src="/sunset.svg"
-                alt="sunset svg"
-              />
-              <p className="font-mono text-lg font-semibold">{sunsetTime}</p>
-              <p className="text-sm">Sunset</p>
+
+            {/* Sunset */}
+            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
+              <img className="size-10" src="/sunset.svg" alt="sunset" />
+              <p className="mt-2 font-mono text-sm font-semibold">{sunsetTime}</p>
+              <p className="text-xs text-base-content/50">Sunset</p>
             </div>
-          </div>
-          <div className="flex gap-6">
-            <div className="text-center">
-              <img
-                className="mx-auto size-20"
-                src={uvIndexImage}
-                alt={uvImageDescription}
-              />
-              <p className="font-mono text-lg font-semibold">
-                {uvIndex} out of 11
+
+            {/* UV Index */}
+            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
+              <img className="size-10" src={uvIndexImage} alt={uvImageDescription} />
+              <p className="mt-2 font-mono text-sm font-semibold">
+                {uvIndex?.[0]}<span className="text-base-content/40"> / 11</span>
               </p>
-              <p className="text-sm">UV index</p>
+              <p className="text-xs text-base-content/50">UV Index</p>
             </div>
-            <div className="text-center">
-              <img className="mx-auto size-20" src="/wind.svg" alt="wind-svg" />
-              <p className="font-mono text-lg font-semibold">
-                {windDirection} | {windDirectionDegree}°
+
+            {/* Wind Direction */}
+            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
+              <img className="size-10" src="/wind.svg" alt="wind direction" />
+              <p className="mt-2 font-mono text-sm font-semibold">
+                {windDirection} {windDirectionDegree?.[0]}°
               </p>
-              <p className="text-sm">Wind direction</p>
+              <p className="text-xs text-base-content/50">Wind Dir.</p>
             </div>
-          </div>
-          <div className="flex gap-6">
-            <div className="text-center">
-              <img className="mx-auto size-20" src="/raindrops.svg" alt="" />
-              <p className="font-mono text-lg font-semibold">
+
+            {/* Precipitation */}
+            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
+              <img className="size-10" src="/raindrops.svg" alt="precipitation" />
+              <p className="mt-2 font-mono text-sm font-semibold">
                 {precipitationSum?.[0]} mm
               </p>
-              <p className="text-sm">Precipitation</p>
+              <p className="text-xs text-base-content/50">Precipitation</p>
             </div>
-            <div className="text-center">
-              <img
-                className="mx-auto size-20"
-                src="/rain-probability.svg"
-                alt="rain-drops svg"
-              />
-              <p className="font-mono text-lg font-semibold">
-                {precipitationProbability?.[0]} %
+
+            {/* Rain Probability */}
+            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
+              <img className="size-10" src="/rain-probability.svg" alt="rain probability" />
+              <p className="mt-2 font-mono text-sm font-semibold">
+                {precipitationProbability?.[0]}%
               </p>
-              <p className="text-sm">Chances of rain</p>
+              <p className="text-xs text-base-content/50">Rain chance</p>
             </div>
           </div>
         </div>
