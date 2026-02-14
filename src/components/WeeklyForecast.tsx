@@ -19,8 +19,13 @@ export default function WeeklyForecast() {
     temperature2mMax: maxTemperature,
     temperature2mMin: minTemperature,
     precipitationProbabilityMax: precipitationProbability,
+    precipitationSum,
     windSpeed10mMax: windSpeed,
   } = data?.daily || {};
+
+
+
+  // ── Helpers ───────────────────────────────────────────────
 
   const getWeekDay = (someDay: string) => {
     const today = new Date();
@@ -88,7 +93,7 @@ export default function WeeklyForecast() {
               return (
                 <div
                   key={date}
-                  className="flex min-w-[130px] flex-shrink-0 snap-start flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-4 py-4 transition-colors duration-150 hover:bg-base-200"
+                  className="flex min-w-[140px] flex-shrink-0 snap-start flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-4 py-4 transition-colors duration-150 hover:bg-base-200"
                 >
                   <p className="text-xs text-base-content/50">{getDate(date)}</p>
                   <p className="text-sm font-medium">{getWeekDay(date)}</p>
@@ -98,17 +103,32 @@ export default function WeeklyForecast() {
                     alt={weather?.description}
                   />
                   <p className="text-xs text-base-content/60">{weather?.description}</p>
+
+                  {/* Temperature */}
                   <p className="mt-1 font-mono text-sm font-semibold">
                     {maxTemperature?.[index]}° / {minTemperature?.[index]}°
                   </p>
-                  <div className="mt-2 flex items-center gap-1">
-                    <img className="size-5" src="/rain-probability.svg" alt="rain" />
+
+                  {/* Rain & Precipitation */}
+                  <div className="mt-3 flex items-center gap-1">
+                    <img className="size-4" src="/rain-probability.svg" alt="rain" />
                     <span className="font-mono text-xs">
                       {precipitationProbability?.[index]}%
                     </span>
+                    <span className="text-xs text-base-content/40">Rain</span>
                   </div>
+                  {(precipitationSum?.[index] ?? 0) > 0 && (
+                    <div className="mt-0.5 flex items-center gap-1">
+                      <img className="size-4" src="/raindrops.svg" alt="precipitation" />
+                      <span className="font-mono text-xs">
+                        {precipitationSum?.[index]} mm
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Wind */}
                   <div className="mt-1 flex items-center gap-1">
-                    <img className="size-5" src="/wind.svg" alt="wind" />
+                    <img className="size-4" src="/wind.svg" alt="wind" />
                     <span className="font-mono text-xs">
                       {windSpeed?.[index]} km/h
                     </span>

@@ -2,6 +2,7 @@ import { createContext, useState, Dispatch, SetStateAction } from "react";
 import SearchBox from "@/components/SearchBox";
 import Header from "@/components/Header";
 import CurrentWeather from "@/components/CurrentWeather";
+import HourlyForecast from "@/components/HourlyForecast";
 import TodaysForecast from "@/components/TodayWeather";
 import AirQuality from "@/components/AirQuality";
 import WeeklyForecast from "@/components/WeeklyForecast";
@@ -37,6 +38,9 @@ function App() {
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12">
             <CurrentWeather />
+          </div>
+          <div className="col-span-12">
+            <HourlyForecast />
           </div>
           <div className="col-span-12 md:col-span-6">
             <TodaysForecast />
