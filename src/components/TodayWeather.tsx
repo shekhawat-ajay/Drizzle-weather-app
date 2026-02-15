@@ -37,9 +37,9 @@ export default function TodaysForecast() {
   const setUvIndexImage = (uvIndex: number) => {
     const floorUvIndex = Math.floor(uvIndex);
     let image;
-    if(floorUvIndex < 1) {
+    if (floorUvIndex < 1) {
       image = uvIndexImageMap[1];
-    } else if(floorUvIndex > 11) {
+    } else if (floorUvIndex > 11) {
       image = uvIndexImageMap[11];
     } else {
       image = uvIndexImageMap[floorUvIndex];
@@ -55,10 +55,10 @@ export default function TodaysForecast() {
   const windDirection = getWindDirection(windDirectionDegree?.[0] ?? 0);
 
   return (
-    <div className="relative h-full rounded-xl border border-base-content/5 bg-base-200 p-5">
+    <div className="border-base-content/5 bg-base-200 relative h-full rounded-xl border p-5">
       {error && (
         <div className="flex h-full items-center justify-center">
-          <p className="text-sm text-error">Something went wrong!</p>
+          <p className="text-error text-sm">Something went wrong!</p>
         </div>
       )}
 
@@ -71,63 +71,80 @@ export default function TodaysForecast() {
       {data && (
         <div>
           <div className="mb-4 flex items-baseline justify-between">
-            <h3 className="text-lg font-semibold text-base-content">
+            <h3 className="text-base-content text-lg font-semibold">
               Today's Forecast
             </h3>
-            <span className="font-mono text-sm font-semibold text-base-content/70">
+            <span className="text-base-content/70 font-mono text-sm font-semibold">
               {maxTemperature}° / {minTemperature}°
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             {/* Sunrise */}
-            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
+            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
               <img className="size-10" src="/sunrise.svg" alt="sunrise" />
-              <p className="mt-2 font-mono text-sm font-semibold">{sunriseTime}</p>
-              <p className="text-xs text-base-content/50">Sunrise</p>
+              <p className="mt-2 font-mono text-sm font-semibold">
+                {sunriseTime}
+              </p>
+              <p className="text-base-content/50 text-xs">Sunrise</p>
             </div>
 
             {/* Sunset */}
-            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
+            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
               <img className="size-10" src="/sunset.svg" alt="sunset" />
-              <p className="mt-2 font-mono text-sm font-semibold">{sunsetTime}</p>
-              <p className="text-xs text-base-content/50">Sunset</p>
+              <p className="mt-2 font-mono text-sm font-semibold">
+                {sunsetTime}
+              </p>
+              <p className="text-base-content/50 text-xs">Sunset</p>
             </div>
 
             {/* UV Index */}
-            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
-              <img className="size-10" src={uvIndexImage} alt={uvImageDescription} />
+            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
+              <img
+                className="size-10"
+                src={uvIndexImage}
+                alt={uvImageDescription}
+              />
               <p className="mt-2 font-mono text-sm font-semibold">
-                {uvIndex?.[0]}<span className="text-base-content/40"> / 11</span>
+                {uvIndex?.[0]}
+                <span className="text-base-content/40"> / 11</span>
               </p>
-              <p className="text-xs text-base-content/50">UV Index</p>
+              <p className="text-base-content/50 text-xs">UV Index</p>
             </div>
 
             {/* Wind Direction */}
-            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
+            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
               <img className="size-10" src="/wind.svg" alt="wind direction" />
               <p className="mt-2 font-mono text-sm font-semibold">
                 {windDirection} {windDirectionDegree?.[0]}°
               </p>
-              <p className="text-xs text-base-content/50">Wind Dir.</p>
+              <p className="text-base-content/50 text-xs">Wind Dir.</p>
             </div>
 
             {/* Precipitation */}
-            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
-              <img className="size-10" src="/raindrops.svg" alt="precipitation" />
+            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
+              <img
+                className="size-10"
+                src="/raindrops.svg"
+                alt="precipitation"
+              />
               <p className="mt-2 font-mono text-sm font-semibold">
                 {precipitationSum?.[0]} mm
               </p>
-              <p className="text-xs text-base-content/50">Precipitation</p>
+              <p className="text-base-content/50 text-xs">Precipitation</p>
             </div>
 
             {/* Rain Probability */}
-            <div className="flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-3 py-4">
-              <img className="size-10" src="/rain-probability.svg" alt="rain probability" />
+            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
+              <img
+                className="size-10"
+                src="/rain-probability.svg"
+                alt="rain probability"
+              />
               <p className="mt-2 font-mono text-sm font-semibold">
                 {precipitationProbability?.[0]}%
               </p>
-              <p className="text-xs text-base-content/50">Rain chance</p>
+              <p className="text-base-content/50 text-xs">Rain chance</p>
             </div>
           </div>
         </div>

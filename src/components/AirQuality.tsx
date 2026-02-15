@@ -60,18 +60,43 @@ export default function AirQuality() {
 
   const pollutants = [
     { name: "PM₁₀", value: pm10, category: pm10Category, color: pm10TextColor },
-    { name: "PM₂.₅", value: pm2_5, category: pm2_5Category, color: pm2_5TextColor },
-    { name: "CO", value: carbonMonoxide, category: coCategory, color: coTextColor },
-    { name: "NO₂", value: nitrogenDioxide, category: no2Category, color: no2TextColor },
-    { name: "SO₂", value: sulphurDioxide, category: so2Category, color: so2TextColor },
-    { name: "O₃", value: ozone, category: ozoneCategory, color: ozoneTextColor },
+    {
+      name: "PM₂.₅",
+      value: pm2_5,
+      category: pm2_5Category,
+      color: pm2_5TextColor,
+    },
+    {
+      name: "CO",
+      value: carbonMonoxide,
+      category: coCategory,
+      color: coTextColor,
+    },
+    {
+      name: "NO₂",
+      value: nitrogenDioxide,
+      category: no2Category,
+      color: no2TextColor,
+    },
+    {
+      name: "SO₂",
+      value: sulphurDioxide,
+      category: so2Category,
+      color: so2TextColor,
+    },
+    {
+      name: "O₃",
+      value: ozone,
+      category: ozoneCategory,
+      color: ozoneTextColor,
+    },
   ];
 
   return (
-    <div className="relative h-full rounded-xl border border-base-content/5 bg-base-200 p-5">
+    <div className="border-base-content/5 bg-base-200 relative h-full rounded-xl border p-5">
       {error && (
         <div className="flex h-full items-center justify-center">
-          <p className="text-sm text-error">Something went wrong!</p>
+          <p className="text-error text-sm">Something went wrong!</p>
         </div>
       )}
 
@@ -85,30 +110,30 @@ export default function AirQuality() {
         <div>
           {/* Header */}
           <div className="mb-4 flex items-baseline justify-between">
-            <h3 className="text-lg font-semibold text-base-content">
+            <h3 className="text-base-content text-lg font-semibold">
               Air Quality
             </h3>
             <div className="flex items-center gap-2">
               <span className="status status-error animate-pulse"></span>
-              <span className="text-xs text-base-content/50">
+              <span className="text-base-content/50 text-xs">
                 Live · {lastUpdatedTime}
               </span>
             </div>
           </div>
 
           {/* AQI Hero */}
-          <div className="mb-4 flex flex-col items-center rounded-lg border border-base-content/5 bg-base-300 py-5">
+          <div className="border-base-content/5 bg-base-300 mb-4 flex flex-col items-center rounded-lg border py-5">
             <p className={cn("font-mono text-5xl font-bold", aqiTextColor)}>
               {aqi}
             </p>
-            <p className="mt-1 text-sm text-base-content/60">{aqiCategory}</p>
+            <p className="text-base-content/60 mt-1 text-sm">{aqiCategory}</p>
           </div>
 
           {/* Pollutant Table */}
           <div className="overflow-x-auto rounded-lg">
-            <table className="table table-zebra table-sm w-full">
+            <table className="table-zebra table-sm table w-full">
               <thead>
-                <tr className="text-xs text-base-content/50">
+                <tr className="text-base-content/50 text-xs">
                   <th className="font-medium">Pollutant</th>
                   <th className="text-center font-medium">μg/m³</th>
                   <th className="text-right font-medium">Status</th>
@@ -117,8 +142,10 @@ export default function AirQuality() {
               <tbody>
                 {pollutants.map((p) => (
                   <tr key={p.name}>
-                    <td className="text-sm text-base-content/80">{p.name}</td>
-                    <td className={cn("text-center font-mono text-sm", p.color)}>
+                    <td className="text-base-content/80 text-sm">{p.name}</td>
+                    <td
+                      className={cn("text-center font-mono text-sm", p.color)}
+                    >
                       {p.value}
                     </td>
                     <td className="text-right">

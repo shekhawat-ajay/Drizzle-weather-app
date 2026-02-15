@@ -69,7 +69,7 @@ export default function CurrentWeather() {
     >
       {error && (
         <div className="flex h-full w-full items-center justify-center py-8">
-          <p className="text-sm text-error-content">Something went wrong!</p>
+          <p className="text-error-content text-sm">Something went wrong!</p>
         </div>
       )}
       {isLoading ? (
@@ -116,11 +116,7 @@ export default function CurrentWeather() {
                 <p className="text-xs text-white/60">Feels like</p>
               </div>
               <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
-                <img
-                  className="size-8"
-                  src="/humidity.svg"
-                  alt="humidity"
-                />
+                <img className="size-8" src="/humidity.svg" alt="humidity" />
                 <p className="mt-1 text-sm font-semibold text-white">
                   {relativeHumidity}%
                 </p>

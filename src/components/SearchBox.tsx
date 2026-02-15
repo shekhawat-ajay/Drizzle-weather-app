@@ -1,4 +1,12 @@
-import { useContext, useEffect, useRef, useState, useCallback, FormEvent, ChangeEvent } from "react";
+import {
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  FormEvent,
+  ChangeEvent,
+} from "react";
 import { LocationContext } from "../App";
 import useLocation from "@/hooks/useLocation";
 import { MapPin } from "lucide-react";
@@ -105,7 +113,10 @@ export default function SearchBox() {
   //Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+      if (
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
         setResults([]);
         setDebouncedQuery("");
       }
@@ -118,13 +129,15 @@ export default function SearchBox() {
   const handleBlur = useCallback(() => {
     // Small delay so that click on a result item fires before we clear
     setTimeout(() => {
-      if (inputRef.current && !inputRef.current.contains(document.activeElement)) {
+      if (
+        inputRef.current &&
+        !inputRef.current.contains(document.activeElement)
+      ) {
         setResults([]);
         setDebouncedQuery("");
       }
     }, 150);
   }, []);
-
 
   return (
     <div
@@ -132,13 +145,13 @@ export default function SearchBox() {
       ref={inputRef}
       onBlur={handleBlur}
     >
-      <form onSubmit={handleSearch} className="w-full flex justify-center">
-        <label className="flex w-full max-w-lg items-center gap-2 rounded-lg border border-base-content/10 bg-base-200 px-4 py-2.5 transition-all duration-200 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20">
+      <form onSubmit={handleSearch} className="flex w-full justify-center">
+        <label className="border-base-content/10 bg-base-200 focus-within:border-primary/40 focus-within:ring-primary/20 flex w-full max-w-lg items-center gap-2 rounded-lg border px-4 py-2.5 transition-all duration-200 focus-within:ring-2">
           {isLoading ? (
             <span className="loading loading-spinner loading-sm text-base-content/40"></span>
           ) : (
             <svg
-              className="h-4 w-4 text-base-content/40"
+              className="text-base-content/40 h-4 w-4"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
             >
@@ -160,31 +173,31 @@ export default function SearchBox() {
             value={inputQuery}
             placeholder="Search city..."
             onChange={handleInputChange}
-            className="w-full bg-transparent text-sm outline-none border-none placeholder:text-base-content/30"
+            className="placeholder:text-base-content/30 w-full border-none bg-transparent text-sm outline-none"
           />
         </label>
       </form>
       {results.length > 0 && (
         <div
           className={cn(
-            "absolute top-full z-50 mt-2 max-h-60 w-full max-w-lg overflow-hidden rounded-lg border border-base-content/10 bg-base-300",
+            "border-base-content/10 bg-base-300 absolute top-full z-50 mt-2 max-h-60 w-full max-w-lg overflow-hidden rounded-lg border",
             results.length >= 4 && "scrollbar-thin overflow-y-auto",
           )}
         >
-          <ul className="divide-y divide-base-content/5">
+          <ul className="divide-base-content/5 divide-y">
             {results.map((location) => (
               <li
                 key={location.id}
                 onClick={() => handleSelectLocation(location)}
-                className="cursor-pointer transition-colors duration-150 hover:bg-base-200"
+                className="hover:bg-base-200 cursor-pointer transition-colors duration-150"
               >
                 <div className="flex items-center gap-3 px-4 py-3">
-                  <MapPin className="size-4 text-base-content/40" />
+                  <MapPin className="text-base-content/40 size-4" />
                   <div>
-                    <p className="text-sm font-medium text-base-content">
+                    <p className="text-base-content text-sm font-medium">
                       {location.name}
                     </p>
-                    <p className="text-xs text-base-content/50">
+                    <p className="text-base-content/50 text-xs">
                       {location.admin1}, {location.country}
                     </p>
                   </div>
@@ -196,7 +209,7 @@ export default function SearchBox() {
       )}
       {error && (
         <div className="absolute top-full z-50 mt-2 text-center">
-          <p className="text-sm text-error">Something went wrong!</p>
+          <p className="text-error text-sm">Something went wrong!</p>
         </div>
       )}
     </div>

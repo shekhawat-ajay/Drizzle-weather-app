@@ -143,25 +143,25 @@ export const HourlyForecastSchema = z.object({
     temperature2M: z.string(),
     weatherCode: z.string(),
     relativeHumidity2M: z.string(),
-    isDay: z.string()
+    isDay: z.string(),
   }),
   minutely15: z.object({
     time: z.array(z.string()),
     temperature2M: z.array(z.number()),
     weatherCode: z.array(z.number()),
     relativeHumidity2M: z.array(z.number()),
-    isDay: z.array(z.number())
+    isDay: z.array(z.number()),
   }),
   dailyUnits: z.object({
     time: z.string(),
     sunrise: z.string(),
-    sunset: z.string()
+    sunset: z.string(),
   }),
   daily: z.object({
     time: z.array(z.string()),
     sunrise: z.array(z.string()),
-    sunset: z.array(z.string())
-  })
-})
+    sunset: z.array(z.string()),
+  }),
+});
 
-export type HourlyForecastType = z.infer<typeof HourlyForecastSchema>
+export type HourlyForecastType = z.infer<typeof HourlyForecastSchema>;

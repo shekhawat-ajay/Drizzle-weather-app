@@ -23,8 +23,6 @@ export default function WeeklyForecast() {
     windSpeed10mMax: windSpeed,
   } = data?.daily || {};
 
-
-
   // ── Helpers ───────────────────────────────────────────────
 
   const getWeekDay = (someDay: string) => {
@@ -68,10 +66,10 @@ export default function WeeklyForecast() {
   };
 
   return (
-    <div className="relative rounded-xl border border-base-content/5 bg-base-200 p-5">
+    <div className="border-base-content/5 bg-base-200 relative rounded-xl border p-5">
       {error && (
         <div className="flex h-full items-center justify-center py-8">
-          <p className="text-sm text-error">Something went wrong!</p>
+          <p className="text-error text-sm">Something went wrong!</p>
         </div>
       )}
 
@@ -83,26 +81,30 @@ export default function WeeklyForecast() {
 
       {data && (
         <div>
-          <h3 className="mb-4 text-lg font-semibold text-base-content">
+          <h3 className="text-base-content mb-4 text-lg font-semibold">
             Weekly Forecast
           </h3>
 
-          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-thin">
+          <div className="scrollbar-thin flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2">
             {time?.map((date: string, index: number) => {
               const weather = getWeatherImage(weatherCode?.[index] ?? 0);
               return (
                 <div
                   key={date}
-                  className="flex min-w-[140px] flex-shrink-0 snap-start flex-col items-center rounded-lg border border-base-content/5 bg-base-300 px-4 py-4 transition-colors duration-150 hover:bg-base-200"
+                  className="border-base-content/5 bg-base-300 hover:bg-base-200 flex min-w-[140px] flex-shrink-0 snap-start flex-col items-center rounded-lg border px-4 py-4 transition-colors duration-150"
                 >
-                  <p className="text-xs text-base-content/50">{getDate(date)}</p>
+                  <p className="text-base-content/50 text-xs">
+                    {getDate(date)}
+                  </p>
                   <p className="text-sm font-medium">{getWeekDay(date)}</p>
                   <img
                     className="my-2 size-10"
                     src={weather?.imageSrc}
                     alt={weather?.description}
                   />
-                  <p className="text-xs text-base-content/60">{weather?.description}</p>
+                  <p className="text-base-content/60 text-xs">
+                    {weather?.description}
+                  </p>
 
                   {/* Temperature */}
                   <p className="mt-1 font-mono text-sm font-semibold">
@@ -111,15 +113,23 @@ export default function WeeklyForecast() {
 
                   {/* Rain & Precipitation */}
                   <div className="mt-3 flex items-center gap-1">
-                    <img className="size-4" src="/rain-probability.svg" alt="rain" />
+                    <img
+                      className="size-4"
+                      src="/rain-probability.svg"
+                      alt="rain"
+                    />
                     <span className="font-mono text-xs">
                       {precipitationProbability?.[index]}%
                     </span>
-                    <span className="text-xs text-base-content/40">Rain</span>
+                    <span className="text-base-content/40 text-xs">Rain</span>
                   </div>
                   {(precipitationSum?.[index] ?? 0) > 0 && (
                     <div className="mt-0.5 flex items-center gap-1">
-                      <img className="size-4" src="/raindrops.svg" alt="precipitation" />
+                      <img
+                        className="size-4"
+                        src="/raindrops.svg"
+                        alt="precipitation"
+                      />
                       <span className="font-mono text-xs">
                         {precipitationSum?.[index]} mm
                       </span>
