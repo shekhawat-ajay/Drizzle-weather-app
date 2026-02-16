@@ -2,13 +2,9 @@ import { LocationContext } from "@/App";
 import useAQI from "@/hooks/useAQI";
 import { useContext } from "react";
 import {
-  getAqiCategory,
-  getPm10Category,
-  getPm2_5Category,
-  getCOCategory,
-  getNO2Category,
-  getS02Category,
-  get03Category,
+  getNaqiCategoryStyle,
+  getEuAqiCategory,
+  getUsAqiCategory,
 } from "@/utils/maps/aqiMap";
 import { cn } from "@/utils/cn";
 import { ResultType } from "@/schema/location";
@@ -22,75 +18,16 @@ export default function AirQuality() {
     location.longitude,
   );
 
-  const {
-    time,
-    usAqi: aqi,
-    pm10,
-    pm25: pm2_5,
-    carbonMonoxide,
-    nitrogenDioxide,
-    sulphurDioxide,
-    ozone,
-  } = data?.current || {};
+  const categoryStyle = data
+    ? getNaqiCategoryStyle(data.category)
+    : getNaqiCategoryStyle("");
 
-  const getLastUpdatedTime = (time?: string) => {
-    const dateISO = time ? new Date(time) : new Date();
-    const timeString = dateISO.toLocaleString("default", {
-      hour: "numeric",
-      minute: "numeric",
-    });
-    return timeString;
-  };
+  const pollutantList = data ? Object.values(data.pollutants) : [];
 
-  const lastUpdatedTime = getLastUpdatedTime(time);
-  const { category: aqiCategory, textColor: aqiTextColor } =
-    (aqi !== undefined && getAqiCategory(aqi)) || {};
-  const { category: pm10Category, textColor: pm10TextColor } =
-    (pm10 !== undefined && getPm10Category(pm10)) || {};
-  const { category: pm2_5Category, textColor: pm2_5TextColor } =
-    (pm2_5 !== undefined && getPm2_5Category(pm2_5)) || {};
-  const { category: coCategory, textColor: coTextColor } =
-    (carbonMonoxide !== undefined && getCOCategory(carbonMonoxide)) || {};
-  const { category: no2Category, textColor: no2TextColor } =
-    (nitrogenDioxide !== undefined && getNO2Category(nitrogenDioxide)) || {};
-  const { category: so2Category, textColor: so2TextColor } =
-    (sulphurDioxide !== undefined && getS02Category(sulphurDioxide)) || {};
-  const { category: ozoneCategory, textColor: ozoneTextColor } =
-    (ozone !== undefined && get03Category(ozone)) || {};
-
-  const pollutants = [
-    { name: "PM₁₀", value: pm10, category: pm10Category, color: pm10TextColor },
-    {
-      name: "PM₂.₅",
-      value: pm2_5,
-      category: pm2_5Category,
-      color: pm2_5TextColor,
-    },
-    {
-      name: "CO",
-      value: carbonMonoxide,
-      category: coCategory,
-      color: coTextColor,
-    },
-    {
-      name: "NO₂",
-      value: nitrogenDioxide,
-      category: no2Category,
-      color: no2TextColor,
-    },
-    {
-      name: "SO₂",
-      value: sulphurDioxide,
-      category: so2Category,
-      color: so2TextColor,
-    },
-    {
-      name: "O₃",
-      value: ozone,
-      category: ozoneCategory,
-      color: ozoneTextColor,
-    },
-  ];
+  const euAqi = data?.europeanAqi;
+  const usAqi = data?.usAqi;
+  const euCategory = euAqi != null ? getEuAqiCategory(euAqi) : null;
+  const usCategory = usAqi != null ? getUsAqiCategory(usAqi) : null;
 
   return (
     <div className="border-base-content/5 bg-base-200 relative h-full rounded-xl border p-5">
@@ -114,20 +51,121 @@ export default function AirQuality() {
               Air Quality
             </h3>
             <div className="flex items-center gap-2">
-              <span className="status status-error animate-pulse"></span>
-              <span className="text-base-content/50 text-xs">
-                Live · {lastUpdatedTime}
-              </span>
+              <span
+                className={cn("status animate-pulse", categoryStyle.dotColor)}
+              ></span>
+              <span className="text-base-content/50 text-xs">NAQI · LIVE</span>
             </div>
           </div>
 
-          {/* AQI Hero */}
-          <div className="border-base-content/5 bg-base-300 mb-4 flex flex-col items-center rounded-lg border py-5">
-            <p className={cn("font-mono text-5xl font-bold", aqiTextColor)}>
-              {aqi}
-            </p>
-            <p className="text-base-content/60 mt-1 text-sm">{aqiCategory}</p>
+          {/* AQI Indices — 3-column row */}
+          <div className="mb-4 grid grid-cols-3 gap-2">
+            {/* NAQI (primary) */}
+            <div
+              className={cn(
+                "flex flex-col items-center rounded-lg border py-4",
+                categoryStyle.bgColor,
+                categoryStyle.borderColor,
+              )}
+            >
+              <p className="text-base-content/40 mb-1 text-[10px] font-medium tracking-wider uppercase">
+                NAQI
+              </p>
+              <p
+                className={cn(
+                  "font-mono text-3xl font-bold",
+                  categoryStyle.textColor,
+                )}
+              >
+                {data.aqi}
+              </p>
+              <p
+                className={cn(
+                  "mt-0.5 text-xs font-medium",
+                  categoryStyle.textColor,
+                )}
+              >
+                {data.category}
+              </p>
+            </div>
+
+            {/* European AQI */}
+            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border py-4">
+              <p className="text-base-content/40 mb-1 text-[10px] font-medium tracking-wider uppercase">
+                EU AQI
+              </p>
+              {euAqi != null && euCategory ? (
+                <>
+                  <p
+                    className={cn(
+                      "font-mono text-3xl font-bold",
+                      euCategory.textColor,
+                    )}
+                  >
+                    {euAqi}
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-0.5 text-xs font-medium",
+                      euCategory.textColor,
+                    )}
+                  >
+                    {euCategory.label}
+                  </p>
+                </>
+              ) : (
+                <p className="text-base-content/30 font-mono text-2xl">—</p>
+              )}
+            </div>
+
+            {/* US AQI */}
+            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border py-4">
+              <p className="text-base-content/40 mb-1 text-[10px] font-medium tracking-wider uppercase">
+                US AQI
+              </p>
+              {usAqi != null && usCategory ? (
+                <>
+                  <p
+                    className={cn(
+                      "font-mono text-3xl font-bold",
+                      usCategory.textColor,
+                    )}
+                  >
+                    {usAqi}
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-0.5 text-xs font-medium",
+                      usCategory.textColor,
+                    )}
+                  >
+                    {usCategory.label}
+                  </p>
+                </>
+              ) : (
+                <p className="text-base-content/30 font-mono text-2xl">—</p>
+              )}
+            </div>
           </div>
+
+          {/* Prominent pollutant */}
+          {data.prominentPollutant && (
+            <div className="mb-4 flex items-center gap-1.5">
+              <span className="text-base-content/40 text-xs">
+                Prominent pollutant:
+              </span>
+              <span
+                className={cn(
+                  "badge badge-sm border font-medium",
+                  categoryStyle.bgColor,
+                  categoryStyle.borderColor,
+                  categoryStyle.textColor,
+                )}
+              >
+                {data.prominentPollutant}
+              </span>
+            </div>
+          )}
 
           {/* Pollutant Table */}
           <div className="overflow-x-auto rounded-lg">
@@ -135,26 +173,48 @@ export default function AirQuality() {
               <thead>
                 <tr className="text-base-content/50 text-xs">
                   <th className="font-medium">Pollutant</th>
-                  <th className="text-center font-medium">μg/m³</th>
+                  <th className="text-center font-medium">Conc.</th>
+                  <th className="text-center font-medium">Sub-Index</th>
                   <th className="text-right font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {pollutants.map((p) => (
-                  <tr key={p.name}>
-                    <td className="text-base-content/80 text-sm">{p.name}</td>
-                    <td
-                      className={cn("text-center font-mono text-sm", p.color)}
-                    >
-                      {p.value}
-                    </td>
-                    <td className="text-right">
-                      <span className="badge badge-sm badge-ghost text-xs">
-                        {p.category}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {pollutantList.map((p) => {
+                  const pStyle = getNaqiCategoryStyle(p.category);
+                  return (
+                    <tr key={p.label}>
+                      <td className="text-base-content/80 text-sm">
+                        {p.label}
+                        <span className="text-base-content/30 ml-1 text-[10px]">
+                          {p.unit}
+                        </span>
+                      </td>
+                      <td
+                        className={cn(
+                          "text-center font-mono text-sm",
+                          pStyle.textColor,
+                        )}
+                      >
+                        {p.concentration}
+                      </td>
+                      <td className="text-base-content/60 text-center font-mono text-sm">
+                        {p.subIndex}
+                      </td>
+                      <td className="text-right">
+                        <span
+                          className={cn(
+                            "badge badge-sm border text-xs",
+                            pStyle.bgColor,
+                            pStyle.borderColor,
+                            pStyle.textColor,
+                          )}
+                        >
+                          {p.category}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

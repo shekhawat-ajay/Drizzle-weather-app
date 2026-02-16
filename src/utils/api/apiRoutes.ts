@@ -12,7 +12,7 @@ export const apiRoutes = {
   weeklyForecast: (latitude: number, longitude: number) =>
     `${WEATHER_BASE_URL}/forecast?latitude=${latitude}&longitude=${longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max&timezone=auto&past_days=1`,
   aqi: (latitude: number, longitude: number) =>
-    `${AIR_QUALITY_BASE_URL}/air-quality?latitude=${latitude}&longitude=${longitude}&current=us_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone&timezone=auto&forecast_days=1`,
+    `${AIR_QUALITY_BASE_URL}/air-quality?latitude=${latitude}&longitude=${longitude}&hourly=pm10,pm2_5,nitrogen_dioxide,sulphur_dioxide,ammonia,carbon_monoxide,ozone,european_aqi,us_aqi&timezone=auto&past_days=1&forecast_days=1`,
   location: (query: string) =>
     `${GEOCODING_BASE_URL}/search?name=${query}&count=10&language=en&format=json`,
   hourlyForecast: (latitude: number, longitude: number) =>
