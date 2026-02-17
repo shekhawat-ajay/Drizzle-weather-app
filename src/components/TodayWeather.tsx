@@ -48,10 +48,19 @@ export default function TodaysForecast() {
     return image;
   };
 
+  const getUvLevel = (uv: number): { label: string; colorClass: string } => {
+    if (uv < 3) return { label: "Low", colorClass: "text-green-400" };
+    if (uv < 6) return { label: "Moderate", colorClass: "text-yellow-400" };
+    if (uv < 8) return { label: "High", colorClass: "text-orange-400" };
+    if (uv < 11) return { label: "Very High", colorClass: "text-red-400" };
+    return { label: "Extreme", colorClass: "text-fuchsia-400" };
+  };
+
   const sunriseTime = getTime(sunrise?.[0] ?? "");
   const sunsetTime = getTime(sunset?.[0] ?? "");
   const { imageSrc: uvIndexImage, description: uvImageDescription } =
     setUvIndexImage(uvIndex?.[0] ?? 0) || {};
+  const uvLevel = getUvLevel(uvIndex?.[0] ?? 0);
 
   const windDirection = getWindDirection(windDirectionDegree?.[0] ?? 0);
 
@@ -110,6 +119,9 @@ export default function TodaysForecast() {
                 {uvIndex?.[0]?.toFixed(1)}
                 <span className="text-base-content/40"> / 11</span>
               </p>
+              <p className={`text-xs font-medium ${uvLevel.colorClass}`}>
+                {uvLevel.label}
+              </p>
               <p className="text-base-content/50 text-xs">UV Index</p>
             </div>
 
@@ -119,7 +131,7 @@ export default function TodaysForecast() {
                 className="size-10"
                 src="/compass.svg"
                 alt="wind direction"
-                />
+              />
               <p className="mt-2 font-mono text-sm font-semibold">
                 {windDirection} {windDirectionDegree?.[0]}°
               </p>
