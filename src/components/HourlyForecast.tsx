@@ -105,6 +105,8 @@ export default function HourlyForecast() {
       ts: number;
       time: string;
       temp: number;
+      weatherCode: number;
+      isDay: number;
       isHighest?: boolean;
       isLowest?: boolean;
     }[] = [];
@@ -115,6 +117,8 @@ export default function HourlyForecast() {
           ts: ms,
           time: minutely15.time[i]!,
           temp: minutely15.temperature2M[i]!,
+          weatherCode: minutely15.weatherCode[i]!,
+          isDay: minutely15.isDay[i]!,
         });
       }
     }
@@ -258,6 +262,8 @@ export default function HourlyForecast() {
                       const d = payload[0].payload as {
                         time: string;
                         temp: number;
+                        weatherCode: number;
+                        isDay: number;
                         isHighest?: boolean;
                         isLowest?: boolean;
                       };
@@ -266,6 +272,9 @@ export default function HourlyForecast() {
                         : d.isLowest
                           ? "Lowest"
                           : null;
+                      const weatherKey = `${d.weatherCode}${d.isDay ? "d" : "n"}`;
+                      const weatherDesc =
+                        weatherImageMap[weatherKey]?.description;
                       return (
                         <div className="border-base-content/10 bg-base-300 rounded-lg border px-3 py-2 shadow-lg">
                           <p className="text-base-content/60 text-xs">
@@ -274,6 +283,11 @@ export default function HourlyForecast() {
                           <p className="font-mono text-sm font-semibold">
                             {d.temp}°
                           </p>
+                          {weatherDesc && (
+                            <p className="text-base-content/50 text-xs">
+                              {weatherDesc}
+                            </p>
+                          )}
                           {extremeLabel && (
                             <p
                               className={`text-xs font-medium ${
