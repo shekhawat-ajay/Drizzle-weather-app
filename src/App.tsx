@@ -7,6 +7,7 @@ import TodaysForecast from "@/components/TodayWeather";
 import AirQuality from "@/components/AirQuality";
 import WeeklyForecast from "@/components/WeeklyForecast";
 import Footer from "@/components/Footer";
+import LocationMap from "@/components/LocationMap";
 import { ResultType } from "@/schema/location";
 
 interface LocationContextType {
@@ -50,6 +51,9 @@ function App() {
           </div>
           <div className="col-span-12">
             <WeeklyForecast />
+          </div>
+          <div className="col-span-12">
+            <LocationMap />
           </div>
         </div>
         <Footer />
