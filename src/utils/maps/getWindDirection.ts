@@ -4,20 +4,20 @@ export const getWindDirection = (degree: number): string => {
   }
 
   if (degree >= 337.5 || degree < 22.5) {
-    return "North";
+    return "N";
   } else if (degree >= 22.5 && degree < 67.5) {
-    return "North-East";
+    return "NE";
   } else if (degree >= 67.5 && degree < 112.5) {
-    return "East";
+    return "E";
   } else if (degree >= 112.5 && degree < 157.5) {
-    return "South-East";
+    return "SE";
   } else if (degree >= 157.5 && degree < 202.5) {
-    return "South";
+    return "S";
   } else if (degree >= 202.5 && degree < 247.5) {
-    return "South-West";
+    return "SW";
   } else if (degree >= 247.5 && degree < 292.5) {
-    return "West";
+    return "W";
   } else {
-    return "North-West";
+    return "NW";
   }
 };

@@ -30,6 +30,7 @@ export default function TodaysForecast() {
     const dateString = dateISO.toLocaleString("default", {
       hour: "numeric",
       minute: "numeric",
+      hour12: true,
     });
     return dateString;
   };
@@ -106,7 +107,7 @@ export default function TodaysForecast() {
                 alt={uvImageDescription}
               />
               <p className="mt-2 font-mono text-sm font-semibold">
-                {uvIndex?.[0]}
+                {uvIndex?.[0]?.toFixed(1)}
                 <span className="text-base-content/40"> / 11</span>
               </p>
               <p className="text-base-content/50 text-xs">UV Index</p>
@@ -114,7 +115,11 @@ export default function TodaysForecast() {
 
             {/* Wind Direction */}
             <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
-              <img className="size-10" src="/wind.svg" alt="wind direction" />
+              <img
+                className="size-10"
+                src="/compass.svg"
+                alt="wind direction"
+                />
               <p className="mt-2 font-mono text-sm font-semibold">
                 {windDirection} {windDirectionDegree?.[0]}°
               </p>

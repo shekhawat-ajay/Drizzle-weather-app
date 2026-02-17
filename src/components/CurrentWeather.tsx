@@ -49,6 +49,7 @@ export default function CurrentWeather() {
     const timeString = dateISO.toLocaleString("default", {
       hour: "numeric",
       minute: "numeric",
+      hour12: true,
     });
     return timeString;
   };
