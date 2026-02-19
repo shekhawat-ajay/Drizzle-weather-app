@@ -1,13 +1,11 @@
 import { createContext, useState, Dispatch, SetStateAction } from "react";
+import { Routes, Route } from "react-router";
+import { ThemeProvider } from "@/context/ThemeContext";
 import SearchBox from "@/components/SearchBox";
 import Header from "@/components/Header";
-import CurrentWeather from "@/components/CurrentWeather";
-import HourlyForecast from "@/components/HourlyForecast";
-import TodaysForecast from "@/components/TodayWeather";
-import AirQuality from "@/components/AirQuality";
-import WeeklyForecast from "@/components/WeeklyForecast";
 import Footer from "@/components/Footer";
-import LocationMap from "@/components/LocationMap";
+import WeatherPage from "@/pages/WeatherPage";
+import AstronomyPage from "@/pages/AstronomyPage";
 import { ResultType } from "@/schema/location";
 
 interface LocationContextType {
@@ -31,33 +29,19 @@ function App() {
 
   return (
     <LocationContext.Provider value={{ location, setLocation }}>
-      <main className="animate-fade-in mx-auto max-w-4xl px-4 py-6">
-        <Header />
-        <div className="mt-6 mb-6">
-          <SearchBox />
-        </div>
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12">
-            <CurrentWeather />
+      <ThemeProvider>
+        <main className="animate-fade-in mx-auto max-w-4xl px-4 py-6">
+          <Header />
+          <div className="mt-6 mb-6">
+            <SearchBox />
           </div>
-          <div className="col-span-12">
-            <HourlyForecast />
-          </div>
-          <div className="col-span-12 md:col-span-6">
-            <TodaysForecast />
-          </div>
-          <div className="col-span-12 md:col-span-6">
-            <AirQuality />
-          </div>
-          <div className="col-span-12">
-            <WeeklyForecast />
-          </div>
-          <div className="col-span-12">
-            <LocationMap />
-          </div>
-        </div>
-        <Footer />
-      </main>
+          <Routes>
+            <Route path="/" element={<WeatherPage />} />
+            <Route path="/astronomy" element={<AstronomyPage />} />
+          </Routes>
+          <Footer />
+        </main>
+      </ThemeProvider>
     </LocationContext.Provider>
   );
 }
