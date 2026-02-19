@@ -29,7 +29,7 @@ export type ResultType = z.infer<typeof ResultSchema>;
 
 export const LocationSchema = z
   .object({
-    results: z.array(ResultSchema),
+    results: z.array(ResultSchema).default([]),
     generationtimeMs: z.number(),
   })
   .readonly();

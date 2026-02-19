@@ -9,7 +9,7 @@ import {
 } from "react";
 import { LocationContext } from "../App";
 import useLocation from "@/hooks/useLocation";
-import { MapPin } from "lucide-react";
+import { MapPin, MapPinOff } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { ResultType } from "@/schema/location";
 
@@ -19,6 +19,7 @@ export default function SearchBox() {
   const [inputQuery, setInputQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [results, setResults] = useState<ResultType[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
   const { setLocation } = useContext(LocationContext)!;
   const inputRef = useRef<HTMLDivElement>(null);
   const debounceTimeoutRef = useRef<number | null>(null);
@@ -31,29 +32,34 @@ export default function SearchBox() {
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current); // Clear any pending debounce
     }
-    if (inputQuery.length >= 2) {
-      setDebouncedQuery(inputQuery); // Trigger search immediately
+    const trimmedQuery = inputQuery.trimEnd();
+    if (trimmedQuery.length >= 2) {
+      setDebouncedQuery(trimmedQuery); // Trigger search immediately
       if (results?.[0]) {
         setLocation(results[0]);
       }
       setResults([]);
       setInputQuery("");
+      setShowDropdown(false);
     } else {
       setResults([]); // Clear results if search is submitted with invalid input
       setDebouncedQuery("");
+      setShowDropdown(false);
     }
   };
 
   // handle debouncing of input query
   useEffect(() => {
-    if (inputQuery.length < 2) {
+    const trimmedQuery = inputQuery.trimEnd();
+    if (trimmedQuery.length < 2) {
       setDebouncedQuery("");
       setResults([]);
       return;
     }
 
     debounceTimeoutRef.current = setTimeout(() => {
-      setDebouncedQuery(inputQuery);
+      setDebouncedQuery(trimmedQuery);
+      setShowDropdown(true);
     }, DEBOUNCE_DELAY);
 
     return () => {
@@ -106,6 +112,7 @@ export default function SearchBox() {
       setInputQuery("");
       setDebouncedQuery("");
       setResults([]);
+      setShowDropdown(false);
     },
     [setLocation],
   );
@@ -117,8 +124,7 @@ export default function SearchBox() {
         inputRef.current &&
         !inputRef.current.contains(event.target as Node)
       ) {
-        setResults([]);
-        setDebouncedQuery("");
+        setShowDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -133,11 +139,17 @@ export default function SearchBox() {
         inputRef.current &&
         !inputRef.current.contains(document.activeElement)
       ) {
-        setResults([]);
-        setDebouncedQuery("");
+        setShowDropdown(false);
       }
     }, 150);
   }, []);
+
+  // Re-show dropdown when input is focused and there's a valid query
+  const handleFocus = useCallback(() => {
+    if (inputQuery.trimEnd().length >= 2) {
+      setShowDropdown(true);
+    }
+  }, [inputQuery]);
 
   return (
     <div
@@ -173,11 +185,12 @@ export default function SearchBox() {
             value={inputQuery}
             placeholder="Search city..."
             onChange={handleInputChange}
+            onFocus={handleFocus}
             className="placeholder:text-base-content/30 w-full border-none bg-transparent text-sm outline-none"
           />
         </label>
       </form>
-      {results.length > 0 && (
+      {showDropdown && results.length > 0 && (
         <div
           className={cn(
             "border-base-content/10 bg-base-300 absolute top-full z-50 mt-2 max-h-60 w-full max-w-lg overflow-hidden rounded-lg border",
@@ -212,6 +225,21 @@ export default function SearchBox() {
           <p className="text-error text-sm">Something went wrong!</p>
         </div>
       )}
+      {showDropdown &&
+        !isLoading &&
+        !error &&
+        debouncedQuery.length >= 2 &&
+        data &&
+        results.length === 0 && (
+          <div className="border-base-content/10 bg-base-300 absolute top-full z-50 mt-2 w-full max-w-lg rounded-lg border">
+            <div className="flex items-center gap-3 px-4 py-4">
+              <MapPinOff className="text-base-content/40 size-4 shrink-0" />
+              <p className="text-base-content/50 text-sm">
+                No cities found for &ldquo;{debouncedQuery}&rdquo;
+              </p>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

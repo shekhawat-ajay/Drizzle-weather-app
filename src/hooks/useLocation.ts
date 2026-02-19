@@ -6,7 +6,7 @@ import { LocationSchema, LocationType } from "@/schema/location";
 
 export default function useLocation(query: string) {
   const { data, isLoading, error } = useSWR(
-    !query || query.trim().length < 2 ? null : apiRoutes.location(query),
+    !query || query.trimEnd().length < 2 ? null : apiRoutes.location(query),
     fetcher,
   );
 
