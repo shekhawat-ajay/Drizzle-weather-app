@@ -215,7 +215,7 @@ export default function AstronomyPage() {
   };
 
   const { sun, moon, planets, nextMoonPhases, nextSeason, stargazing } =
-    useAstronomy(location.latitude, location.longitude);
+    useAstronomy(location.latitude, location.longitude, location.timezone);
 
   const tz = location.timezone;
 
