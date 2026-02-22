@@ -1,7 +1,7 @@
 import { useContext, useMemo } from "react";
 import { LocationContext } from "@/App";
 import { ResultType } from "@/schema/location";
-import useHourlyForecast from "@/hooks/useHourlyForecast";
+import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
 import { weatherImageMap } from "@/utils/maps/weatherImageMap";
 import {
   AreaChart,
@@ -13,21 +13,7 @@ import {
   ReferenceLine,
 } from "recharts";
 
-// ── Types ───────────────────────────────────────────────────────
-
-type WeatherCard = {
-  time: string;
-  temp: number;
-  weatherCode: number;
-  isDay: number;
-  humidity: number;
-};
-
-type SunEvent = {
-  kind: "sunrise" | "sunset";
-  time: string;
-  ts: number;
-};
+import type { WeatherCard, SunEvent } from "@/types/forecast";
 
 // ── Custom label for sun reference lines ────────────────────────
 

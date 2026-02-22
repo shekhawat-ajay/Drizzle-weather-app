@@ -1,6 +1,6 @@
 import { useContext } from "react";
-import { LocationContext } from "../App";
-import useCurrentWeather from "@/hooks/useCurrentWeather";
+import { LocationContext } from "@/App";
+import useCurrentWeather from "@/hooks/weather/useCurrentWeather";
 import { weatherImageMap } from "@/utils/maps/weatherImageMap";
 import { cn } from "@/utils/cn";
 import { ResultType } from "@/schema/location";

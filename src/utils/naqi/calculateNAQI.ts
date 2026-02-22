@@ -25,7 +25,7 @@ import type {
   AirQualityHourlyData,
   NAQIResult,
   PollutantResult,
-} from "./types";
+} from "@/types/naqi";
 
 // ─── BREAKPOINT TABLES ──────────────────────────────────
 // [BPLo, BPHi, AQI_Lo, AQI_Hi]

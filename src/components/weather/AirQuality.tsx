@@ -1,5 +1,5 @@
 import { LocationContext } from "@/App";
-import useAQI from "@/hooks/useAQI";
+import useAQI from "@/hooks/weather/useAQI";
 import { useContext } from "react";
 import {
   getNaqiCategoryStyle,

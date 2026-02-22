@@ -6,21 +6,9 @@ import {
   calcNextSeason,
   calcPlanetData,
   getStargazingQuality,
-  type SunData,
-  type MoonData,
-  type PlanetData,
-  type NextMoonPhaseData,
-  type SeasonData,
 } from "@/utils/astronomy";
 
-export interface AstronomyData {
-  sun: SunData;
-  moon: MoonData;
-  planets: PlanetData[];
-  nextMoonPhases: NextMoonPhaseData[];
-  nextSeason: SeasonData;
-  stargazing: { label: string; description: string };
-}
+import type { AstronomyData } from "@/types/astronomy";
 
 export default function useAstronomy(
   latitude: number,

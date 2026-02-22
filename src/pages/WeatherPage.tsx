@@ -1,9 +1,9 @@
-import CurrentWeather from "@/components/CurrentWeather";
-import HourlyForecast from "@/components/HourlyForecast";
-import TodaysForecast from "@/components/TodayWeather";
-import AirQuality from "@/components/AirQuality";
-import WeeklyForecast from "@/components/WeeklyForecast";
-import LocationMap from "@/components/LocationMap";
+import CurrentWeather from "@/components/weather/CurrentWeather";
+import HourlyForecast from "@/components/weather/HourlyForecast";
+import TodaysForecast from "@/components/weather/TodayWeather";
+import AirQuality from "@/components/weather/AirQuality";
+import WeeklyForecast from "@/components/weather/WeeklyForecast";
+import LocationMap from "@/components/weather/LocationMap";
 
 export default function WeatherPage() {
   return (

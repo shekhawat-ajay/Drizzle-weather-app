@@ -72,3 +72,8 @@ build/Release
 .vscode-test.agent/
 .agents/
 .agent
+
+# VSCode settings
+.vscode/
+
+daisyui-llm.txt

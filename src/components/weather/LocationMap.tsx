@@ -9,7 +9,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { Layers } from "lucide-react";
-import { LocationContext } from "../App";
+import { LocationContext } from "@/App";
 import { ResultType } from "@/schema/location";
 
 // Fix default marker icons — Leaflet's default icon paths break with bundlers

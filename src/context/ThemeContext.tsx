@@ -1,11 +1,7 @@
 import { createContext, useContext, useMemo } from "react";
 import { useLocation } from "react-router";
 
-type AppTheme = "weather" | "astronomy";
-
-interface ThemeContextType {
-  theme: AppTheme;
-}
+import type { AppTheme, ThemeContextType } from "@/types/theme";
 
 const ThemeContext = createContext<ThemeContextType>({ theme: "weather" });
 

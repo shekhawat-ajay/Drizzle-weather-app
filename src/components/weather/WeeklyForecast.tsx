@@ -1,6 +1,6 @@
-import useWeeklyForecast from "@/hooks/useWeeklyForecast";
+import useWeeklyForecast from "@/hooks/weather/useWeeklyForecast";
 import { useContext } from "react";
-import { LocationContext } from "../App";
+import { LocationContext } from "@/App";
 import { weatherImageMap } from "@/utils/maps/weatherImageMap";
 import { ResultType } from "@/schema/location";
 

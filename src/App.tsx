@@ -1,4 +1,4 @@
-import { createContext, useState, Dispatch, SetStateAction } from "react";
+import { createContext, useState } from "react";
 import { Routes, Route } from "react-router";
 import { ThemeProvider } from "@/context/ThemeContext";
 import SearchBox from "@/components/SearchBox";
@@ -8,10 +8,7 @@ import WeatherPage from "@/pages/WeatherPage";
 import AstronomyPage from "@/pages/AstronomyPage";
 import { ResultType } from "@/schema/location";
 
-interface LocationContextType {
-  location: ResultType;
-  setLocation: Dispatch<SetStateAction<ResultType>>;
-}
+import type { LocationContextType } from "@/types/context";
 
 const LocationContext = createContext<LocationContextType | null>(null);
 

@@ -1,4 +1,4 @@
-import useTodayWeather from "@/hooks/useTodayWeather";
+import useTodayWeather from "@/hooks/weather/useTodayWeather";
 import { useContext } from "react";
 import { LocationContext } from "@/App";
 import { uvIndexImageMap } from "@/utils/maps/uvIndexImageMap";
