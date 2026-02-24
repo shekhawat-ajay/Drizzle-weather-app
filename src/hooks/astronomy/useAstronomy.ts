@@ -1,10 +1,12 @@
 import { useMemo } from "react";
 import {
   calcSunData,
+  calcSunPosition,
   calcMoonData,
   calcNextMoonPhases,
   calcNextSeason,
   calcPlanetData,
+  calcNextRiseSet,
   getStargazingQuality,
 } from "@/utils/astronomy";
 
@@ -59,16 +61,33 @@ export default function useAstronomy(
     const todayStart = new Date(localMidnight.getTime() - tzDiffMs);
 
     const sun = calcSunData(latitude, longitude, todayStart);
+    const sunPosition = calcSunPosition(
+      latitude,
+      longitude,
+      now,
+      sun.sunrise,
+      sun.sunset,
+    );
     const moon = calcMoonData(latitude, longitude, todayStart);
     const planets = calcPlanetData(latitude, longitude, todayStart);
     const nextMoonPhases = calcNextMoonPhases(now, 4);
     const nextSeason = calcNextSeason(now);
+    const nextRiseSet = calcNextRiseSet(latitude, longitude, now);
     const stargazing = getStargazingQuality(
       moon.illuminationFraction,
       sun.sunset,
       now,
     );
 
-    return { sun, moon, planets, nextMoonPhases, nextSeason, stargazing };
+    return {
+      sun,
+      sunPosition,
+      moon,
+      planets,
+      nextMoonPhases,
+      nextSeason,
+      nextRiseSet,
+      stargazing,
+    };
   }, [latitude, longitude]);
 }

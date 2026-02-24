@@ -18,6 +18,7 @@ export interface MoonData {
   phaseName: string;
   illuminationFraction: number;
   emoji: string;
+  icon: string;
 }
 
 export interface PlanetData {
@@ -30,6 +31,7 @@ export interface NextMoonPhaseData {
   name: string;
   date: Date;
   emoji: string;
+  icon: string;
 }
 
 export interface SeasonData {
@@ -37,11 +39,39 @@ export interface SeasonData {
   date: Date;
 }
 
+export interface NextRiseSetData {
+  /** Next sunrise from current moment */
+  nextSunrise: Date | null;
+  /** Next sunset from current moment */
+  nextSunset: Date | null;
+  /** Next moonrise from current moment */
+  nextMoonrise: Date | null;
+  /** Next moonset from current moment */
+  nextMoonset: Date | null;
+  /** Most recent sunset (for early morning before sunrise) */
+  prevSunset: Date | null;
+  /** Most recent moonset (for early morning before moonrise) */
+  prevMoonset: Date | null;
+}
+
 export interface AstronomyData {
   sun: SunData;
+  sunPosition: SunPositionData;
   moon: MoonData;
   planets: PlanetData[];
   nextMoonPhases: NextMoonPhaseData[];
   nextSeason: SeasonData;
+  nextRiseSet: NextRiseSetData;
   stargazing: { label: string; description: string };
+}
+
+export interface SunPositionData {
+  /** Current altitude in degrees (negative = below horizon) */
+  altitude: number;
+  /** 0 = sunrise, 0.5 = solar noon, 1 = sunset. null if no rise/set today */
+  arcFraction: number | null;
+  /** Maximum altitude the sun reaches today (solar noon) in degrees */
+  noonAltitude: number;
+  /** Is the sun currently above the horizon? */
+  isAboveHorizon: boolean;
 }

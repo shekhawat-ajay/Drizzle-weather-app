@@ -2,37 +2,74 @@ import { useContext } from "react";
 import { LocationContext } from "@/App";
 import { ResultType } from "@/schema/location";
 import useAstronomy from "@/hooks/astronomy/useAstronomy";
-import {
-  Sun,
-  Moon,
-  Sunrise,
-  Sunset,
-  Star,
-  Eye,
-  Globe,
-  Clock,
-  CalendarDays,
-} from "lucide-react";
+import { Sun, Moon, Eye, Globe, Clock, CalendarDays } from "lucide-react";
 
 import AstroCard from "@/components/astronomy/AstroCard";
 import AstroHero from "@/components/astronomy/AstroHero";
 import SectionHeader from "@/components/astronomy/SectionHeader";
 import MoonPhaseTimeline from "@/components/astronomy/MoonPhaseTimeline";
+import SunPositionArc from "@/components/astronomy/SunPositionArc";
+import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import { fmtTime, fmtDuration } from "@/utils/formatters";
+
+const isPast = (d: Date | null) => d !== null && d.getTime() < Date.now();
 
 export default function AstronomyPage() {
   const { location } = useContext(LocationContext) as unknown as {
     location: ResultType;
   };
 
-  const { sun, moon, planets, nextMoonPhases, nextSeason, stargazing } =
-    useAstronomy(location.latitude, location.longitude, location.timezone);
+  const {
+    sun,
+    sunPosition,
+    moon,
+    planets,
+    nextMoonPhases,
+    nextSeason,
+    nextRiseSet,
+  } = useAstronomy(location.latitude, location.longitude, location.timezone);
 
   const tz = location.timezone;
 
+  // ─── Badge targets ───
+  // Each card shows ITS OWN event only. Three states:
+  //
+  // 1. Early morning (both future):
+  //    sunrise → today's sunrise "in X"
+  //    sunset  → yesterday's sunset "X ago"
+  //
+  // 2. Daytime (sunrise past, sunset future):
+  //    sunrise → today's sunrise "X ago"
+  //    sunset  → today's sunset "in X"
+  //
+  // 3. Nighttime (both past):
+  //    sunrise → next sunrise "in X"
+  //    sunset  → today's sunset "X ago"
+
+  const bothSunFuture = !isPast(sun.sunrise) && !isPast(sun.sunset);
+  const bothSunPast = isPast(sun.sunrise) && isPast(sun.sunset);
+  const bothMoonFuture = !isPast(moon.moonrise) && !isPast(moon.moonset);
+  const bothMoonPast = isPast(moon.moonrise) && isPast(moon.moonset);
+
+  const sunriseBadgeTarget = bothSunPast
+    ? nextRiseSet.nextSunrise // state 3: tomorrow's sunrise
+    : sun.sunrise; // state 1 & 2: today's sunrise
+
+  const sunsetBadgeTarget = bothSunFuture
+    ? nextRiseSet.prevSunset // state 1: yesterday's sunset
+    : sun.sunset; // state 2 & 3: today's sunset
+
+  const moonriseBadgeTarget = bothMoonPast
+    ? nextRiseSet.nextMoonrise // state 3
+    : moon.moonrise; // state 1 & 2
+
+  const moonsetBadgeTarget = bothMoonFuture
+    ? nextRiseSet.prevMoonset // state 1
+    : moon.moonset; // state 2 & 3
+
   return (
     <div className="space-y-4">
-      <AstroHero moonEmoji={moon.emoji} />
+      <AstroHero />
 
       {/* Location context */}
       <div className="flex items-center gap-2 px-1">
@@ -50,25 +87,38 @@ export default function AstronomyPage() {
         <SectionHeader icon={Sun} label="Sun" color="text-amber-400" />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <AstroCard
-            icon={Sunrise}
+            imageSrc="/sunrise.svg"
             title="Sunrise"
             value={fmtTime(sun.sunrise, tz)}
             sub={`First light ${fmtTime(sun.civilDawn, tz)}`}
+            badge={<CountdownBadge target={sunriseBadgeTarget} />}
             accent="amber"
           />
           <AstroCard
-            icon={Sunset}
+            imageSrc="/sunset.svg"
             title="Sunset"
             value={fmtTime(sun.sunset, tz)}
             sub={`Last light ${fmtTime(sun.civilDusk, tz)}`}
+            badge={<CountdownBadge target={sunsetBadgeTarget} />}
             accent="rose"
           />
           <AstroCard
-            icon={Sun}
+            imageSrc="/sun.svg"
             title="Day Length"
             value={fmtDuration(sun.dayLengthMinutes)}
             sub={`Golden hour ${fmtTime(sun.goldenHourStart, tz)}`}
+            badge={
+              <CountdownBadge target={sun.goldenHourStart} label="Golden hr" />
+            }
             accent="amber"
+          />
+        </div>
+        <div className="mt-3">
+          <SunPositionArc
+            sunPosition={sunPosition}
+            sunrise={sun.sunrise}
+            sunset={sun.sunset}
+            timezone={tz}
           />
         </div>
       </div>
@@ -76,28 +126,47 @@ export default function AstronomyPage() {
       {/* ── Moon Section ── */}
       <div>
         <SectionHeader icon={Moon} label="Moon" color="text-violet-400" />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
           <AstroCard
-            icon={Moon}
+            imageSrc={moon.icon}
             title="Phase"
             value={moon.phaseName}
-            sub={`${moon.emoji}  ${Math.round(moon.phaseDegrees)}°`}
+            sub={`${Math.round(moon.phaseDegrees)}°`}
             accent="violet"
           />
           <AstroCard
             icon={Eye}
             title="Illumination"
             value={`${Math.round(moon.illuminationFraction * 100)}%`}
-            sub={`↑ ${fmtTime(moon.moonrise, tz)}  •  ↓ ${fmtTime(moon.moonset, tz)}`}
             accent="cyan"
           />
           <AstroCard
-            icon={Star}
-            title="Stargazing"
-            value={stargazing.label}
-            sub={stargazing.description}
+            imageSrc="/moonrise.svg"
+            title="Moonrise"
+            value={fmtTime(moon.moonrise, tz)}
+            badge={
+              <CountdownBadge
+                target={moonriseBadgeTarget}
+                className="bg-violet-500/10 text-violet-400"
+              />
+            }
             accent="violet"
           />
+          <AstroCard
+            imageSrc="/moonset.svg"
+            title="Moonset"
+            value={fmtTime(moon.moonset, tz)}
+            badge={
+              <CountdownBadge
+                target={moonsetBadgeTarget}
+                className="bg-violet-500/10 text-violet-400"
+              />
+            }
+            accent="violet"
+          />
+        </div>
+        <div className="mt-3">
+          <MoonPhaseTimeline phases={nextMoonPhases} />
         </div>
       </div>
 
@@ -112,14 +181,17 @@ export default function AstronomyPage() {
               title={planet.name}
               value={`↑ ${fmtTime(planet.rise, tz)}`}
               sub={`↓ ${fmtTime(planet.set, tz)}`}
+              badge={
+                <CountdownBadge
+                  target={planet.rise}
+                  className="bg-teal-500/10 text-teal-400"
+                />
+              }
               accent="cyan"
             />
           ))}
         </div>
       </div>
-
-      {/* ── Moon Phase Timeline ── */}
-      <MoonPhaseTimeline phases={nextMoonPhases} />
 
       {/* ── Upcoming Event ── */}
       <div>
@@ -138,6 +210,12 @@ export default function AstronomyPage() {
               day: "numeric",
               year: "numeric",
             })}
+            badge={
+              <CountdownBadge
+                target={nextSeason.date}
+                className="bg-cyan-500/10 text-cyan-400"
+              />
+            }
             accent="cyan"
           />
           <AstroCard
@@ -145,6 +223,12 @@ export default function AstronomyPage() {
             title="Twilight"
             value={`Nautical ${fmtTime(sun.nauticalDusk, tz)}`}
             sub={`Astronomical ${fmtTime(sun.astronomicalDusk, tz)}`}
+            badge={
+              <CountdownBadge
+                target={sun.nauticalDusk}
+                className="bg-violet-500/10 text-violet-400"
+              />
+            }
             accent="violet"
           />
         </div>
