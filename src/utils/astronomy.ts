@@ -8,34 +8,77 @@ import {
   SearchMoonQuarter,
   NextMoonQuarter,
   Seasons,
+  Equator,
+  Horizon,
 } from "astronomy-engine";
 
 import type {
   SunData,
+  SunPositionData,
   MoonData,
   PlanetData,
   NextMoonPhaseData,
   SeasonData,
+  NextRiseSetData,
 } from "@/types/astronomy";
 
 /* ─── Helpers ─── */
-const PHASE_NAMES: Record<number, { name: string; emoji: string }> = {
-  0: { name: "New Moon", emoji: "🌑" },
-  1: { name: "First Quarter", emoji: "🌓" },
-  2: { name: "Full Moon", emoji: "🌕" },
-  3: { name: "Third Quarter", emoji: "🌗" },
+const PHASE_NAMES: Record<
+  number,
+  { name: string; emoji: string; icon: string }
+> = {
+  0: { name: "New Moon", emoji: "🌑", icon: "/moon-new.svg" },
+  1: { name: "First Quarter", emoji: "🌓", icon: "/moon-first-quarter.svg" },
+  2: { name: "Full Moon", emoji: "🌕", icon: "/moon-full.svg" },
+  3: { name: "Third Quarter", emoji: "🌗", icon: "/moon-last-quarter.svg" },
 };
 
-function getMoonPhaseName(degrees: number): { name: string; emoji: string } {
-  if (degrees < 22.5) return { name: "New Moon", emoji: "🌑" };
-  if (degrees < 67.5) return { name: "Waxing Crescent", emoji: "🌒" };
-  if (degrees < 112.5) return { name: "First Quarter", emoji: "🌓" };
-  if (degrees < 157.5) return { name: "Waxing Gibbous", emoji: "🌔" };
-  if (degrees < 202.5) return { name: "Full Moon", emoji: "🌕" };
-  if (degrees < 247.5) return { name: "Waning Gibbous", emoji: "🌖" };
-  if (degrees < 292.5) return { name: "Third Quarter", emoji: "🌗" };
-  if (degrees < 337.5) return { name: "Waning Crescent", emoji: "🌘" };
-  return { name: "New Moon", emoji: "🌑" };
+function getMoonPhaseName(degrees: number): {
+  name: string;
+  emoji: string;
+  icon: string;
+} {
+  if (degrees < 22.5)
+    return { name: "New Moon", emoji: "🌑", icon: "/moon-new.svg" };
+  if (degrees < 67.5)
+    return {
+      name: "Waxing Crescent",
+      emoji: "🌒",
+      icon: "/moon-waxing-crescent.svg",
+    };
+  if (degrees < 112.5)
+    return {
+      name: "First Quarter",
+      emoji: "🌓",
+      icon: "/moon-first-quarter.svg",
+    };
+  if (degrees < 157.5)
+    return {
+      name: "Waxing Gibbous",
+      emoji: "🌔",
+      icon: "/moon-waxing-gibbous.svg",
+    };
+  if (degrees < 202.5)
+    return { name: "Full Moon", emoji: "🌕", icon: "/moon-full.svg" };
+  if (degrees < 247.5)
+    return {
+      name: "Waning Gibbous",
+      emoji: "🌖",
+      icon: "/moon-waning-gibbous.svg",
+    };
+  if (degrees < 292.5)
+    return {
+      name: "Third Quarter",
+      emoji: "🌗",
+      icon: "/moon-last-quarter.svg",
+    };
+  if (degrees < 337.5)
+    return {
+      name: "Waning Crescent",
+      emoji: "🌘",
+      icon: "/moon-waning-crescent.svg",
+    };
+  return { name: "New Moon", emoji: "🌑", icon: "/moon-new.svg" };
 }
 
 function toDateOrNull(
@@ -84,6 +127,54 @@ export function calcSunData(lat: number, lon: number, date: Date): SunData {
   };
 }
 
+export function calcSunPosition(
+  lat: number,
+  lon: number,
+  now: Date,
+  sunrise: Date | null,
+  sunset: Date | null,
+): SunPositionData {
+  const observer = new Observer(lat, lon, 0);
+
+  // Get the sun's current equatorial coordinates, then convert to horizontal
+  const equ = Equator(Body.Sun, now, observer, true, true);
+  const hor = Horizon(now, observer, equ.ra, equ.dec, "normal");
+
+  const altitude = hor.altitude;
+  const isAboveHorizon = altitude > 0;
+
+  // Arc fraction: 0 at sunrise, 0.5 at noon, 1 at sunset
+  let arcFraction: number | null = null;
+  if (sunrise && sunset) {
+    const riseMs = sunrise.getTime();
+    const setMs = sunset.getTime();
+    const nowMs = now.getTime();
+    const daySpan = setMs - riseMs;
+
+    if (daySpan > 0) {
+      arcFraction = Math.max(0, Math.min(1, (nowMs - riseMs) / daySpan));
+    }
+  }
+
+  // Estimate noon altitude: midpoint between sunrise and sunset
+  let noonAltitude = 0;
+  if (sunrise && sunset) {
+    const noonMs = (sunrise.getTime() + sunset.getTime()) / 2;
+    const noonDate = new Date(noonMs);
+    const noonEqu = Equator(Body.Sun, noonDate, observer, true, true);
+    const noonHor = Horizon(
+      noonDate,
+      observer,
+      noonEqu.ra,
+      noonEqu.dec,
+      "normal",
+    );
+    noonAltitude = noonHor.altitude;
+  }
+
+  return { altitude, arcFraction, noonAltitude, isAboveHorizon };
+}
+
 export function calcMoonData(lat: number, lon: number, date: Date): MoonData {
   const observer = new Observer(lat, lon, 0);
 
@@ -91,7 +182,7 @@ export function calcMoonData(lat: number, lon: number, date: Date): MoonData {
   const moonset = SearchRiseSet(Body.Moon, observer, -1, date, 1);
 
   const phaseDegrees = MoonPhase(date);
-  const { name: phaseName, emoji } = getMoonPhaseName(phaseDegrees);
+  const { name: phaseName, emoji, icon } = getMoonPhaseName(phaseDegrees);
 
   const illum = Illumination(Body.Moon, date);
   const illuminationFraction = illum.phase_fraction;
@@ -103,6 +194,7 @@ export function calcMoonData(lat: number, lon: number, date: Date): MoonData {
     phaseName,
     illuminationFraction,
     emoji,
+    icon,
   };
 }
 
@@ -138,11 +230,16 @@ export function calcNextMoonPhases(date: Date, count = 4): NextMoonPhaseData[] {
   for (let i = 0; i < count; i++) {
     // mq.quarter is 0-3 guaranteed by library, but TS doesn't know. Fallback for safety.
     const info = PHASE_NAMES[mq.quarter] ??
-      PHASE_NAMES[0] ?? { name: "New Moon", emoji: "🌑" };
+      PHASE_NAMES[0] ?? {
+        name: "New Moon",
+        emoji: "🌑",
+        icon: "/moon-new.svg",
+      };
     phases.push({
       name: info.name,
       date: mq.time.date,
       emoji: info.emoji,
+      icon: info.icon,
     });
     mq = NextMoonQuarter(mq);
   }
@@ -210,5 +307,34 @@ export function getStargazingQuality(
   return {
     label: "Poor",
     description: "Bright moon, only the brightest stars visible",
+  };
+}
+
+export function calcNextRiseSet(
+  lat: number,
+  lon: number,
+  now: Date,
+): NextRiseSetData {
+  const observer = new Observer(lat, lon, 0);
+
+  // Next events: search forward from `now`
+  const nextSunrise = SearchRiseSet(Body.Sun, observer, +1, now, 1);
+  const nextSunset = SearchRiseSet(Body.Sun, observer, -1, now, 1);
+  const nextMoonrise = SearchRiseSet(Body.Moon, observer, +1, now, 1);
+  const nextMoonset = SearchRiseSet(Body.Moon, observer, -1, now, 1);
+
+  // Previous set events: search forward from 24h ago — finds the most recent
+  // sunset/moonset that already occurred (needed for early morning display)
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const prevSunset = SearchRiseSet(Body.Sun, observer, -1, yesterday, 1);
+  const prevMoonset = SearchRiseSet(Body.Moon, observer, -1, yesterday, 1);
+
+  return {
+    nextSunrise: toDateOrNull(nextSunrise),
+    nextSunset: toDateOrNull(nextSunset),
+    nextMoonrise: toDateOrNull(nextMoonrise),
+    nextMoonset: toDateOrNull(nextMoonset),
+    prevSunset: toDateOrNull(prevSunset),
+    prevMoonset: toDateOrNull(prevMoonset),
   };
 }
