@@ -15,10 +15,10 @@ const LocationContext = createContext<LocationContextType | null>(null);
 function App() {
   const [location, setLocation] = useState<ResultType>({
     id: 1273294,
-    name: "Delhi",
-    latitude: 28.65195,
-    longitude: 77.23149,
-    admin1: "Delhi",
+    name: "Pilāni",
+    latitude: 28.36725,
+    longitude: 75.60352,
+    admin1: "Rajasthan",
     country: "India",
     countryCode: "IN",
     timezone: "Asia/Kolkata",

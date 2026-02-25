@@ -8,67 +8,77 @@ interface SunPositionArcProps {
   timezone?: string | undefined;
 }
 
-// ── Hoisted constants ──
+// ── Layout ──
 const W = 400;
-const H = 130;
-const PAD_X = 40;
-const HORIZON_Y = 100;
-const PEAK_Y = 28;
+const H = 100;
+const PAD = 30;
+const HORIZON_Y = 72;
+const PEAK_Y = 14;
+const DIP_Y = 90;
 
-// Generate a gentle bell curve with eased edges
-function buildCurvePoints(steps: number): { x: number; y: number }[] {
-  const points: { x: number; y: number }[] = [];
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const x = PAD_X + t * (W - 2 * PAD_X);
-    // Ease-in-out sine curve: gentler at edges, peaks in middle
-    // Range -0.08π to 1.08π for subtle dip below horizon
-    const angle = -0.08 * Math.PI + t * 1.16 * Math.PI;
-    const sinVal = Math.sin(angle);
-    const y = HORIZON_Y - sinVal * (HORIZON_Y - PEAK_Y);
-    points.push({ x, y });
+function curveY(t: number): number {
+  const angle = -0.2 * Math.PI + t * 1.4 * Math.PI;
+  const s = Math.sin(angle);
+  if (s >= 0) return HORIZON_Y - s * (HORIZON_Y - PEAK_Y);
+  return HORIZON_Y - (s * (DIP_Y - HORIZON_Y)) / 0.59;
+}
+
+function curveX(t: number): number {
+  return PAD + t * (W - 2 * PAD);
+}
+
+// Build smooth SVG cubic bezier via Catmull-Rom
+function smoothPath(points: Array<{ x: number; y: number }>): string {
+  if (points.length < 2) return "";
+  const a = 0.25;
+  let d = `M ${points[0]!.x.toFixed(1)} ${points[0]!.y.toFixed(1)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)]!;
+    const p1 = points[i]!;
+    const p2 = points[i + 1]!;
+    const p3 = points[Math.min(points.length - 1, i + 2)]!;
+    d += ` C ${(p1.x + (p2.x - p0.x) * a).toFixed(1)} ${(p1.y + (p2.y - p0.y) * a).toFixed(1)}, ${(p2.x - (p3.x - p1.x) * a).toFixed(1)} ${(p2.y - (p3.y - p1.y) * a).toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
   }
-  return points;
+  return d;
 }
 
-function pointsToPath(
-  pts: { x: number; y: number }[],
-  start: number,
-  end: number,
-): string {
-  const sliced = pts.slice(start, end + 1);
-  return sliced
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-    .join(" ");
+// Pre-compute curve
+const STEPS = 80;
+const ALL_CURVE: Array<{ x: number; y: number }> = [];
+for (let i = 0; i <= STEPS; i++) {
+  const t = i / STEPS;
+  ALL_CURVE.push({ x: curveX(t), y: curveY(t) });
 }
+const FULL_PATH = smoothPath(ALL_CURVE);
 
-// Find the step index where the curve crosses the horizon
-function findHorizonStep(
-  pts: { x: number; y: number }[],
-  fromStep: number,
-  toStep: number,
-): number {
-  for (let i = fromStep; i <= toStep; i++) {
-    if (pts[i].y >= HORIZON_Y) return Math.max(fromStep, i - 1);
+// Find horizon crossing steps (pre-computed)
+let RISE_STEP = 0;
+let SET_STEP = STEPS;
+for (let i = 0; i < ALL_CURVE.length; i++) {
+  if (ALL_CURVE[i]!.y < HORIZON_Y) {
+    RISE_STEP = i;
+    break;
   }
-  return toStep;
+}
+for (let i = ALL_CURVE.length - 1; i >= 0; i--) {
+  if (ALL_CURVE[i]!.y < HORIZON_Y) {
+    SET_STEP = i;
+    break;
+  }
 }
 
-const TOTAL_STEPS = 80;
-const ALL_POINTS = buildCurvePoints(TOTAL_STEPS);
-
-// Hoisted SVG defs
+// SVG defs
 const svgDefs = (
   <defs>
     <filter id="sunGlow" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feGaussianBlur stdDeviation="3" result="blur" />
       <feMerge>
         <feMergeNode in="blur" />
         <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>
     <linearGradient id="traveledGrad" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.4" />
+      <stop offset="0%" stopColor="#d4a017" stopOpacity="0.5" />
       <stop offset="100%" stopColor="#f59e0b" stopOpacity="1" />
     </linearGradient>
   </defs>
@@ -80,57 +90,23 @@ export default function SunPositionArc({
   sunset,
   timezone,
 }: SunPositionArcProps) {
-  const { arcFraction, altitude, noonAltitude, isAboveHorizon } = sunPosition;
+  const { altitude, noonAltitude, isAboveHorizon, dayFraction, minAltitude } =
+    sunPosition;
 
-  const sunFrac =
-    arcFraction !== null ? Math.max(0, Math.min(1, arcFraction)) : null;
-  const sunStep = sunFrac !== null ? Math.round(sunFrac * TOTAL_STEPS) : null;
-  const sunPt = sunStep !== null ? ALL_POINTS[sunStep] : null;
+  // Sun step on the curve
+  const clamped = Math.max(0, Math.min(STEPS, Math.round(dayFraction * STEPS)));
+  const sunPt = ALL_CURVE[clamped];
 
-  // Full arc path (background track)
-  const fullPath = pointsToPath(ALL_POINTS, 0, TOTAL_STEPS);
+  // Golden: only above-horizon traveled portion
+  const goldenStart = Math.max(RISE_STEP, 0);
+  const goldenEnd = Math.min(clamped, SET_STEP);
+  const goldenPts =
+    goldenEnd > goldenStart ? ALL_CURVE.slice(goldenStart, goldenEnd + 1) : [];
+  const remainingPts = ALL_CURVE.slice(clamped);
 
-  // Golden path: only the traveled portion ABOVE the horizon
-  let goldenPath: string | null = null;
-  if (sunStep !== null && sunStep > 0) {
-    // Find where the arc first rises above horizon
-    let aboveStart = 0;
-    for (let i = 0; i <= sunStep; i++) {
-      if (ALL_POINTS[i].y < HORIZON_Y) {
-        aboveStart = i;
-        break;
-      }
-    }
-    // Clamp to only above-horizon portion
-    const aboveEnd = Math.min(
-      sunStep,
-      findHorizonStep(ALL_POINTS, aboveStart, sunStep),
-    );
-    if (aboveEnd > aboveStart && ALL_POINTS[aboveEnd].y < HORIZON_Y) {
-      goldenPath = pointsToPath(ALL_POINTS, aboveStart, sunStep);
-    }
-  }
-
-  // Below-horizon traveled path (subtle)
-  let belowPath: string | null = null;
-  if (sunStep !== null && sunStep > 0 && ALL_POINTS[0].y >= HORIZON_Y) {
-    let belowEnd = 0;
-    for (let i = 0; i <= sunStep; i++) {
-      if (ALL_POINTS[i].y < HORIZON_Y) {
-        belowEnd = i;
-        break;
-      }
-    }
-    if (belowEnd > 0) {
-      belowPath = pointsToPath(ALL_POINTS, 0, belowEnd);
-    }
-  }
-
-  // Remaining arc
+  const goldenPath = goldenPts.length > 1 ? smoothPath(goldenPts) : null;
   const remainingPath =
-    sunStep !== null && sunStep < TOTAL_STEPS
-      ? pointsToPath(ALL_POINTS, sunStep, TOTAL_STEPS)
-      : null;
+    remainingPts.length > 1 ? smoothPath(remainingPts) : null;
 
   // Status
   let statusText: string;
@@ -142,11 +118,10 @@ export default function SunPositionArc({
     statusText = "Twilight";
     statusColor = "text-orange-400/70";
   } else {
-    statusText = "Below horizon";
+    statusText = `${Math.round(Math.abs(altitude))}° below horizon`;
     statusColor = "text-base-content/40";
   }
 
-  // Dynamic background gradient based on sun status
   const bgGradient = isAboveHorizon
     ? "bg-gradient-to-br from-sky-600 to-sky-400"
     : altitude > -6
@@ -155,14 +130,12 @@ export default function SunPositionArc({
 
   return (
     <div className="overflow-hidden rounded-xl border border-amber-500/10">
-      {/* Header */}
       <div className="bg-base-200/40 px-5 pt-4 pb-2">
         <p className="text-base-content/50 text-xs font-medium tracking-wider uppercase">
           Sun Position
         </p>
       </div>
 
-      {/* Arc visualization */}
       <div className={`relative ${bgGradient}`}>
         <svg
           viewBox={`0 0 ${W} ${H}`}
@@ -171,69 +144,57 @@ export default function SunPositionArc({
         >
           {svgDefs}
 
-          {/* Horizon line */}
+          {/* Horizon */}
           <line
             x1="0"
             y1={HORIZON_Y}
             x2={W}
             y2={HORIZON_Y}
             stroke="white"
-            strokeOpacity="0.15"
+            strokeOpacity="0.07"
+            strokeWidth="0.75"
+          />
+
+          {/* Full curve (dim track) */}
+          <path
+            d={FULL_PATH}
+            fill="none"
+            stroke="white"
+            strokeOpacity="0.1"
             strokeWidth="1"
           />
 
-          {/* Full arc track (dim) */}
-          <path
-            d={fullPath}
-            fill="none"
-            stroke="white"
-            strokeOpacity="0.12"
-            strokeWidth="1.5"
-          />
-
-          {/* Below-horizon traveled (subtle white) */}
-          {belowPath ? (
-            <path
-              d={belowPath}
-              fill="none"
-              stroke="white"
-              strokeOpacity="0.25"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          ) : null}
-
-          {/* Above-horizon traveled (golden gradient) */}
+          {/* Above-horizon traveled (golden) */}
           {goldenPath ? (
             <path
               d={goldenPath}
               fill="none"
               stroke="url(#traveledGrad)"
-              strokeWidth="3"
+              strokeWidth="1.5"
               strokeLinecap="round"
             />
           ) : null}
 
-          {/* Remaining arc (subtle white) */}
-          {remainingPath && isAboveHorizon ? (
+          {/* Remaining (gray) */}
+          {remainingPath ? (
             <path
               d={remainingPath}
               fill="none"
               stroke="white"
-              strokeOpacity="0.18"
-              strokeWidth="1.5"
+              strokeOpacity="0.08"
+              strokeWidth="1"
               strokeLinecap="round"
             />
           ) : null}
 
           {/* Sunrise time */}
           <text
-            x={PAD_X}
-            y={HORIZON_Y + 16}
+            x={PAD + 20}
+            y={HORIZON_Y - 6}
             textAnchor="middle"
             fill="white"
-            fillOpacity="0.45"
-            fontSize="9"
+            fillOpacity="0.5"
+            fontSize="5.5"
             fontFamily="inherit"
           >
             {fmtTime(sunrise, timezone)}
@@ -241,80 +202,45 @@ export default function SunPositionArc({
 
           {/* Sunset time */}
           <text
-            x={W - PAD_X}
-            y={HORIZON_Y + 16}
+            x={W - PAD - 20}
+            y={HORIZON_Y - 6}
             textAnchor="middle"
             fill="white"
-            fillOpacity="0.45"
-            fontSize="9"
+            fillOpacity="0.5"
+            fontSize="5.5"
             fontFamily="inherit"
           >
             {fmtTime(sunset, timezone)}
           </text>
 
-          {/* Horizon label */}
-          <text
-            x={10}
-            y={HORIZON_Y - 5}
-            fill="white"
-            fillOpacity="0.2"
-            fontSize="7"
-            fontFamily="inherit"
-          >
-            Horizon
-          </text>
-
-          {/* Sun SVG icon (above horizon) — medium size */}
-          {sunPt && isAboveHorizon ? (
+          {/* Sun */}
+          {sunPt ? (
             <g filter="url(#sunGlow)">
               <image
                 href="/sun.svg"
-                x={sunPt.x - 14}
-                y={sunPt.y - 14}
-                width="28"
-                height="28"
+                x={sunPt.x - 12}
+                y={sunPt.y - 12}
+                width="24"
+                height="24"
+                opacity={isAboveHorizon ? 1 : 0.3}
               />
             </g>
-          ) : null}
-
-          {/* Sun below horizon — dim small icon on horizon */}
-          {!isAboveHorizon ? (
-            <image
-              href="/sun.svg"
-              x={W / 2 - 10}
-              y={HORIZON_Y - 10}
-              width="20"
-              height="20"
-              opacity="0.2"
-            />
-          ) : null}
-
-          {/* Altitude label */}
-          {sunPt && isAboveHorizon ? (
-            <text
-              x={sunPt.x}
-              y={sunPt.y - 18}
-              textAnchor="middle"
-              fill="white"
-              fillOpacity="0.8"
-              fontSize="10"
-              fontWeight="600"
-              fontFamily="inherit"
-            >
-              {Math.round(altitude)}°
-            </text>
           ) : null}
         </svg>
       </div>
 
-      {/* Status bar */}
       <div className="bg-base-200/40 flex items-center justify-between px-5 py-2.5 text-xs">
         <span className={statusColor + " font-medium"}>{statusText}</span>
-        {noonAltitude > 0 ? (
-          <span className="text-base-content/30">
-            Peak {Math.round(noonAltitude)}°
+        <div className="flex gap-3">
+          {noonAltitude > 0 ? (
+            <span className="text-base-content/30">
+              Peak {Math.round(noonAltitude)}°
+            </span>
+          ) : null}
+          <span className="text-base-content/20">
+            Low {Math.round(minAltitude)}°
           </span>
-        ) : null}
+        </div>
       </div>
     </div>
   );
