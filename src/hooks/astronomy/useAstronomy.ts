@@ -3,6 +3,7 @@ import {
   calcSunData,
   calcSunPosition,
   calcMoonData,
+  calcMoonPosition,
   calcNextMoonPhases,
   calcNextSeason,
   calcPlanetData,
@@ -69,6 +70,13 @@ export default function useAstronomy(
       sun.sunset,
     );
     const moon = calcMoonData(latitude, longitude, todayStart);
+    const moonPosition = calcMoonPosition(
+      latitude,
+      longitude,
+      now,
+      moon.moonrise,
+      moon.moonset,
+    );
     const planets = calcPlanetData(latitude, longitude, todayStart);
     const nextMoonPhases = calcNextMoonPhases(now, 4);
     const nextSeason = calcNextSeason(now);
@@ -83,6 +91,7 @@ export default function useAstronomy(
       sun,
       sunPosition,
       moon,
+      moonPosition,
       planets,
       nextMoonPhases,
       nextSeason,

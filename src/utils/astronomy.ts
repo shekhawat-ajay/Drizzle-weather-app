@@ -16,6 +16,7 @@ import type {
   SunData,
   SunPositionData,
   MoonData,
+  MoonPositionData,
   PlanetData,
   NextMoonPhaseData,
   SeasonData,
@@ -241,6 +242,76 @@ export function calcMoonData(lat: number, lon: number, date: Date): MoonData {
     emoji,
     icon,
   };
+}
+
+export function calcMoonPosition(
+  lat: number,
+  lon: number,
+  now: Date,
+  _moonrise: Date | null,
+  _moonset: Date | null,
+): MoonPositionData {
+  const observer = new Observer(lat, lon, 0);
+  const equ = Equator(Body.Moon, now, observer, true, true);
+  const hor = Horizon(now, observer, equ.ra, equ.dec, "normal");
+  const altitude = hor.altitude;
+  const isAboveHorizon = altitude > 0;
+
+  // Find the rise/set window that brackets "now"
+  // Search backward from now (up to 24h) for the previous event,
+  // and forward for the next event.
+  const PAD_MS = 3 * 60 * 60 * 1000;
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  let windowStart: number;
+  let windowEnd: number;
+
+  if (isAboveHorizon) {
+    // Moon is up → find previous moonrise and next moonset
+    const prevRise = SearchRiseSet(Body.Moon, observer, +1, yesterday, 1);
+    const nextSet = SearchRiseSet(Body.Moon, observer, -1, now, 1);
+    const riseMs = prevRise
+      ? prevRise.date.getTime()
+      : now.getTime() - 12 * 60 * 60 * 1000;
+    const setMs = nextSet
+      ? nextSet.date.getTime()
+      : now.getTime() + 12 * 60 * 60 * 1000;
+    windowStart = riseMs - PAD_MS;
+    windowEnd = setMs + PAD_MS;
+  } else {
+    // Moon is down → find previous moonset and next moonrise
+    const prevSet = SearchRiseSet(Body.Moon, observer, -1, yesterday, 1);
+    const nextRise = SearchRiseSet(Body.Moon, observer, +1, now, 1);
+    const setMs = prevSet
+      ? prevSet.date.getTime()
+      : now.getTime() - 12 * 60 * 60 * 1000;
+    const riseMs = nextRise
+      ? nextRise.date.getTime()
+      : now.getTime() + 12 * 60 * 60 * 1000;
+    windowStart = setMs - PAD_MS;
+    windowEnd = riseMs + PAD_MS;
+  }
+
+  const windowSpan = windowEnd - windowStart;
+  const dayFraction = Math.max(
+    0,
+    Math.min(1, (now.getTime() - windowStart) / windowSpan),
+  );
+
+  // Sample peak and min altitudes across the window
+  let peakAltitude = altitude;
+  let minAltitude = altitude;
+  const SAMPLES = 20;
+  for (let i = 0; i <= SAMPLES; i++) {
+    const sampleMs = windowStart + (i / SAMPLES) * windowSpan;
+    const sDate = new Date(sampleMs);
+    const sEqu = Equator(Body.Moon, sDate, observer, true, true);
+    const sHor = Horizon(sDate, observer, sEqu.ra, sEqu.dec, "normal");
+    if (sHor.altitude > peakAltitude) peakAltitude = sHor.altitude;
+    if (sHor.altitude < minAltitude) minAltitude = sHor.altitude;
+  }
+
+  return { altitude, isAboveHorizon, dayFraction, peakAltitude, minAltitude };
 }
 
 export function calcPlanetData(
