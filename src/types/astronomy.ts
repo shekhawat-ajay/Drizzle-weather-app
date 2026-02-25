@@ -50,8 +50,6 @@ export interface NextRiseSetData {
   nextMoonset: Date | null;
   /** Most recent sunset (for early morning before sunrise) */
   prevSunset: Date | null;
-  /** Most recent moonset (for early morning before moonrise) */
-  prevMoonset: Date | null;
 }
 
 export interface AstronomyData {
@@ -74,4 +72,10 @@ export interface SunPositionData {
   noonAltitude: number;
   /** Is the sun currently above the horizon? */
   isAboveHorizon: boolean;
+  /** Sampled altitude points across the day for the curve */
+  altitudeCurve: { fraction: number; altitude: number }[];
+  /** Lowest altitude in the curve (most negative) */
+  minAltitude: number;
+  /** Fraction through the curve window where sun currently is (0→1) */
+  dayFraction: number;
 }

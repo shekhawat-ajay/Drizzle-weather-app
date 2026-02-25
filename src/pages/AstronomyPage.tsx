@@ -48,8 +48,6 @@ export default function AstronomyPage() {
 
   const bothSunFuture = !isPast(sun.sunrise) && !isPast(sun.sunset);
   const bothSunPast = isPast(sun.sunrise) && isPast(sun.sunset);
-  const bothMoonFuture = !isPast(moon.moonrise) && !isPast(moon.moonset);
-  const bothMoonPast = isPast(moon.moonrise) && isPast(moon.moonset);
 
   const sunriseBadgeTarget = bothSunPast
     ? nextRiseSet.nextSunrise // state 3: tomorrow's sunrise
@@ -59,13 +57,10 @@ export default function AstronomyPage() {
     ? nextRiseSet.prevSunset // state 1: yesterday's sunset
     : sun.sunset; // state 2 & 3: today's sunset
 
-  const moonriseBadgeTarget = bothMoonPast
-    ? nextRiseSet.nextMoonrise // state 3
-    : moon.moonrise; // state 1 & 2
-
-  const moonsetBadgeTarget = bothMoonFuture
-    ? nextRiseSet.prevMoonset // state 1
-    : moon.moonset; // state 2 & 3
+  // Moon: always show next occurrence from current moment
+  // (moon's ~24h50m cycle makes paired state logic unreliable)
+  const moonriseBadgeTarget = nextRiseSet.nextMoonrise ?? moon.moonrise;
+  const moonsetBadgeTarget = nextRiseSet.nextMoonset ?? moon.moonset;
 
   return (
     <div className="space-y-4">

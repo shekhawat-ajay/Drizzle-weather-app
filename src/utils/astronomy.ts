@@ -136,10 +136,9 @@ export function calcSunPosition(
 ): SunPositionData {
   const observer = new Observer(lat, lon, 0);
 
-  // Get the sun's current equatorial coordinates, then convert to horizontal
+  // Current sun altitude
   const equ = Equator(Body.Sun, now, observer, true, true);
   const hor = Horizon(now, observer, equ.ra, equ.dec, "normal");
-
   const altitude = hor.altitude;
   const isAboveHorizon = altitude > 0;
 
@@ -150,13 +149,12 @@ export function calcSunPosition(
     const setMs = sunset.getTime();
     const nowMs = now.getTime();
     const daySpan = setMs - riseMs;
-
     if (daySpan > 0) {
       arcFraction = Math.max(0, Math.min(1, (nowMs - riseMs) / daySpan));
     }
   }
 
-  // Estimate noon altitude: midpoint between sunrise and sunset
+  // Noon altitude
   let noonAltitude = 0;
   if (sunrise && sunset) {
     const noonMs = (sunrise.getTime() + sunset.getTime()) / 2;
@@ -172,7 +170,54 @@ export function calcSunPosition(
     noonAltitude = noonHor.altitude;
   }
 
-  return { altitude, arcFraction, noonAltitude, isAboveHorizon };
+  // ── Altitude curve: sample real altitudes across the day ──
+  // Window: 2h before sunrise → 2h after sunset (or ±14h from noon if no rise/set)
+  const SAMPLES = 60;
+  const PAD_MS = 3 * 60 * 60 * 1000; // 3 hours padding for gentler curve
+
+  let windowStart: number;
+  let windowEnd: number;
+
+  if (sunrise && sunset) {
+    windowStart = sunrise.getTime() - PAD_MS;
+    windowEnd = sunset.getTime() + PAD_MS;
+  } else {
+    // Fallback: 14h window centered on now
+    windowStart = now.getTime() - 14 * 60 * 60 * 1000;
+    windowEnd = now.getTime() + 14 * 60 * 60 * 1000;
+  }
+
+  const windowSpan = windowEnd - windowStart;
+  const altitudeCurve: { fraction: number; altitude: number }[] = [];
+  let minAltitude = altitude;
+
+  for (let i = 0; i <= SAMPLES; i++) {
+    const frac = i / SAMPLES;
+    const sampleMs = windowStart + frac * windowSpan;
+    const sampleDate = new Date(sampleMs);
+    const sEqu = Equator(Body.Sun, sampleDate, observer, true, true);
+    const sHor = Horizon(sampleDate, observer, sEqu.ra, sEqu.dec, "normal");
+    altitudeCurve.push({ fraction: frac, altitude: sHor.altitude });
+    if (sHor.altitude < minAltitude) minAltitude = sHor.altitude;
+    if (sHor.altitude > noonAltitude) noonAltitude = sHor.altitude;
+  }
+
+  // dayFraction: where "now" falls within the window (0→1)
+  const nowMs = now.getTime();
+  const dayFraction = Math.max(
+    0,
+    Math.min(1, (nowMs - windowStart) / windowSpan),
+  );
+
+  return {
+    altitude,
+    arcFraction,
+    noonAltitude,
+    isAboveHorizon,
+    altitudeCurve,
+    minAltitude,
+    dayFraction,
+  };
 }
 
 export function calcMoonData(lat: number, lon: number, date: Date): MoonData {
@@ -323,11 +368,10 @@ export function calcNextRiseSet(
   const nextMoonrise = SearchRiseSet(Body.Moon, observer, +1, now, 1);
   const nextMoonset = SearchRiseSet(Body.Moon, observer, -1, now, 1);
 
-  // Previous set events: search forward from 24h ago — finds the most recent
-  // sunset/moonset that already occurred (needed for early morning display)
+  // Previous sunset: search forward from 24h ago — finds the most recent
+  // sunset that already occurred (needed for early morning display)
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const prevSunset = SearchRiseSet(Body.Sun, observer, -1, yesterday, 1);
-  const prevMoonset = SearchRiseSet(Body.Moon, observer, -1, yesterday, 1);
 
   return {
     nextSunrise: toDateOrNull(nextSunrise),
@@ -335,6 +379,5 @@ export function calcNextRiseSet(
     nextMoonrise: toDateOrNull(nextMoonrise),
     nextMoonset: toDateOrNull(nextMoonset),
     prevSunset: toDateOrNull(prevSunset),
-    prevMoonset: toDateOrNull(prevMoonset),
   };
 }
