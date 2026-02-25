@@ -52,10 +52,19 @@ export interface NextRiseSetData {
   prevSunset: Date | null;
 }
 
+export interface MoonPositionData {
+  altitude: number;
+  isAboveHorizon: boolean;
+  dayFraction: number;
+  peakAltitude: number;
+  minAltitude: number;
+}
+
 export interface AstronomyData {
   sun: SunData;
   sunPosition: SunPositionData;
   moon: MoonData;
+  moonPosition: MoonPositionData;
   planets: PlanetData[];
   nextMoonPhases: NextMoonPhaseData[];
   nextSeason: SeasonData;

@@ -9,6 +9,7 @@ import AstroHero from "@/components/astronomy/AstroHero";
 import SectionHeader from "@/components/astronomy/SectionHeader";
 import MoonPhaseTimeline from "@/components/astronomy/MoonPhaseTimeline";
 import SunPositionArc from "@/components/astronomy/SunPositionArc";
+import MoonPositionArc from "@/components/astronomy/MoonPositionArc";
 import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import { fmtTime, fmtDuration } from "@/utils/formatters";
 
@@ -23,6 +24,7 @@ export default function AstronomyPage() {
     sun,
     sunPosition,
     moon,
+    moonPosition,
     planets,
     nextMoonPhases,
     nextSeason,
@@ -158,6 +160,15 @@ export default function AstronomyPage() {
               />
             }
             accent="violet"
+          />
+        </div>
+        <div className="mt-3">
+          <MoonPositionArc
+            moonPosition={moonPosition}
+            moonrise={moon.moonrise}
+            moonset={moon.moonset}
+            phaseIcon={moon.icon}
+            timezone={tz}
           />
         </div>
         <div className="mt-3">
