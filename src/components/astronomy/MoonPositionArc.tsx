@@ -1,237 +1,387 @@
+import { useMemo } from "react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  YAxis,
+  XAxis,
+  ReferenceDot,
+  ReferenceLine,
+  ReferenceArea,
+  Tooltip,
+} from "recharts";
 import type { MoonPositionData } from "@/types/astronomy";
-import { fmtTime } from "@/utils/formatters";
+import { fmtTime, fmtDurationMs, fmtAzimuth } from "@/utils/formatters";
 
 interface MoonPositionArcProps {
   moonPosition: MoonPositionData;
-  moonrise: Date | null;
-  moonset: Date | null;
   phaseIcon: string;
   timezone?: string | undefined;
 }
 
-// ── Layout (same dimensions as SunPositionArc) ──
-const W = 400;
-const H = 100;
-const PAD = 30;
-const HORIZON_Y = 72;
-const PEAK_Y = 14;
-const DIP_Y = 90;
-
-function curveY(t: number): number {
-  const angle = -0.2 * Math.PI + t * 1.4 * Math.PI;
-  const s = Math.sin(angle);
-  if (s >= 0) return HORIZON_Y - s * (HORIZON_Y - PEAK_Y);
-  return HORIZON_Y - (s * (DIP_Y - HORIZON_Y)) / 0.59;
-}
-
-function curveX(t: number): number {
-  return PAD + t * (W - 2 * PAD);
-}
-
-function smoothPath(points: Array<{ x: number; y: number }>): string {
-  if (points.length < 2) return "";
-  const a = 0.25;
-  let d = `M ${points[0]!.x.toFixed(1)} ${points[0]!.y.toFixed(1)}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[Math.max(0, i - 1)]!;
-    const p1 = points[i]!;
-    const p2 = points[i + 1]!;
-    const p3 = points[Math.min(points.length - 1, i + 2)]!;
-    d += ` C ${(p1.x + (p2.x - p0.x) * a).toFixed(1)} ${(p1.y + (p2.y - p0.y) * a).toFixed(1)}, ${(p2.x - (p3.x - p1.x) * a).toFixed(1)} ${(p2.y - (p3.y - p1.y) * a).toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+const CustomTooltip = ({
+  active,
+  payload,
+  timezone,
+}: {
+  active?: boolean;
+  payload?: readonly any[];
+  timezone?: string | undefined;
+}) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const timeStr = fmtTime(new Date(data.x), timezone);
+    const elev = Math.round(data.y);
+    const elevText =
+      elev > 0 ? `${elev}° above horizon` : `${Math.abs(elev)}° below horizon`;
+    return (
+      <div className="rounded-xl border border-violet-800/50 bg-[#0f172a]/90 p-2.5 text-xs shadow-2xl backdrop-blur-md">
+        <p className="flex items-center gap-1.5 font-semibold text-white">
+          <span className="h-2 w-2 rounded-full bg-violet-400"></span>
+          {timeStr}
+        </p>
+        <p className="mt-1 ml-3.5 font-medium text-violet-200">{elevText}</p>
+      </div>
+    );
   }
-  return d;
-}
+  return null;
+};
 
-// Pre-compute curve
-const STEPS = 80;
-const ALL_CURVE: Array<{ x: number; y: number }> = [];
-for (let i = 0; i <= STEPS; i++) {
-  ALL_CURVE.push({ x: curveX(i / STEPS), y: curveY(i / STEPS) });
-}
-const FULL_PATH = smoothPath(ALL_CURVE);
-
-// Horizon crossing steps
-let RISE_STEP = 0;
-let SET_STEP = STEPS;
-for (let i = 0; i < ALL_CURVE.length; i++) {
-  if (ALL_CURVE[i]!.y < HORIZON_Y) {
-    RISE_STEP = i;
-    break;
-  }
-}
-for (let i = ALL_CURVE.length - 1; i >= 0; i--) {
-  if (ALL_CURVE[i]!.y < HORIZON_Y) {
-    SET_STEP = i;
-    break;
-  }
-}
-
-// SVG defs — violet theme
-const svgDefs = (
-  <defs>
-    <filter id="moonGlow" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur stdDeviation="3" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-    <linearGradient id="moonTraveledGrad" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.4" />
-      <stop offset="100%" stopColor="#a78bfa" stopOpacity="1" />
-    </linearGradient>
-  </defs>
-);
+/** Format a millisecond duration as "X hr Y m". */
 
 export default function MoonPositionArc({
   moonPosition,
-  moonrise,
-  moonset,
   phaseIcon,
   timezone,
 }: MoonPositionArcProps) {
-  const { altitude, isAboveHorizon, dayFraction, peakAltitude, minAltitude } =
-    moonPosition;
+  const {
+    altitude,
+    azimuth,
+    isAboveHorizon,
+    altitudeCurve,
+    peakAltitude,
+    minAltitude,
+    previousEvent,
+    nextEvent,
+  } = moonPosition;
 
-  const clamped = Math.max(0, Math.min(STEPS, Math.round(dayFraction * STEPS)));
-  const moonPt = ALL_CURVE[clamped];
+  // 1. Map sampled points
+  const curveData = useMemo(() => {
+    if (!altitudeCurve || altitudeCurve.length === 0) {
+      const STEPS = 100;
+      const pts = [];
+      const now = Date.now();
+      const span = 12 * 3600000;
+      for (let i = 0; i <= STEPS; i++) {
+        const t = i / STEPS;
+        pts.push({
+          x: now - span + t * span * 2,
+          y: Math.sin(t * Math.PI) * 45,
+        });
+      }
+      return pts;
+    }
+    return altitudeCurve.map((pt: { timestamp: number; altitude: number }) => ({
+      x: pt.timestamp,
+      y: pt.altitude,
+    }));
+  }, [altitudeCurve]);
 
-  // Violet path: only above-horizon traveled portion
-  const goldenStart = Math.max(RISE_STEP, 0);
-  const goldenEnd = Math.min(clamped, SET_STEP);
-  const violetPts =
-    goldenEnd > goldenStart ? ALL_CURVE.slice(goldenStart, goldenEnd + 1) : [];
-  const remainingPts = ALL_CURVE.slice(clamped);
+  const minX = curveData[0]?.x || 0;
+  const maxX = curveData[curveData.length - 1]?.x || 0;
 
-  const violetPath = violetPts.length > 1 ? smoothPath(violetPts) : null;
-  const remainingPath =
-    remainingPts.length > 1 ? smoothPath(remainingPts) : null;
+  const nowMs = Date.now();
+  const prevMs = previousEvent?.getTime() || minX + (maxX - minX) * 0.3;
+  const nextMs = nextEvent?.getTime() || minX + (maxX - minX) * 0.7;
 
-  // Status
-  let statusText: string;
-  let statusColor: string;
+  // Calculate deterministic labels
+  const {
+    prevTimeLabel,
+    nextTimeLabel,
+    prevDurationLabel,
+    nextDurationLabel,
+    prevTitle,
+    nextTitle,
+  } = useMemo(() => {
+    const pTime = fmtTime(new Date(prevMs), timezone);
+    const nTime = fmtTime(new Date(nextMs), timezone);
+    const pTitle = isAboveHorizon ? "Moonrise" : "Moonset";
+    const nTitle = isAboveHorizon ? "Moonset" : "Moonrise";
+    const pDur = `${fmtDurationMs(nowMs - prevMs)} ago`;
+    const nDur = `in ${fmtDurationMs(nextMs - nowMs)}`;
+    return {
+      prevTimeLabel: pTime,
+      nextTimeLabel: nTime,
+      prevTitle: pTitle,
+      nextTitle: nTitle,
+      prevDurationLabel: pDur,
+      nextDurationLabel: nDur,
+    };
+  }, [prevMs, nextMs, nowMs, isAboveHorizon, timezone]);
+
+  const getOffset = (val: number) => {
+    if (maxX === minX) return 0;
+    return Math.max(0, Math.min(100, ((val - minX) / (maxX - minX)) * 100));
+  };
+
+  const activeOffset = getOffset(nowMs);
+
+  // Calculate where the gradient starts/stops based on state
+  // If UP: gradient runs from prevMs to nowMs
+  // If DOWN: no gradient (dim)
+  const prevOffset = getOffset(prevMs);
+  const isRising = isAboveHorizon;
+
+  let statusText = "Below horizon";
+  let statusColor = "text-base-content/50";
   if (isAboveHorizon) {
     statusText = `${Math.round(altitude)}° above horizon`;
-    statusColor = "text-violet-400";
+    statusColor = "text-violet-400 font-semibold";
   } else {
     statusText = `${Math.round(Math.abs(altitude))}° below horizon`;
-    statusColor = "text-base-content/40";
+    statusColor = "text-indigo-300/60";
   }
 
-  const bgGradient = isAboveHorizon
-    ? "bg-gradient-to-br from-indigo-800 to-violet-700"
-    : "bg-gradient-to-br from-slate-800 to-slate-900";
+  const yDomainMinimum = minAltitude - 5;
+  const yDomain = [
+    Number.isNaN(yDomainMinimum) ? 0 : yDomainMinimum,
+    Math.max(peakAltitude + 15, 15),
+  ];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-violet-500/10">
-      <div className="bg-base-200/40 px-5 pt-4 pb-2">
-        <p className="text-base-content/50 text-xs font-medium tracking-wider uppercase">
-          Moon Position
-        </p>
+    <div className="flex flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-[#1e1b4b] to-[#0f172a] shadow-lg">
+      <div className="flex items-center justify-between px-6 pt-5 pb-2 text-sm font-medium tracking-wide">
+        <span className="text-xs text-white/90 uppercase">Moon Position</span>
       </div>
 
-      <div className={`relative ${bgGradient}`}>
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="w-full"
-          aria-label="Moon position arc"
-        >
-          {svgDefs}
-
-          {/* Horizon */}
-          <line
-            x1="0"
-            y1={HORIZON_Y}
-            x2={W}
-            y2={HORIZON_Y}
-            stroke="white"
-            strokeOpacity="0.07"
-            strokeWidth="0.75"
-          />
-
-          {/* Full curve (dim) */}
-          <path
-            d={FULL_PATH}
-            fill="none"
-            stroke="white"
-            strokeOpacity="0.1"
-            strokeWidth="1"
-          />
-
-          {/* Above-horizon traveled (violet) */}
-          {violetPath ? (
-            <path
-              d={violetPath}
-              fill="none"
-              stroke="url(#moonTraveledGrad)"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          ) : null}
-
-          {/* Remaining (gray) */}
-          {remainingPath ? (
-            <path
-              d={remainingPath}
-              fill="none"
-              stroke="white"
-              strokeOpacity="0.08"
-              strokeWidth="1"
-              strokeLinecap="round"
-            />
-          ) : null}
-
-          {/* Moonrise time */}
-          <text
-            x={PAD + 20}
-            y={HORIZON_Y - 6}
-            textAnchor="middle"
-            fill="white"
-            fillOpacity="0.5"
-            fontSize="5.5"
-            fontFamily="inherit"
+      <div className="-mt-2 -mb-4 h-56 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={curveData}
+            margin={{ top: 10, right: 30, bottom: 35, left: 30 }}
           >
-            {fmtTime(moonrise, timezone)}
-          </text>
+            <defs>
+              <filter
+                id="moonGlow"
+                x="-50%"
+                y="-50%"
+                width="200%"
+                height="200%"
+              >
+                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
 
-          {/* Moonset time */}
-          <text
-            x={W - PAD - 20}
-            y={HORIZON_Y - 6}
-            textAnchor="middle"
-            fill="white"
-            fillOpacity="0.5"
-            fontSize="5.5"
-            fontFamily="inherit"
-          >
-            {fmtTime(moonset, timezone)}
-          </text>
+              <linearGradient id="moonArcStroke" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="white" stopOpacity={0.15} />
+                <stop
+                  offset={`${prevOffset}%`}
+                  stopColor="white"
+                  stopOpacity={0.15}
+                />
+                <stop
+                  offset={`${prevOffset}%`}
+                  stopColor={isRising ? "#8b5cf6" : "rgba(255,255,255,0.15)"}
+                  stopOpacity={1}
+                />
+                <stop
+                  offset={`${activeOffset}%`}
+                  stopColor={isRising ? "#a78bfa" : "rgba(255,255,255,0.15)"}
+                  stopOpacity={1}
+                />
+                <stop
+                  offset={`${activeOffset}%`}
+                  stopColor="white"
+                  stopOpacity={0.15}
+                />
+                <stop offset="100%" stopColor="white" stopOpacity={0.15} />
+              </linearGradient>
+            </defs>
 
-          {/* Moon icon */}
-          {moonPt ? (
-            <g filter="url(#moonGlow)">
-              <image
-                href={phaseIcon}
-                x={moonPt.x - 12}
-                y={moonPt.y - 12}
-                width="24"
-                height="24"
-                opacity={isAboveHorizon ? 1 : 0.3}
-              />
-            </g>
-          ) : null}
-        </svg>
+            <XAxis
+              dataKey="x"
+              hide
+              type="number"
+              domain={["dataMin", "dataMax"]}
+            />
+            <YAxis hide type="number" domain={yDomain} />
+
+            <Tooltip
+              content={({ active, payload }) => (
+                <CustomTooltip
+                  active={active}
+                  payload={payload}
+                  timezone={timezone}
+                />
+              )}
+              cursor={{
+                stroke: "rgba(255,255,255,0.1)",
+                strokeWidth: 1,
+                strokeDasharray: "4 4",
+              }}
+            />
+
+            <ReferenceArea
+              y1={Number(yDomain[0])}
+              y2={0}
+              fill="#020617"
+              fillOpacity={0.5}
+            />
+
+            <ReferenceLine
+              y={0}
+              stroke="rgba(255,255,255,0.2)"
+              strokeWidth={1}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="y"
+              stroke="url(#moonArcStroke)"
+              strokeWidth={3}
+              dot={false}
+              activeDot={{
+                r: 6,
+                fill: "#c4b5fd",
+                stroke: "#8b5cf6",
+                strokeWidth: 2,
+              }}
+              isAnimationActive={false}
+            />
+
+            {/* PREVIOUS Event Dot & Text */}
+            <ReferenceDot
+              x={prevMs}
+              y={0}
+              r={5}
+              fill="#6366f1"
+              stroke="#fff"
+              strokeWidth={1.5}
+            />
+            <ReferenceDot
+              x={prevMs}
+              y={0}
+              r={0}
+              label={{
+                position: "bottom",
+                value: prevTitle,
+                fill: "rgba(255,255,255,0.7)",
+                fontSize: 10,
+                dy: 20,
+              }}
+            />
+            <ReferenceDot
+              x={prevMs}
+              y={0}
+              r={0}
+              label={{
+                position: "bottom",
+                value: prevDurationLabel,
+                fill: "#a78bfa",
+                fontSize: 10,
+                dy: 50,
+              }}
+            />
+            <ReferenceDot
+              x={prevMs}
+              y={0}
+              r={0}
+              label={{
+                position: "bottom",
+                value: prevTimeLabel,
+                fill: "white",
+                fontSize: 13,
+                fontWeight: 600,
+                dy: 34,
+              }}
+            />
+
+            {/* NEXT Event Dot & Text */}
+            <ReferenceDot
+              x={nextMs}
+              y={0}
+              r={5}
+              fill="#6366f1"
+              stroke="#fff"
+              strokeWidth={1.5}
+            />
+            <ReferenceDot
+              x={nextMs}
+              y={0}
+              r={0}
+              label={{
+                position: "bottom",
+                value: nextTitle,
+                fill: "rgba(255,255,255,0.7)",
+                fontSize: 10,
+                dy: 20,
+              }}
+            />
+            <ReferenceDot
+              x={nextMs}
+              y={0}
+              r={0}
+              label={{
+                position: "bottom",
+                value: nextDurationLabel,
+                fill: "#a78bfa",
+                fontSize: 10,
+                dy: 50,
+              }}
+            />
+            <ReferenceDot
+              x={nextMs}
+              y={0}
+              r={0}
+              label={{
+                position: "bottom",
+                value: nextTimeLabel,
+                fill: "white",
+                fontSize: 13,
+                fontWeight: 600,
+                dy: 34,
+              }}
+            />
+
+            {/* Current Moon Position */}
+            <ReferenceDot
+              shape={({ cx, cy }) => (
+                <g filter={isAboveHorizon ? "url(#moonGlow)" : undefined}>
+                  <image
+                    href={phaseIcon}
+                    x={cx - 14}
+                    y={cy - 14}
+                    width={28}
+                    height={28}
+                    opacity={isAboveHorizon ? 1 : 0.4}
+                  />
+                </g>
+              )}
+              x={nowMs}
+              y={altitude}
+              r={12}
+              fill="none"
+              stroke="none"
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
 
-      <div className="bg-base-200/40 flex items-center justify-between px-5 py-2.5 text-xs">
-        <span className={statusColor + " font-medium"}>{statusText}</span>
-        <div className="flex gap-3">
+      <div className="mt-auto flex items-center justify-between border-t border-violet-800/30 bg-[#020617]/40 px-6 pt-5 pb-4 text-xs">
+        <span className={statusColor}>{statusText}</span>
+        <div className="flex gap-4 font-medium">
+          <span className="text-violet-200/50">
+            Azimuth {Math.round(azimuth)}&deg; {fmtAzimuth(azimuth)}
+          </span>
           {peakAltitude > 0 ? (
-            <span className="text-base-content/30">
+            <span className="text-violet-200/50">
               Peak {Math.round(peakAltitude)}°
             </span>
           ) : null}
-          <span className="text-base-content/20">
+          <span className="text-violet-200/40">
             Low {Math.round(minAltitude)}°
           </span>
         </div>

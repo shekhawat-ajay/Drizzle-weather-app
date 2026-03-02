@@ -9,6 +9,7 @@ import {
   calcPlanetData,
   calcNextRiseSet,
   getStargazingQuality,
+  calcUpcomingEclipses,
 } from "@/utils/astronomy";
 
 import type { AstronomyData } from "@/types/astronomy";
@@ -70,13 +71,7 @@ export default function useAstronomy(
       sun.sunset,
     );
     const moon = calcMoonData(latitude, longitude, todayStart);
-    const moonPosition = calcMoonPosition(
-      latitude,
-      longitude,
-      now,
-      moon.moonrise,
-      moon.moonset,
-    );
+    const moonPosition = calcMoonPosition(latitude, longitude, now);
     const planets = calcPlanetData(latitude, longitude, todayStart);
     const nextMoonPhases = calcNextMoonPhases(now, 4);
     const nextSeason = calcNextSeason(now);
@@ -86,6 +81,7 @@ export default function useAstronomy(
       sun.sunset,
       now,
     );
+    const upcomingEclipses = calcUpcomingEclipses(now);
 
     return {
       sun,
@@ -97,6 +93,7 @@ export default function useAstronomy(
       nextSeason,
       nextRiseSet,
       stargazing,
+      upcomingEclipses,
     };
   }, [latitude, longitude]);
 }

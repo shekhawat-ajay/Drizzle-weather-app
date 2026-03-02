@@ -7,9 +7,15 @@ import {
   Illumination,
   SearchMoonQuarter,
   NextMoonQuarter,
+  SearchLunarEclipse,
+  NextLunarEclipse,
+  SearchGlobalSolarEclipse,
+  NextGlobalSolarEclipse,
+  EclipseKind,
   Seasons,
   Equator,
   Horizon,
+  MakeTime,
 } from "astronomy-engine";
 
 import type {
@@ -21,6 +27,7 @@ import type {
   NextMoonPhaseData,
   SeasonData,
   NextRiseSetData,
+  EclipseEvent,
 } from "@/types/astronomy";
 
 /* ─── Helpers ─── */
@@ -88,6 +95,40 @@ function toDateOrNull(
   return astroTime ? astroTime.date : null;
 }
 
+const MS_PER_DAY = 86_400_000;
+const MS_PER_MIN = 60_000;
+
+/**
+ * Search backward from `now` for the most recent rise (+1) or set (−1).
+ */
+export function findPreviousEvent(
+  observer: Observer,
+  direction: 1 | -1,
+  now: ReturnType<typeof MakeTime>,
+  maxDays = 3,
+): ReturnType<typeof SearchRiseSet> | null {
+  let cursor = MakeTime(new Date(now.date.getTime() - maxDays * MS_PER_DAY));
+  let last: ReturnType<typeof SearchRiseSet> | null = null;
+
+  for (let i = 0; i < 10; i++) {
+    const evt = SearchRiseSet(Body.Moon, observer, direction, cursor, maxDays);
+    if (!evt || evt.ut >= now.ut) break;
+    last = evt;
+    cursor = MakeTime(new Date(evt.date.getTime() + MS_PER_MIN));
+  }
+  return last;
+}
+
+/** Search forward from `now` for the next rise (+1) or set (−1). */
+export function findNextEvent(
+  observer: Observer,
+  direction: 1 | -1,
+  now: ReturnType<typeof MakeTime>,
+  maxDays = 3,
+): ReturnType<typeof SearchRiseSet> | null {
+  return SearchRiseSet(Body.Moon, observer, direction, now, maxDays);
+}
+
 /* ─── Core calculators ─── */
 
 export function calcSunData(lat: number, lon: number, date: Date): SunData {
@@ -137,10 +178,11 @@ export function calcSunPosition(
 ): SunPositionData {
   const observer = new Observer(lat, lon, 0);
 
-  // Current sun altitude
+  // Current sun altitude and azimuth
   const equ = Equator(Body.Sun, now, observer, true, true);
   const hor = Horizon(now, observer, equ.ra, equ.dec, "normal");
   const altitude = hor.altitude;
+  const azimuth = hor.azimuth;
   const isAboveHorizon = altitude > 0;
 
   // Arc fraction: 0 at sunrise, 0.5 at noon, 1 at sunset
@@ -189,7 +231,11 @@ export function calcSunPosition(
   }
 
   const windowSpan = windowEnd - windowStart;
-  const altitudeCurve: { fraction: number; altitude: number }[] = [];
+  const altitudeCurve: {
+    fraction: number;
+    altitude: number;
+    timestamp: number;
+  }[] = [];
   let minAltitude = altitude;
 
   for (let i = 0; i <= SAMPLES; i++) {
@@ -198,7 +244,11 @@ export function calcSunPosition(
     const sampleDate = new Date(sampleMs);
     const sEqu = Equator(Body.Sun, sampleDate, observer, true, true);
     const sHor = Horizon(sampleDate, observer, sEqu.ra, sEqu.dec, "normal");
-    altitudeCurve.push({ fraction: frac, altitude: sHor.altitude });
+    altitudeCurve.push({
+      fraction: frac,
+      altitude: sHor.altitude,
+      timestamp: sampleMs,
+    });
     if (sHor.altitude < minAltitude) minAltitude = sHor.altitude;
     if (sHor.altitude > noonAltitude) noonAltitude = sHor.altitude;
   }
@@ -212,6 +262,7 @@ export function calcSunPosition(
 
   return {
     altitude,
+    azimuth,
     arcFraction,
     noonAltitude,
     isAboveHorizon,
@@ -248,70 +299,102 @@ export function calcMoonPosition(
   lat: number,
   lon: number,
   now: Date,
-  _moonrise: Date | null,
-  _moonset: Date | null,
 ): MoonPositionData {
   const observer = new Observer(lat, lon, 0);
   const equ = Equator(Body.Moon, now, observer, true, true);
   const hor = Horizon(now, observer, equ.ra, equ.dec, "normal");
   const altitude = hor.altitude;
-  const isAboveHorizon = altitude > 0;
+  const azimuth = hor.azimuth;
 
-  // Find the rise/set window that brackets "now"
-  // Search backward from now (up to 24h) for the previous event,
-  // and forward for the next event.
-  const PAD_MS = 3 * 60 * 60 * 1000;
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const nowAstro = MakeTime(now);
 
-  let windowStart: number;
-  let windowEnd: number;
+  // 1. Find the 4 bounding events (pure physical state)
+  const prevRise = findPreviousEvent(observer, +1, nowAstro);
+  const prevSet = findPreviousEvent(observer, -1, nowAstro);
+  const nextRise = findNextEvent(observer, +1, nowAstro);
+  const nextSet = findNextEvent(observer, -1, nowAstro);
 
-  if (isAboveHorizon) {
-    // Moon is up → find previous moonrise and next moonset
-    const prevRise = SearchRiseSet(Body.Moon, observer, +1, yesterday, 1);
-    const nextSet = SearchRiseSet(Body.Moon, observer, -1, now, 1);
-    const riseMs = prevRise
-      ? prevRise.date.getTime()
-      : now.getTime() - 12 * 60 * 60 * 1000;
-    const setMs = nextSet
-      ? nextSet.date.getTime()
-      : now.getTime() + 12 * 60 * 60 * 1000;
-    windowStart = riseMs - PAD_MS;
-    windowEnd = setMs + PAD_MS;
+  let isAboveHorizon = false;
+  if (prevRise && prevSet) {
+    isAboveHorizon = prevRise.ut > prevSet.ut;
+  } else if (prevRise && !prevSet) {
+    isAboveHorizon = true;
+  } else if (!prevRise && prevSet) {
+    isAboveHorizon = false;
   } else {
-    // Moon is down → find previous moonset and next moonrise
-    const prevSet = SearchRiseSet(Body.Moon, observer, -1, yesterday, 1);
-    const nextRise = SearchRiseSet(Body.Moon, observer, +1, now, 1);
-    const setMs = prevSet
-      ? prevSet.date.getTime()
-      : now.getTime() - 12 * 60 * 60 * 1000;
-    const riseMs = nextRise
-      ? nextRise.date.getTime()
-      : now.getTime() + 12 * 60 * 60 * 1000;
-    windowStart = setMs - PAD_MS;
-    windowEnd = riseMs + PAD_MS;
+    // Polar edge: moon is continuously up/down for days fallback to raw altitude
+    isAboveHorizon = altitude > 0;
   }
 
-  const windowSpan = windowEnd - windowStart;
-  const dayFraction = Math.max(
-    0,
-    Math.min(1, (now.getTime() - windowStart) / windowSpan),
-  );
+  // 2. Identify the active cycle bounds
+  let previousEvent: Date | null = null;
+  let nextEvent: Date | null = null;
 
-  // Sample peak and min altitudes across the window
+  if (isAboveHorizon) {
+    // UP STATE = [prevRise ... nextSet]
+    previousEvent = prevRise ? prevRise.date : null;
+    nextEvent = nextSet ? nextSet.date : null;
+  } else {
+    // DOWN STATE = [prevSet ... nextRise]
+    previousEvent = prevSet ? prevSet.date : null;
+    nextEvent = nextRise ? nextRise.date : null;
+  }
+
+  // 3. Sample exactly between these bounds to find peaks and build the curve
+  // If we are missing bounds (polar continuous), build a massive 48 hour mock window
+  let windowStartMs = now.getTime() - 24 * 60 * 60 * 1000;
+  let windowEndMs = now.getTime() + 24 * 60 * 60 * 1000;
+
+  if (previousEvent && nextEvent) {
+    windowStartMs = previousEvent.getTime();
+    windowEndMs = nextEvent.getTime();
+  } else if (previousEvent) {
+    windowStartMs = previousEvent.getTime();
+  } else if (nextEvent) {
+    windowEndMs = nextEvent.getTime();
+  }
+
+  // Pad the window 1 hour in both directions so Recharts renders the crossing clearly
+  const padMs = 60 * 60 * 1000;
+  let sampleStartMs = windowStartMs - padMs;
+  let sampleSpanMs = windowEndMs + padMs - sampleStartMs;
+
+  const SAMPLES = 40;
   let peakAltitude = altitude;
   let minAltitude = altitude;
-  const SAMPLES = 20;
+  const altitudeCurve: {
+    fraction: number;
+    altitude: number;
+    timestamp: number;
+  }[] = [];
+
   for (let i = 0; i <= SAMPLES; i++) {
-    const sampleMs = windowStart + (i / SAMPLES) * windowSpan;
+    const fraction = i / SAMPLES;
+    const sampleMs = sampleStartMs + fraction * sampleSpanMs;
     const sDate = new Date(sampleMs);
     const sEqu = Equator(Body.Moon, sDate, observer, true, true);
     const sHor = Horizon(sDate, observer, sEqu.ra, sEqu.dec, "normal");
+
+    altitudeCurve.push({
+      fraction,
+      altitude: sHor.altitude,
+      timestamp: sampleMs,
+    });
+
     if (sHor.altitude > peakAltitude) peakAltitude = sHor.altitude;
     if (sHor.altitude < minAltitude) minAltitude = sHor.altitude;
   }
 
-  return { altitude, isAboveHorizon, dayFraction, peakAltitude, minAltitude };
+  return {
+    altitude,
+    azimuth,
+    isAboveHorizon,
+    previousEvent,
+    nextEvent,
+    peakAltitude,
+    minAltitude,
+    altitudeCurve,
+  };
 }
 
 export function calcPlanetData(
@@ -361,6 +444,54 @@ export function calcNextMoonPhases(date: Date, count = 4): NextMoonPhaseData[] {
   }
 
   return phases;
+}
+
+export function calcUpcomingEclipses(now: Date): EclipseEvent[] {
+  const events: EclipseEvent[] = [];
+
+  // Lunar eclipses (visible globally where moon is up)
+  let lunar = SearchLunarEclipse(now);
+  for (let i = 0; i < 3; i++) {
+    if (lunar && lunar.peak && lunar.peak.date) {
+      let typeLabel = "Penumbral";
+      if (lunar.kind === EclipseKind.Partial) typeLabel = "Partial";
+      if (lunar.kind === EclipseKind.Total) typeLabel = "Total";
+
+      events.push({
+        kind: "lunar",
+        type: typeLabel,
+        peak: lunar.peak.date,
+      });
+      lunar = NextLunarEclipse(lunar.peak);
+    } else {
+      break;
+    }
+  }
+
+  // Solar eclipses (Global eclipses)
+  let solar = SearchGlobalSolarEclipse(now);
+  for (let i = 0; i < 3; i++) {
+    if (solar && solar.peak && solar.peak.date) {
+      let typeLabel = "Partial";
+      if (solar.kind === EclipseKind.Annular) typeLabel = "Annular";
+      if (solar.kind === EclipseKind.Total) typeLabel = "Total";
+
+      events.push({
+        kind: "solar",
+        type: typeLabel,
+        peak: solar.peak.date,
+      });
+      solar = NextGlobalSolarEclipse(solar.peak);
+    } else {
+      break;
+    }
+  }
+
+  // Sort chronologically and take the next 3 total eclipses of any kind
+  return events
+    .filter((e) => e.peak.getTime() > now.getTime())
+    .sort((a, b) => a.peak.getTime() - b.peak.getTime())
+    .slice(0, 3);
 }
 
 export function calcNextSeason(date: Date): SeasonData {

@@ -1,4 +1,4 @@
-import { type LucideIcon } from "lucide-react";
+import { Info, type LucideIcon } from "lucide-react";
 import { type ReactNode } from "react";
 
 // Accent map moved out of render cycle for better performance
@@ -39,6 +39,7 @@ interface AstroCardProps {
   value: string;
   sub?: string;
   badge?: ReactNode;
+  info?: ReactNode;
   accent?: AccentColor;
 }
 
@@ -49,13 +50,14 @@ export default function AstroCard({
   value,
   sub,
   badge,
+  info,
   accent = "violet",
 }: AstroCardProps) {
   const a = accentMap[accent];
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl border ${a.border} bg-base-200/40 hover:bg-base-200/60 p-5 transition-all duration-300 hover:shadow-lg`}
+      className={`group relative overflow-visible rounded-xl border ${a.border} bg-base-200/40 hover:bg-base-200/60 p-5 transition-all duration-300 hover:shadow-lg`}
     >
       <div className="flex items-start gap-4">
         <div
@@ -67,10 +69,22 @@ export default function AstroCard({
             <Icon className={a.iconText} size={20} />
           ) : null}
         </div>
-        <div className="min-w-0">
-          <p className="text-base-content/50 text-xs font-medium tracking-wider uppercase">
-            {title}
-          </p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <p className="text-base-content/50 text-xs font-medium tracking-wider uppercase">
+              {title}
+            </p>
+            {info && (
+              <div className="relative flex items-center">
+                <Info className="peer text-base-content/40 hover:text-base-content/80 h-3.5 w-3.5 cursor-help transition-colors" />
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-[100] mb-2 w-56 -translate-x-1/2 opacity-0 transition-opacity peer-hover:opacity-100">
+                  <div className="rounded-xl border border-white/10 bg-[#0f172a] p-3 text-xs leading-relaxed text-white shadow-2xl">
+                    {info}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           <p className="text-base-content mt-1 text-xl font-semibold">
             {value}
           </p>

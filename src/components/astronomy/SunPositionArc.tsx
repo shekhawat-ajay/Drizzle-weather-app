@@ -1,5 +1,17 @@
+import { useMemo } from "react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  YAxis,
+  XAxis,
+  ReferenceDot,
+  ReferenceLine,
+  ReferenceArea,
+  Tooltip,
+} from "recharts";
 import type { SunPositionData } from "@/types/astronomy";
-import { fmtTime } from "@/utils/formatters";
+import { fmtTime, fmtAzimuth } from "@/utils/formatters";
 
 interface SunPositionArcProps {
   sunPosition: SunPositionData;
@@ -8,81 +20,51 @@ interface SunPositionArcProps {
   timezone?: string | undefined;
 }
 
-// ── Layout ──
-const W = 400;
-const H = 100;
-const PAD = 30;
-const HORIZON_Y = 72;
-const PEAK_Y = 14;
-const DIP_Y = 90;
-
-function curveY(t: number): number {
-  const angle = -0.2 * Math.PI + t * 1.4 * Math.PI;
-  const s = Math.sin(angle);
-  if (s >= 0) return HORIZON_Y - s * (HORIZON_Y - PEAK_Y);
-  return HORIZON_Y - (s * (DIP_Y - HORIZON_Y)) / 0.59;
-}
-
-function curveX(t: number): number {
-  return PAD + t * (W - 2 * PAD);
-}
-
-// Build smooth SVG cubic bezier via Catmull-Rom
-function smoothPath(points: Array<{ x: number; y: number }>): string {
-  if (points.length < 2) return "";
-  const a = 0.25;
-  let d = `M ${points[0]!.x.toFixed(1)} ${points[0]!.y.toFixed(1)}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[Math.max(0, i - 1)]!;
-    const p1 = points[i]!;
-    const p2 = points[i + 1]!;
-    const p3 = points[Math.min(points.length - 1, i + 2)]!;
-    d += ` C ${(p1.x + (p2.x - p0.x) * a).toFixed(1)} ${(p1.y + (p2.y - p0.y) * a).toFixed(1)}, ${(p2.x - (p3.x - p1.x) * a).toFixed(1)} ${(p2.y - (p3.y - p1.y) * a).toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+const CustomTooltip = ({
+  active,
+  payload,
+  timezone,
+}: {
+  active?: boolean;
+  payload?: readonly any[];
+  timezone?: string | undefined;
+}) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const timeStr = fmtTime(new Date(data.x), timezone);
+    const elev = Math.round(data.y);
+    const elevText =
+      elev > 0 ? `${elev}° above horizon` : `${Math.abs(elev)}° below horizon`;
+    return (
+      <div className="rounded-xl border border-sky-800/50 bg-[#041a33]/90 p-2.5 text-xs shadow-2xl backdrop-blur-md">
+        <p className="flex items-center gap-1.5 font-semibold text-white">
+          <span className="h-2 w-2 rounded-full bg-amber-400"></span>
+          {timeStr}
+        </p>
+        <p className="mt-1 ml-3.5 font-medium text-sky-200">{elevText}</p>
+      </div>
+    );
   }
-  return d;
-}
+  return null;
+};
 
-// Pre-compute curve
-const STEPS = 80;
-const ALL_CURVE: Array<{ x: number; y: number }> = [];
-for (let i = 0; i <= STEPS; i++) {
-  const t = i / STEPS;
-  ALL_CURVE.push({ x: curveX(t), y: curveY(t) });
-}
-const FULL_PATH = smoothPath(ALL_CURVE);
-
-// Find horizon crossing steps (pre-computed)
-let RISE_STEP = 0;
-let SET_STEP = STEPS;
-for (let i = 0; i < ALL_CURVE.length; i++) {
-  if (ALL_CURVE[i]!.y < HORIZON_Y) {
-    RISE_STEP = i;
-    break;
+// Helper to determine if an event is on the following local day
+function getDayOffsetLabel(
+  baseDateMs: number,
+  eventDateMs: number,
+  timezone?: string,
+) {
+  const baseDay = new Date(baseDateMs).toLocaleDateString("en-US", {
+    timeZone: timezone,
+  });
+  const eventDay = new Date(eventDateMs).toLocaleDateString("en-US", {
+    timeZone: timezone,
+  });
+  if (baseDay !== eventDay) {
+    return "Tomorrow";
   }
+  return "";
 }
-for (let i = ALL_CURVE.length - 1; i >= 0; i--) {
-  if (ALL_CURVE[i]!.y < HORIZON_Y) {
-    SET_STEP = i;
-    break;
-  }
-}
-
-// SVG defs
-const svgDefs = (
-  <defs>
-    <filter id="sunGlow" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur stdDeviation="3" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-    <linearGradient id="traveledGrad" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stopColor="#d4a017" stopOpacity="0.5" />
-      <stop offset="100%" stopColor="#f59e0b" stopOpacity="1" />
-    </linearGradient>
-  </defs>
-);
 
 export default function SunPositionArc({
   sunPosition,
@@ -90,154 +72,318 @@ export default function SunPositionArc({
   sunset,
   timezone,
 }: SunPositionArcProps) {
-  const { altitude, noonAltitude, isAboveHorizon, dayFraction, minAltitude } =
-    sunPosition;
+  const {
+    altitude,
+    azimuth,
+    isAboveHorizon,
+    altitudeCurve,
+    noonAltitude,
+    minAltitude,
+  } = sunPosition;
 
-  // Sun step on the curve
-  const clamped = Math.max(0, Math.min(STEPS, Math.round(dayFraction * STEPS)));
-  const sunPt = ALL_CURVE[clamped];
+  const curveData = useMemo(() => {
+    // If altitudeCurve is undefined (fallback)
+    if (!altitudeCurve || altitudeCurve.length === 0) {
+      const STEPS = 100;
+      const pts = [];
+      const now = Date.now();
+      const span = 12 * 3600000;
+      for (let i = 0; i <= STEPS; i++) {
+        const t = i / STEPS;
+        pts.push({
+          x: now - span + t * span * 2,
+          y: Math.sin(t * Math.PI) * 45,
+        });
+      }
+      return pts;
+    }
 
-  // Golden: only above-horizon traveled portion
-  const goldenStart = Math.max(RISE_STEP, 0);
-  const goldenEnd = Math.min(clamped, SET_STEP);
-  const goldenPts =
-    goldenEnd > goldenStart ? ALL_CURVE.slice(goldenStart, goldenEnd + 1) : [];
-  const remainingPts = ALL_CURVE.slice(clamped);
+    return altitudeCurve.map((pt: { timestamp: number; altitude: number }) => ({
+      x: pt.timestamp,
+      y: pt.altitude,
+    }));
+  }, [altitudeCurve]);
 
-  const goldenPath = goldenPts.length > 1 ? smoothPath(goldenPts) : null;
-  const remainingPath =
-    remainingPts.length > 1 ? smoothPath(remainingPts) : null;
+  const minX = curveData[0]?.x || 0;
+  const maxX = curveData[curveData.length - 1]?.x || 0;
 
-  // Status
-  let statusText: string;
-  let statusColor: string;
+  const nowMs = Date.now();
+  const sunriseMs = sunrise?.getTime() || minX + (maxX - minX) * 0.3;
+  const sunsetMs = sunset?.getTime() || minX + (maxX - minX) * 0.7;
+
+  const riseTomorrow = getDayOffsetLabel(nowMs, sunriseMs, timezone);
+  const setTomorrow = getDayOffsetLabel(nowMs, sunsetMs, timezone);
+
+  const getOffset = (val: number) => {
+    if (maxX === minX) return 0;
+    return Math.max(0, Math.min(100, ((val - minX) / (maxX - minX)) * 100));
+  };
+
+  const sunriseOffset = getOffset(sunriseMs);
+  const activeOffset = getOffset(Math.min(nowMs, sunsetMs));
+
+  const activeY = altitude;
+
+  let statusText = "Below horizon";
+  let statusColor = "text-base-content/50";
   if (isAboveHorizon) {
     statusText = `${Math.round(altitude)}° above horizon`;
-    statusColor = "text-amber-400";
+    statusColor = "text-amber-400 font-semibold";
   } else if (altitude > -6) {
     statusText = "Twilight";
-    statusColor = "text-orange-400/70";
+    statusColor = "text-indigo-300 font-medium";
   } else {
     statusText = `${Math.round(Math.abs(altitude))}° below horizon`;
-    statusColor = "text-base-content/40";
+    statusColor = "text-sky-300/60";
   }
 
-  const bgGradient = isAboveHorizon
-    ? "bg-gradient-to-br from-sky-600 to-sky-400"
-    : altitude > -6
-      ? "bg-gradient-to-br from-slate-600 to-sky-800"
-      : "bg-gradient-to-br from-slate-700 to-slate-900";
+  // Padding for Y axis to prevent clipping sun glow
+  const yDomainMinimum = minAltitude - 5;
+  const yDomain = [
+    Number.isNaN(yDomainMinimum) ? 0 : yDomainMinimum,
+    Math.max(noonAltitude + 15, 15),
+  ];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-amber-500/10">
-      <div className="bg-base-200/40 px-5 pt-4 pb-2">
-        <p className="text-base-content/50 text-xs font-medium tracking-wider uppercase">
-          Sun Position
-        </p>
+    <div className="flex flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a478c] to-[#042859] shadow-lg">
+      <div className="flex items-center justify-between px-6 pt-5 pb-2 text-sm font-medium tracking-wide">
+        <span className="text-xs text-white/90 uppercase">Sun Position</span>
       </div>
 
-      <div className={`relative ${bgGradient}`}>
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="w-full"
-          aria-label="Sun position arc"
-        >
-          {svgDefs}
+      <div className="-mt-2 -mb-4 h-56 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={curveData}
+            margin={{ top: 10, right: 30, bottom: 35, left: 30 }}
+          >
+            <defs>
+              <filter id="sunGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
 
-          {/* Horizon */}
-          <line
-            x1="0"
-            y1={HORIZON_Y}
-            x2={W}
-            y2={HORIZON_Y}
-            stroke="white"
-            strokeOpacity="0.07"
-            strokeWidth="0.75"
-          />
+              <linearGradient id="traveledGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="white" stopOpacity={0.15} />
+                <stop
+                  offset={`${sunriseOffset}%`}
+                  stopColor="white"
+                  stopOpacity={0.15}
+                />
+                <stop
+                  offset={`${sunriseOffset}%`}
+                  stopColor="#f59e0b"
+                  stopOpacity={1}
+                />
+                <stop
+                  offset={`${activeOffset}%`}
+                  stopColor="#fbbf24"
+                  stopOpacity={1}
+                />
+                <stop
+                  offset={`${activeOffset}%`}
+                  stopColor="white"
+                  stopOpacity={0.15}
+                />
+                <stop offset="100%" stopColor="white" stopOpacity={0.15} />
+              </linearGradient>
+            </defs>
 
-          {/* Full curve (dim track) */}
-          <path
-            d={FULL_PATH}
-            fill="none"
-            stroke="white"
-            strokeOpacity="0.1"
-            strokeWidth="1"
-          />
+            <XAxis
+              dataKey="x"
+              hide
+              type="number"
+              domain={["dataMin", "dataMax"]}
+            />
+            <YAxis hide type="number" domain={yDomain} />
 
-          {/* Above-horizon traveled (golden) */}
-          {goldenPath ? (
-            <path
-              d={goldenPath}
-              fill="none"
+            <Tooltip
+              content={({ active, payload }) => (
+                <CustomTooltip
+                  active={active}
+                  payload={payload}
+                  timezone={timezone}
+                />
+              )}
+              cursor={{
+                stroke: "rgba(255,255,255,0.1)",
+                strokeWidth: 1,
+                strokeDasharray: "4 4",
+              }}
+            />
+
+            <ReferenceArea
+              y1={Number(yDomain[0])}
+              y2={0}
+              fill="#020617"
+              fillOpacity={0.5}
+            />
+
+            <ReferenceLine
+              y={0}
+              stroke="rgba(255,255,255,0.2)"
+              strokeWidth={1}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="y"
               stroke="url(#traveledGrad)"
-              strokeWidth="1.5"
-              strokeLinecap="round"
+              strokeWidth={3}
+              dot={false}
+              activeDot={{
+                r: 6,
+                fill: "#fef3c7",
+                stroke: "#f59e0b",
+                strokeWidth: 2,
+              }}
+              isAnimationActive={false}
             />
-          ) : null}
 
-          {/* Remaining (gray) */}
-          {remainingPath ? (
-            <path
-              d={remainingPath}
-              fill="none"
-              stroke="white"
-              strokeOpacity="0.08"
-              strokeWidth="1"
-              strokeLinecap="round"
+            {/* Sunrise Dot & Text */}
+            <ReferenceDot
+              x={sunriseMs}
+              y={0}
+              r={5}
+              fill="#fbbf24"
+              stroke="#fff"
+              strokeWidth={1.5}
             />
-          ) : null}
+            <ReferenceDot
+              x={sunriseMs}
+              y={0}
+              r={0}
+              label={{
+                position: "bottom",
+                value: "Sunrise",
+                fill: "rgba(255,255,255,0.7)",
+                fontSize: 12,
+                dy: 10,
+              }}
+            />
+            {riseTomorrow && (
+              <ReferenceDot
+                x={sunriseMs}
+                y={0}
+                r={0}
+                label={{
+                  position: "bottom",
+                  value: riseTomorrow,
+                  fill: "#fbbf24",
+                  fontSize: 10,
+                  dy: 40,
+                }}
+              />
+            )}
+            <ReferenceDot
+              x={sunriseMs}
+              y={0}
+              r={0}
+              label={{
+                position: "bottom",
+                value: fmtTime(sunrise, timezone),
+                fill: "white",
+                fontSize: 13,
+                fontWeight: 600,
+                dy: 24,
+              }}
+            />
 
-          {/* Sunrise time */}
-          <text
-            x={PAD + 20}
-            y={HORIZON_Y - 6}
-            textAnchor="middle"
-            fill="white"
-            fillOpacity="0.5"
-            fontSize="5.5"
-            fontFamily="inherit"
-          >
-            {fmtTime(sunrise, timezone)}
-          </text>
+            {/* Sunset Dot & Text */}
+            <ReferenceDot
+              x={sunsetMs}
+              y={0}
+              r={5}
+              fill="#fbbf24"
+              stroke="#fff"
+              strokeWidth={1.5}
+            />
+            <ReferenceDot
+              x={sunsetMs}
+              y={0}
+              r={0}
+              label={{
+                position: "bottom",
+                value: "Sunset",
+                fill: "rgba(255,255,255,0.7)",
+                fontSize: 12,
+                dy: 10,
+              }}
+            />
+            {setTomorrow && (
+              <ReferenceDot
+                x={sunsetMs}
+                y={0}
+                r={0}
+                label={{
+                  position: "bottom",
+                  value: setTomorrow,
+                  fill: "#fbbf24",
+                  fontSize: 10,
+                  dy: 40,
+                }}
+              />
+            )}
+            <ReferenceDot
+              x={sunsetMs}
+              y={0}
+              r={0}
+              label={{
+                position: "bottom",
+                value: fmtTime(sunset, timezone),
+                fill: "white",
+                fontSize: 13,
+                fontWeight: 600,
+                dy: 24,
+              }}
+            />
 
-          {/* Sunset time */}
-          <text
-            x={W - PAD - 20}
-            y={HORIZON_Y - 6}
-            textAnchor="middle"
-            fill="white"
-            fillOpacity="0.5"
-            fontSize="5.5"
-            fontFamily="inherit"
-          >
-            {fmtTime(sunset, timezone)}
-          </text>
-
-          {/* Sun */}
-          {sunPt ? (
-            <g filter="url(#sunGlow)">
+            {/* Current Sun Position */}
+            <g>
               <image
                 href="/sun.svg"
-                x={sunPt.x - 12}
-                y={sunPt.y - 12}
-                width="24"
-                height="24"
-                opacity={isAboveHorizon ? 1 : 0.3}
+                x={getOffset(nowMs) + "%"}
+                y="0%"
+                opacity={0}
               />
             </g>
-          ) : null}
-        </svg>
+            <ReferenceDot
+              shape={({ cx, cy }) => (
+                <g filter={isAboveHorizon ? "url(#sunGlow)" : undefined}>
+                  <image
+                    href="/sun.svg"
+                    x={cx - 14}
+                    y={cy - 14}
+                    width={28}
+                    height={28}
+                    opacity={isAboveHorizon ? 1 : 0.4}
+                  />
+                </g>
+              )}
+              x={nowMs}
+              y={activeY}
+              r={12}
+              fill="none"
+              stroke="none"
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
 
-      <div className="bg-base-200/40 flex items-center justify-between px-5 py-2.5 text-xs">
-        <span className={statusColor + " font-medium"}>{statusText}</span>
-        <div className="flex gap-3">
+      <div className="mt-auto flex items-center justify-between border-t border-sky-800/30 bg-[#020617]/40 px-6 pt-5 pb-4 text-xs">
+        <span className={statusColor}>{statusText}</span>
+        <div className="flex gap-4 font-medium">
+          <span className="text-sky-200/50">
+            Azimuth {Math.round(azimuth)}&deg; {fmtAzimuth(azimuth)}
+          </span>
           {noonAltitude > 0 ? (
-            <span className="text-base-content/30">
+            <span className="text-sky-200/50">
               Peak {Math.round(noonAltitude)}°
             </span>
           ) : null}
-          <span className="text-base-content/20">
+          <span className="text-sky-200/40">
             Low {Math.round(minAltitude)}°
           </span>
         </div>

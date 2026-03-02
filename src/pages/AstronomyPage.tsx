@@ -2,7 +2,15 @@ import { useContext } from "react";
 import { LocationContext } from "@/App";
 import { ResultType } from "@/schema/location";
 import useAstronomy from "@/hooks/astronomy/useAstronomy";
-import { Sun, Moon, Eye, Globe, Clock, CalendarDays } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  Eye,
+  Globe,
+  Clock,
+  CalendarDays,
+  Eclipse,
+} from "lucide-react";
 
 import AstroCard from "@/components/astronomy/AstroCard";
 import AstroHero from "@/components/astronomy/AstroHero";
@@ -29,6 +37,7 @@ export default function AstronomyPage() {
     nextMoonPhases,
     nextSeason,
     nextRiseSet,
+    upcomingEclipses,
   } = useAstronomy(location.latitude, location.longitude, location.timezone);
 
   const tz = location.timezone;
@@ -165,8 +174,6 @@ export default function AstronomyPage() {
         <div className="mt-3">
           <MoonPositionArc
             moonPosition={moonPosition}
-            moonrise={moon.moonrise}
-            moonset={moon.moonset}
             phaseIcon={moon.icon}
             timezone={tz}
           />
@@ -200,43 +207,75 @@ export default function AstronomyPage() {
       </div>
 
       {/* ── Upcoming Event ── */}
-      <div>
-        <SectionHeader
-          icon={CalendarDays}
-          label="Upcoming"
-          color="text-cyan-400"
-        />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <AstroCard
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="flex flex-col">
+          <SectionHeader
             icon={CalendarDays}
-            title="Next Season"
-            value={nextSeason.name}
-            sub={nextSeason.date.toLocaleDateString("en-US", {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
-            badge={
-              <CountdownBadge
-                target={nextSeason.date}
-                className="bg-cyan-500/10 text-cyan-400"
-              />
-            }
-            accent="cyan"
+            label="Upcoming"
+            color="text-cyan-400"
           />
-          <AstroCard
-            icon={Clock}
-            title="Twilight"
-            value={`Nautical ${fmtTime(sun.nauticalDusk, tz)}`}
-            sub={`Astronomical ${fmtTime(sun.astronomicalDusk, tz)}`}
-            badge={
-              <CountdownBadge
-                target={sun.nauticalDusk}
-                className="bg-violet-500/10 text-violet-400"
-              />
-            }
-            accent="violet"
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <AstroCard
+              icon={CalendarDays}
+              title="Next Season"
+              value={nextSeason.name}
+              sub={nextSeason.date.toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+              badge={
+                <CountdownBadge
+                  target={nextSeason.date}
+                  className="bg-cyan-500/10 text-cyan-400"
+                />
+              }
+              info="Equinoxes mark when day and night are roughly equal. Solstices mark the longest and shortest days of the year."
+              accent="cyan"
+            />
+            <AstroCard
+              icon={Clock}
+              title="Twilight"
+              value={`Nautical ${fmtTime(sun.nauticalDusk, tz)}`}
+              sub={`Astronomical ${fmtTime(sun.astronomicalDusk, tz)}`}
+              badge={
+                <CountdownBadge
+                  target={sun.nauticalDusk}
+                  className="bg-violet-500/10 text-violet-400"
+                />
+              }
+              info="Nautical twilight is when the horizon becomes difficult to distinguish. Astronomical twilight is when it's dark enough to see faint stars."
+              accent="violet"
+            />
+          </div>
+        </div>
+        <div className="flex flex-col">
+          <SectionHeader
+            icon={Eclipse}
+            label="Eclipses this Year"
+            color="text-rose-400"
           />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {upcomingEclipses.slice(0, 2).map((eclipse, i) => (
+              <AstroCard
+                key={i}
+                icon={Eclipse}
+                title={`${eclipse.type} ${eclipse.kind} Eclipse`}
+                value={eclipse.peak.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}
+                sub={fmtTime(eclipse.peak, tz)}
+                badge={
+                  <CountdownBadge
+                    target={eclipse.peak}
+                    className="bg-rose-500/10 text-rose-400"
+                  />
+                }
+                accent="rose"
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
