@@ -39,7 +39,7 @@ interface AstroCardProps {
   value: string;
   sub?: string;
   badge?: ReactNode;
-  info?: ReactNode;
+  info?: string;
   accent?: AccentColor;
 }
 
@@ -75,13 +75,14 @@ export default function AstroCard({
               {title}
             </p>
             {info && (
-              <div className="relative flex items-center">
-                <Info className="peer text-base-content/40 hover:text-base-content/80 h-3.5 w-3.5 cursor-help transition-colors" />
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-[100] mb-2 w-56 -translate-x-1/2 opacity-0 transition-opacity peer-hover:opacity-100">
-                  <div className="rounded-xl border border-white/10 bg-[#0f172a] p-3 text-xs leading-relaxed text-white shadow-2xl">
-                    {info}
-                  </div>
-                </div>
+              <div className="tooltip tooltip-top z-[100]" data-tip={info}>
+                <button
+                  type="button"
+                  className="cursor-help"
+                  aria-label={`Info about ${title}`}
+                >
+                  <Info className="text-base-content/40 hover:text-base-content/80 h-3.5 w-3.5 transition-colors" />
+                </button>
               </div>
             )}
           </div>

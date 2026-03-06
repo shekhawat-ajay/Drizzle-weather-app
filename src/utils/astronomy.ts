@@ -401,6 +401,7 @@ export function calcPlanetData(
   lat: number,
   lon: number,
   date: Date,
+  now: Date,
 ): PlanetData[] {
   const observer = new Observer(lat, lon, 0);
   const planets = [
@@ -409,15 +410,29 @@ export function calcPlanetData(
     Body.Mars,
     Body.Jupiter,
     Body.Saturn,
+    Body.Uranus,
+    Body.Neptune,
   ];
 
   return planets.map((body) => {
     const rise = SearchRiseSet(body, observer, +1, date, 1);
     const set = SearchRiseSet(body, observer, -1, date, 1);
+
+    // Current position
+    const equ = Equator(body, now, observer, true, true);
+    const hor = Horizon(now, observer, equ.ra, equ.dec, "normal");
+
+    // Visual magnitude
+    const illum = Illumination(body, now);
+
     return {
       name: body,
       rise: toDateOrNull(rise),
       set: toDateOrNull(set),
+      altitude: hor.altitude,
+      azimuth: hor.azimuth,
+      isAboveHorizon: hor.altitude > 0,
+      magnitude: illum.mag,
     };
   });
 }

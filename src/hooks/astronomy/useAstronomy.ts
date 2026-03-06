@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import {
   calcSunData,
   calcSunPosition,
@@ -14,68 +14,48 @@ import {
 
 import type { AstronomyData } from "@/types/astronomy";
 
+/* ─── Refresh intervals ─── */
+const POSITION_REFRESH_MS = 5 * 60_000; // 5 minutes — positions move visibly
+
 export default function useAstronomy(
   latitude: number,
   longitude: number,
   timezone?: string,
 ): AstronomyData {
-  return useMemo(() => {
+  // ── Timezone & midnight (stable for the session) ──
+  const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const todayStart = useMemo(() => {
     const now = new Date();
-
-    // If no timezone is provided, default to the local machine's timezone
-    const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    // 1. Get the current date/time in the target timezone as a string
     const targetDateStr = now.toLocaleString("en-US", {
       timeZone: tz,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
     });
-    // targetDateStr format: "MM/DD/YYYY"
 
     const [monthStr, dayStr, yearStr] = targetDateStr.split("/");
-    // Fallbacks just in case the parsing breaks somehow
     const month = parseInt(monthStr ?? (now.getMonth() + 1).toString());
     const day = parseInt(dayStr ?? now.getDate().toString());
     const year = parseInt(yearStr ?? now.getFullYear().toString());
 
-    // 2. We want to find the exact UTC timestamp for 00:00:00 in the target timezone
-    // for this specific year/month/day.
-    // The most reliable way is to parse an ISO string with the target timezone's offset.
-    // To get the target timezone's offset on this specific day, we can format
-    // a local midnight Date using Intl and compare UTC times.
-
-    // Create a local midnight date for that year/month/day
-    // Note: month is 1-indexed from the string, but Date uses 0-indexed months
     const localMidnight = new Date(year, month - 1, day, 0, 0, 0, 0);
-
-    // Format this local midnight back into a string as if it's in the target timezone
     const localMidnightInTargetTz = new Date(
       localMidnight.toLocaleString("en-US", { timeZone: tz }),
     );
-
-    // The difference in milliseconds gives us the exact offset we need to shift our local midnight by
     const tzDiffMs =
       localMidnightInTargetTz.getTime() - localMidnight.getTime();
 
-    // 3. Shift local midnight by the offset difference to get true target midnight in UTC
-    const todayStart = new Date(localMidnight.getTime() - tzDiffMs);
+    return new Date(localMidnight.getTime() - tzDiffMs);
+  }, [latitude, longitude, tz]);
 
+  // ── Tier 0: STATIC data (compute once per location) ──
+  const staticData = useMemo(() => {
+    const now = new Date();
     const sun = calcSunData(latitude, longitude, todayStart);
-    const sunPosition = calcSunPosition(
-      latitude,
-      longitude,
-      now,
-      sun.sunrise,
-      sun.sunset,
-    );
     const moon = calcMoonData(latitude, longitude, todayStart);
-    const moonPosition = calcMoonPosition(latitude, longitude, now);
-    const planets = calcPlanetData(latitude, longitude, todayStart);
     const nextMoonPhases = calcNextMoonPhases(now, 4);
     const nextSeason = calcNextSeason(now);
-    const nextRiseSet = calcNextRiseSet(latitude, longitude, now);
     const stargazing = getStargazingQuality(
       moon.illuminationFraction,
       sun.sunset,
@@ -85,15 +65,56 @@ export default function useAstronomy(
 
     return {
       sun,
-      sunPosition,
       moon,
-      moonPosition,
-      planets,
       nextMoonPhases,
       nextSeason,
-      nextRiseSet,
       stargazing,
       upcomingEclipses,
     };
-  }, [latitude, longitude]);
+  }, [latitude, longitude, todayStart]);
+
+  // ── Tier 2: POSITION data (refreshes every 5 min) ──
+  const computePositions = useCallback(() => {
+    const now = new Date();
+    const sunPosition = calcSunPosition(
+      latitude,
+      longitude,
+      now,
+      staticData.sun.sunrise,
+      staticData.sun.sunset,
+    );
+    const moonPosition = calcMoonPosition(latitude, longitude, now);
+    const planets = calcPlanetData(latitude, longitude, todayStart, now);
+    const nextRiseSet = calcNextRiseSet(latitude, longitude, now);
+
+    return { sunPosition, moonPosition, planets, nextRiseSet };
+  }, [
+    latitude,
+    longitude,
+    todayStart,
+    staticData.sun.sunrise,
+    staticData.sun.sunset,
+  ]);
+
+  const [positions, setPositions] = useState(computePositions);
+
+  useEffect(() => {
+    // Reset on location change
+    setPositions(computePositions());
+
+    const id = setInterval(() => {
+      setPositions(computePositions());
+    }, POSITION_REFRESH_MS);
+
+    return () => clearInterval(id);
+  }, [computePositions]);
+
+  // ── Combine all tiers ──
+  return useMemo(
+    () => ({
+      ...staticData,
+      ...positions,
+    }),
+    [staticData, positions],
+  );
 }

@@ -2,6 +2,7 @@ import { useContext } from "react";
 import { LocationContext } from "@/App";
 import { ResultType } from "@/schema/location";
 import useAstronomy from "@/hooks/astronomy/useAstronomy";
+import useCelestial from "@/hooks/astronomy/useCelestial";
 import {
   Sun,
   Moon,
@@ -18,6 +19,7 @@ import SectionHeader from "@/components/astronomy/SectionHeader";
 import MoonPhaseTimeline from "@/components/astronomy/MoonPhaseTimeline";
 import SunPositionArc from "@/components/astronomy/SunPositionArc";
 import MoonPositionArc from "@/components/astronomy/MoonPositionArc";
+import PlanetsTable from "@/components/astronomy/PlanetsTable";
 import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import { fmtTime, fmtDuration } from "@/utils/formatters";
 
@@ -41,6 +43,8 @@ export default function AstronomyPage() {
   } = useAstronomy(location.latitude, location.longitude, location.timezone);
 
   const tz = location.timezone;
+
+  const celestial = useCelestial(location.latitude, location.longitude);
 
   // ─── Badge targets ───
   // Each card shows ITS OWN event only. Three states:
@@ -68,10 +72,24 @@ export default function AstronomyPage() {
     ? nextRiseSet.prevSunset // state 1: yesterday's sunset
     : sun.sunset; // state 2 & 3: today's sunset
 
-  // Moon: always show next occurrence from current moment
-  // (moon's ~24h50m cycle makes paired state logic unreliable)
-  const moonriseBadgeTarget = nextRiseSet.nextMoonrise ?? moon.moonrise;
-  const moonsetBadgeTarget = nextRiseSet.nextMoonset ?? moon.moonset;
+  // Moon: harmonize card values + badges with the Moon Position Arc.
+  // The arc shows [previousEvent … nextEvent] based on horizon state.
+  // Cards should show the same contextually relevant events.
+  //
+  // BELOW horizon: previousEvent=lastSet, nextEvent=nextRise
+  //   → Moonrise card = next rise (future), Moonset card = prev set (past)
+  // ABOVE horizon: previousEvent=lastRise, nextEvent=nextSet
+  //   → Moonrise card = prev rise (past), Moonset card = next set (future)
+
+  const moonBelow = !moonPosition.isAboveHorizon;
+
+  const moonriseTime = moonBelow
+    ? moonPosition.nextEvent // next rise (future)
+    : moonPosition.previousEvent; // prev rise (past)
+
+  const moonsetTime = moonBelow
+    ? moonPosition.previousEvent // prev set (past)
+    : moonPosition.nextEvent; // next set (future)
 
   return (
     <div className="space-y-4">
@@ -149,10 +167,10 @@ export default function AstronomyPage() {
           <AstroCard
             imageSrc="/moonrise.svg"
             title="Moonrise"
-            value={fmtTime(moon.moonrise, tz)}
+            value={fmtTime(moonriseTime, tz)}
             badge={
               <CountdownBadge
-                target={moonriseBadgeTarget}
+                target={moonriseTime}
                 className="bg-violet-500/10 text-violet-400"
               />
             }
@@ -161,10 +179,10 @@ export default function AstronomyPage() {
           <AstroCard
             imageSrc="/moonset.svg"
             title="Moonset"
-            value={fmtTime(moon.moonset, tz)}
+            value={fmtTime(moonsetTime, tz)}
             badge={
               <CountdownBadge
-                target={moonsetBadgeTarget}
+                target={moonsetTime}
                 className="bg-violet-500/10 text-violet-400"
               />
             }
@@ -186,24 +204,7 @@ export default function AstronomyPage() {
       {/* ── Planets Section ── */}
       <div>
         <SectionHeader icon={Globe} label="Planets" color="text-teal-400" />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-          {planets.map((planet) => (
-            <AstroCard
-              key={planet.name}
-              icon={Globe}
-              title={planet.name}
-              value={`↑ ${fmtTime(planet.rise, tz)}`}
-              sub={`↓ ${fmtTime(planet.set, tz)}`}
-              badge={
-                <CountdownBadge
-                  target={planet.rise}
-                  className="bg-teal-500/10 text-teal-400"
-                />
-              }
-              accent="cyan"
-            />
-          ))}
-        </div>
+        <PlanetsTable planets={planets} celestial={celestial} timezone={tz} />
       </div>
 
       {/* ── Upcoming Event ── */}

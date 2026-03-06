@@ -25,6 +25,14 @@ export interface PlanetData {
   name: string;
   rise: Date | null;
   set: Date | null;
+  /** Current altitude (elevation) in degrees — negative = below horizon */
+  altitude: number;
+  /** Current azimuth in degrees (0 = North, 90 = East, 180 = South, 270 = West) */
+  azimuth: number;
+  /** Is the planet currently above the horizon? */
+  isAboveHorizon: boolean;
+  /** Visual (apparent) magnitude — lower = brighter, negative = very bright */
+  magnitude: number;
 }
 
 export interface NextMoonPhaseData {
