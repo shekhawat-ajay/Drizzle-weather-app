@@ -3,11 +3,26 @@ import { useContext } from "react";
 import { LocationContext } from "@/App";
 import { weatherImageMap } from "@/utils/maps/weatherImageMap";
 import { ResultType } from "@/schema/location";
+import { useUnits } from "@/context/UnitsContext";
+import {
+  convertTemp,
+  convertWindSpeed,
+  speedUnit,
+  convertPrecipitation,
+  precipUnit,
+  tempUnit,
+} from "@/utils/unitConversions";
+import {
+  fmtDateShortFromISO,
+  fmtWeekdayFromISO,
+  getDateOnlyFromISO,
+} from "@/utils/formatters";
 
 export default function WeeklyForecast() {
   const { location } = useContext(LocationContext) as unknown as {
     location: ResultType;
   };
+  const { units } = useUnits();
   const { data, isLoading, error } = useWeeklyForecast(
     location.latitude,
     location.longitude,
@@ -26,36 +41,20 @@ export default function WeeklyForecast() {
   // ── Helpers ───────────────────────────────────────────────
 
   const getWeekDay = (someDay: string) => {
-    const today = new Date();
-    const someDate = new Date(someDay);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const dateStr = getDateOnlyFromISO(someDay);
 
-    // Remove time part for accurate comparison
-    today.setHours(0, 0, 0, 0);
-    someDate.setHours(0, 0, 0, 0);
-
+    const todayDate = new Date(todayStr + "T00:00:00Z");
+    const someDate = new Date(dateStr + "T00:00:00Z");
     const msInDay = 24 * 60 * 60 * 1000;
-    const dateDifference = (someDate.getTime() - today.getTime()) / msInDay;
+    const dateDifference =
+      (someDate.getTime() - todayDate.getTime()) / msInDay;
 
-    if (dateDifference === 0) {
-      return "Today";
-    }
-    if (dateDifference === -1) {
-      return "Yesterday";
-    }
-    if (dateDifference === 1) {
-      return "Tomorrow";
-    }
+    if (dateDifference === 0) return "Today";
+    if (dateDifference === -1) return "Yesterday";
+    if (dateDifference === 1) return "Tomorrow";
 
-    return someDate.toLocaleString("default", { weekday: "short" });
-  };
-
-  const getDate = (time: string) => {
-    const dateISO = new Date(time);
-    const timeString = dateISO.toLocaleString("default", {
-      day: "2-digit",
-      month: "short",
-    });
-    return timeString;
+    return fmtWeekdayFromISO(someDay);
   };
 
   const getWeatherImage = (weatherCode: number) => {
@@ -94,7 +93,7 @@ export default function WeeklyForecast() {
                   className="border-base-content/5 bg-base-300 hover:bg-base-200 flex min-w-[140px] flex-shrink-0 snap-start flex-col items-center rounded-lg border px-4 py-4 transition-colors duration-150"
                 >
                   <p className="text-base-content/50 text-xs">
-                    {getDate(date)}
+                    {fmtDateShortFromISO(date)}
                   </p>
                   <p className="text-sm font-medium">{getWeekDay(date)}</p>
                   <img
@@ -108,7 +107,7 @@ export default function WeeklyForecast() {
 
                   {/* Temperature */}
                   <p className="mt-1 font-mono text-sm font-semibold">
-                    {maxTemperature?.[index]}° / {minTemperature?.[index]}°
+                    {Math.round(convertTemp(maxTemperature?.[index], units) ?? 0)}{tempUnit(units)} / {Math.round(convertTemp(minTemperature?.[index], units) ?? 0)}{tempUnit(units)}
                   </p>
 
                   {/* Rain & Precipitation */}
@@ -131,7 +130,7 @@ export default function WeeklyForecast() {
                         alt="precipitation"
                       />
                       <span className="font-mono text-xs">
-                        {precipitationSum?.[index]} mm
+                        {convertPrecipitation(precipitationSum?.[index], units)} {precipUnit(units)}
                       </span>
                     </div>
                   )}
@@ -140,7 +139,7 @@ export default function WeeklyForecast() {
                   <div className="mt-1 flex items-center gap-1">
                     <img className="size-4" src="/wind.svg" alt="wind" />
                     <span className="font-mono text-xs">
-                      {windSpeed?.[index]} km/h
+                      {convertWindSpeed(windSpeed?.[index], units)} {speedUnit(units)}
                     </span>
                   </div>
                 </div>

@@ -4,11 +4,15 @@ import useCurrentWeather from "@/hooks/weather/useCurrentWeather";
 import { weatherImageMap } from "@/utils/maps/weatherImageMap";
 import { cn } from "@/utils/cn";
 import { ResultType } from "@/schema/location";
+import { useUnits } from "@/context/UnitsContext";
+import { convertTemp, convertWindSpeed, speedUnit, tempUnit } from "@/utils/unitConversions";
+import { fmtDateLong, fmtTimeFromISO } from "@/utils/formatters";
 
 export default function CurrentWeather() {
   const { location } = useContext(LocationContext) as unknown as {
     location: ResultType;
   };
+  const { units } = useUnits();
   const { data, isLoading, error } = useCurrentWeather(
     location.latitude,
     location.longitude,
@@ -34,30 +38,12 @@ export default function CurrentWeather() {
     return image;
   };
 
-  const dateToday = (time: string) => {
-    const dateISO = new Date(time);
-    const dateString = dateISO.toLocaleString("default", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-    return dateString;
-  };
 
-  const getLastUpdatedTime = (time: string) => {
-    const dateISO = new Date(time);
-    const timeString = dateISO.toLocaleString("default", {
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true,
-    });
-    return timeString;
-  };
 
   const { imageSrc, description: imageDescription } =
     (weatherInfo && getWeatherImage(isDay!, weatherCode!)) || {};
-  const date = weatherInfo ? dateToday(time!) : "";
-  const lastUpdatedTime = weatherInfo ? getLastUpdatedTime(time!) : "";
+  const date = weatherInfo ? fmtDateLong(time!) : "";
+  const lastUpdatedTime = weatherInfo ? fmtTimeFromISO(time!) : "";
 
   return (
     <div
@@ -99,7 +85,8 @@ export default function CurrentWeather() {
               alt={`${imageDescription}`}
             />
             <p className="mb-2 text-sm text-white/70">{imageDescription}</p>
-            <h2 className="text-5xl font-bold text-white">{temperature}°</h2>
+            <h2 className="text-5xl font-bold text-white">{Math.round(convertTemp(temperature, units) ?? 0)}
+            {tempUnit(units)}</h2>
           </div>
 
           {/* Stats */}
@@ -112,7 +99,7 @@ export default function CurrentWeather() {
                   alt="feels like"
                 />
                 <p className="mt-1 text-sm font-semibold text-white">
-                  {apparentTemperature}°
+                  {Math.round(convertTemp(apparentTemperature, units) ?? 0)}{tempUnit(units)}
                 </p>
                 <p className="text-xs text-white/60">Feels like</p>
               </div>
@@ -126,9 +113,9 @@ export default function CurrentWeather() {
               <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
                 <img className="size-8" src="/wind.svg" alt="wind speed" />
                 <p className="mt-1 text-sm font-semibold text-white">
-                  {windSpeed}
+                  {convertWindSpeed(windSpeed, units)}
                 </p>
-                <p className="text-xs text-white/60">km/h</p>
+                <p className="text-xs text-white/60">{speedUnit(units)}</p>
               </div>
             </div>
           </div>

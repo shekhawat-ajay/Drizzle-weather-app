@@ -4,11 +4,15 @@ import { LocationContext } from "@/App";
 import { uvIndexImageMap } from "@/utils/maps/uvIndexImageMap";
 import { getWindDirection } from "@/utils/maps/getWindDirection";
 import { ResultType } from "@/schema/location";
+import { useUnits } from "@/context/UnitsContext";
+import { convertTemp, convertPrecipitation, precipUnit, tempUnit } from "@/utils/unitConversions";
+import { fmtTimeFromISO } from "@/utils/formatters";
 
 export default function TodaysForecast() {
   const { location } = useContext(LocationContext) as unknown as {
     location: ResultType;
   };
+  const { units } = useUnits();
   const { data, isLoading, error } = useTodayWeather(
     location.latitude,
     location.longitude,
@@ -25,15 +29,7 @@ export default function TodaysForecast() {
     precipitationProbabilityMax: precipitationProbability,
   } = data?.daily || {};
 
-  const getTime = (time: string) => {
-    const dateISO = new Date(time);
-    const dateString = dateISO.toLocaleString("default", {
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true,
-    });
-    return dateString;
-  };
+
 
   const setUvIndexImage = (uvIndex: number) => {
     const floorUvIndex = Math.floor(uvIndex);
@@ -56,8 +52,8 @@ export default function TodaysForecast() {
     return { label: "Extreme", colorClass: "text-fuchsia-400" };
   };
 
-  const sunriseTime = getTime(sunrise?.[0] ?? "");
-  const sunsetTime = getTime(sunset?.[0] ?? "");
+  const sunriseTime = fmtTimeFromISO(sunrise?.[0] ?? "");
+  const sunsetTime = fmtTimeFromISO(sunset?.[0] ?? "");
   const { imageSrc: uvIndexImage, description: uvImageDescription } =
     setUvIndexImage(uvIndex?.[0] ?? 0) || {};
   const uvLevel = getUvLevel(uvIndex?.[0] ?? 0);
@@ -85,7 +81,7 @@ export default function TodaysForecast() {
               Today's Forecast
             </h3>
             <span className="text-base-content/70 font-mono text-sm font-semibold">
-              {maxTemperature}° / {minTemperature}°
+              {Math.round(convertTemp(maxTemperature?.[0], units) ?? 0)}{tempUnit(units)} / {Math.round(convertTemp(minTemperature?.[0], units) ?? 0)}{tempUnit(units)}
             </span>
           </div>
 
@@ -146,7 +142,7 @@ export default function TodaysForecast() {
                 alt="precipitation"
               />
               <p className="mt-2 font-mono text-sm font-semibold">
-                {precipitationSum?.[0]} mm
+                {convertPrecipitation(precipitationSum?.[0], units)} {precipUnit(units)}
               </p>
               <p className="text-base-content/50 text-xs">Precipitation</p>
             </div>

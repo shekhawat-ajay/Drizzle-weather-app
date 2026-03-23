@@ -3,6 +3,9 @@ import { LocationContext } from "@/App";
 import { ResultType } from "@/schema/location";
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
 import { weatherImageMap } from "@/utils/maps/weatherImageMap";
+import { useUnits } from "@/context/UnitsContext";
+import { convertTemp, tempUnit } from "@/utils/unitConversions";
+import { fmtTimeFromISO, getNowAsUTC, parseAsUTC } from "@/utils/formatters";
 import {
   AreaChart,
   Area,
@@ -56,6 +59,7 @@ export default function HourlyForecast() {
   const { location } = useContext(LocationContext) as unknown as {
     location: ResultType;
   };
+  const { units } = useUnits();
   const { data, isLoading, error } = useHourlyForecast(
     location.latitude,
     location.longitude,
@@ -71,20 +75,13 @@ export default function HourlyForecast() {
     return weatherImageMap[`${code}${suffix}`];
   };
 
-  const formatTime = (timeStr: string) => {
-    const d = new Date(timeStr);
-    return d.toLocaleString("default", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
+
 
   // ── Chart data (now → now+25h) with highest/lowest flags ─────
 
   const { chartData, chartStartMs, chartEndMs } = useMemo(() => {
     if (!minutely15) return { chartData: [], chartStartMs: 0, chartEndMs: 0 };
-    const nowMs = Date.now();
+    const nowMs = getNowAsUTC(location.timezone);
     const endMs = nowMs + 25 * 60 * 60 * 1000;
 
     const points: {
@@ -97,7 +94,7 @@ export default function HourlyForecast() {
       isLowest?: boolean;
     }[] = [];
     for (let i = 0; i < minutely15.time.length; i++) {
-      const ms = new Date(minutely15.time[i]!).getTime();
+      const ms = parseAsUTC(minutely15.time[i]!).getTime();
       if (ms >= nowMs && ms <= endMs) {
         points.push({
           ts: ms,
@@ -127,7 +124,7 @@ export default function HourlyForecast() {
     }
 
     return { chartData: points, chartStartMs: nowMs, chartEndMs: endMs };
-  }, [minutely15]);
+  }, [minutely15, location.timezone]);
 
   // ── Sunrise/sunset events within range ──────────────────────
 
@@ -135,13 +132,13 @@ export default function HourlyForecast() {
     if (!daily) return [];
     const events: SunEvent[] = [];
     for (const sr of daily.sunrise) {
-      const ms = new Date(sr).getTime();
+      const ms = parseAsUTC(sr).getTime();
       if (ms >= chartStartMs && ms <= chartEndMs) {
         events.push({ kind: "sunrise", time: sr, ts: ms });
       }
     }
     for (const ss of daily.sunset) {
-      const ms = new Date(ss).getTime();
+      const ms = parseAsUTC(ss).getTime();
       if (ms >= chartStartMs && ms <= chartEndMs) {
         events.push({ kind: "sunset", time: ss, ts: ms });
       }
@@ -153,15 +150,15 @@ export default function HourlyForecast() {
 
   const cards: WeatherCard[] = useMemo(() => {
     if (!minutely15) return [];
-    const nowMs = Date.now();
+    const nowMs = getNowAsUTC(location.timezone);
     const cardEndMs = nowMs + 24 * 60 * 60 * 1000;
     const result: WeatherCard[] = [];
     for (let i = 0; i < minutely15.time.length; i++) {
       const t = minutely15.time[i]!;
-      const d = new Date(t);
+      const d = parseAsUTC(t);
       const ms = d.getTime();
       if (ms < nowMs || ms > cardEndMs) continue;
-      if (d.getMinutes() !== 30) continue;
+      if (d.getUTCMinutes() !== 30) continue;
 
       result.push({
         time: t,
@@ -172,18 +169,29 @@ export default function HourlyForecast() {
       });
     }
     return result;
-  }, [minutely15]);
+  }, [minutely15, location.timezone]);
+
+  // ── Display chart data with converted temp ─────────────────
+
+  const displayChartData = useMemo(
+    () =>
+      chartData.map((d) => ({
+        ...d,
+        displayTemp: convertTemp(d.temp, units) ?? d.temp,
+      })),
+    [chartData, units],
+  );
 
   // ── Temp range for chart padded domain ──────────────────────
 
   const { tempMin, tempMax } = useMemo(() => {
-    if (chartData.length === 0) return { tempMin: 0, tempMax: 10 };
-    const temps = chartData.map((d) => d.temp);
+    if (displayChartData.length === 0) return { tempMin: 0, tempMax: 10 };
+    const temps = displayChartData.map((d) => d.displayTemp);
     return {
       tempMin: Math.floor(Math.min(...temps)) - 1,
       tempMax: Math.ceil(Math.max(...temps)) + 1,
     };
-  }, [chartData]);
+  }, [displayChartData]);
 
   // ── Render ──────────────────────────────────────────────────
 
@@ -211,11 +219,11 @@ export default function HourlyForecast() {
           </h3>
 
           {/* ── Temperature chart with sunrise/sunset ───── */}
-          {chartData.length > 0 && (
+          {displayChartData.length > 0 && (
             <div className="mb-4 h-[120px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={chartData}
+                  data={displayChartData}
                   margin={{
                     top: 48,
                     right: 10,
@@ -248,6 +256,7 @@ export default function HourlyForecast() {
                       const d = payload[0].payload as {
                         time: string;
                         temp: number;
+                        displayTemp: number;
                         weatherCode: number;
                         isDay: number;
                         isHighest?: boolean;
@@ -264,10 +273,10 @@ export default function HourlyForecast() {
                       return (
                         <div className="border-base-content/10 bg-base-300 rounded-lg border px-3 py-2 shadow-lg">
                           <p className="text-base-content/60 text-xs">
-                            {formatTime(d.time)}
+                            {fmtTimeFromISO(d.time)}
                           </p>
                           <p className="font-mono text-sm font-semibold">
-                            {d.temp}°
+                            {Math.round(d.displayTemp)}{tempUnit(units)}
                           </p>
                           {weatherDesc && (
                             <p className="text-base-content/50 text-xs">
@@ -306,7 +315,7 @@ export default function HourlyForecast() {
                       label={
                         <SunLabel
                           kind={ev.kind}
-                          timeLabel={formatTime(ev.time)}
+                          timeLabel={fmtTimeFromISO(ev.time)}
                         />
                       }
                     />
@@ -314,7 +323,7 @@ export default function HourlyForecast() {
 
                   <Area
                     type="monotone"
-                    dataKey="temp"
+                    dataKey="displayTemp"
                     stroke="#38bdf8"
                     strokeWidth={2}
                     fill="url(#tempGradient)"
@@ -381,7 +390,7 @@ export default function HourlyForecast() {
                   className="border-base-content/5 bg-base-300 hover:bg-base-200 flex min-w-[110px] flex-shrink-0 snap-start flex-col items-center rounded-lg border px-3 py-4 transition-colors duration-150"
                 >
                   <p className="text-base-content/50 text-xs font-medium">
-                    {formatTime(card.time)}
+                    {fmtTimeFromISO(card.time)}
                   </p>
                   <img
                     className="my-2 size-9"
@@ -389,7 +398,7 @@ export default function HourlyForecast() {
                     alt={weather?.description}
                   />
                   <p className="font-mono text-sm font-semibold">
-                    {card.temp}°
+                    {Math.round(convertTemp(card.temp, units) ?? 0)}{tempUnit(units)}
                   </p>
                   <div className="mt-2 flex items-center gap-1">
                     <img
