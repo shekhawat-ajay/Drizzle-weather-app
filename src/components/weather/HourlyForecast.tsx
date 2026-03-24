@@ -81,7 +81,7 @@ export default function HourlyForecast() {
 
   const { chartData, chartStartMs, chartEndMs } = useMemo(() => {
     if (!minutely15) return { chartData: [], chartStartMs: 0, chartEndMs: 0 };
-    const nowMs = getNowAsUTC(location.timezone);
+    const nowMs = getNowAsUTC(location.timezone ?? "UTC");
     const endMs = nowMs + 25 * 60 * 60 * 1000;
 
     const points: {
@@ -150,7 +150,7 @@ export default function HourlyForecast() {
 
   const cards: WeatherCard[] = useMemo(() => {
     if (!minutely15) return [];
-    const nowMs = getNowAsUTC(location.timezone);
+    const nowMs = getNowAsUTC(location.timezone ?? "UTC");
     const cardEndMs = nowMs + 24 * 60 * 60 * 1000;
     const result: WeatherCard[] = [];
     for (let i = 0; i < minutely15.time.length; i++) {

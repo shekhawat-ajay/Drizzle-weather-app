@@ -17,6 +17,7 @@ import {
   fmtWeekdayFromISO,
   getDateOnlyFromISO,
 } from "@/utils/formatters";
+import { cn } from "@/utils/cn";
 
 export default function WeeklyForecast() {
   const { location } = useContext(LocationContext) as unknown as {
@@ -84,18 +85,50 @@ export default function WeeklyForecast() {
             Weekly Forecast
           </h3>
 
-          <div className="scrollbar-thin flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2">
+          <div className="scrollbar-thin flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 pt-4 px-2">
             {time?.map((date: string, index: number) => {
               const weather = getWeatherImage(weatherCode?.[index] ?? 0);
+              const dayLabel = getWeekDay(date);
+
+              // Focus scale out of 10
+              let focusClasses = "";
+              if (dayLabel === "Tomorrow") {
+                // 10/10 Focus
+                focusClasses =
+                  "bg-primary/10 border-primary/40 ring-1 ring-primary/30 shadow-md z-10 opacity-100";
+              } else if (dayLabel === "Yesterday") {
+                // 4/10 Focus
+                focusClasses =
+                  "bg-transparent border-base-content/10 border-dashed opacity-40 grayscale-[0.8]";
+              } else if (dayLabel === "Today") {
+                // 6/10 Focus
+                focusClasses = "bg-base-300 border-base-content/5 opacity-70";
+              } else {
+                // 8/10 Focus (Rest of the week)
+                focusClasses = "bg-base-200 border-base-content/10 opacity-100 hover:bg-base-100";
+              }
+
               return (
                 <div
                   key={date}
-                  className="border-base-content/5 bg-base-300 hover:bg-base-200 flex min-w-[140px] flex-shrink-0 snap-start flex-col items-center rounded-lg border px-4 py-4 transition-colors duration-150"
+                  className={cn(
+                    "flex min-w-[140px] flex-shrink-0 snap-start flex-col items-center rounded-lg border px-4 py-4 transition-all duration-300",
+                    focusClasses
+                  )}
                 >
                   <p className="text-base-content/50 text-xs">
                     {fmtDateShortFromISO(date)}
                   </p>
-                  <p className="text-sm font-medium">{getWeekDay(date)}</p>
+                  <p
+                    className={cn(
+                      "text-sm",
+                      dayLabel === "Tomorrow"
+                        ? "font-bold text-primary"
+                        : "font-medium"
+                    )}
+                  >
+                    {dayLabel}
+                  </p>
                   <img
                     className="my-2 size-10"
                     src={weather?.imageSrc}
@@ -107,7 +140,14 @@ export default function WeeklyForecast() {
 
                   {/* Temperature */}
                   <p className="mt-1 font-mono text-sm font-semibold">
-                    {Math.round(convertTemp(maxTemperature?.[index], units) ?? 0)}{tempUnit(units)} / {Math.round(convertTemp(minTemperature?.[index], units) ?? 0)}{tempUnit(units)}
+                    {Math.round(
+                      convertTemp(maxTemperature?.[index], units) ?? 0
+                    )}
+                    {tempUnit(units)} /{" "}
+                    {Math.round(
+                      convertTemp(minTemperature?.[index], units) ?? 0
+                    )}
+                    {tempUnit(units)}
                   </p>
 
                   {/* Rain & Precipitation */}
@@ -130,7 +170,8 @@ export default function WeeklyForecast() {
                         alt="precipitation"
                       />
                       <span className="font-mono text-xs">
-                        {convertPrecipitation(precipitationSum?.[index], units)} {precipUnit(units)}
+                        {convertPrecipitation(precipitationSum?.[index], units)}{" "}
+                        {precipUnit(units)}
                       </span>
                     </div>
                   )}
@@ -139,7 +180,8 @@ export default function WeeklyForecast() {
                   <div className="mt-1 flex items-center gap-1">
                     <img className="size-4" src="/wind.svg" alt="wind" />
                     <span className="font-mono text-xs">
-                      {convertWindSpeed(windSpeed?.[index], units)} {speedUnit(units)}
+                      {convertWindSpeed(windSpeed?.[index], units)}{" "}
+                      {speedUnit(units)}
                     </span>
                   </div>
                 </div>

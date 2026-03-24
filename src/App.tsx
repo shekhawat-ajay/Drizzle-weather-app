@@ -78,11 +78,11 @@ function SearchRow() {
   const isWeather = theme === "weather";
 
   return (
-    <div className="mt-6 mb-6 flex justify-center">
-      <div className="flex w-full max-w-lg items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <SearchBox />
-        </div>
+    <div className="mt-6 mb-6 flex flex-col items-center gap-3">
+      <div className="w-full max-w-lg">
+        <SearchBox />
+      </div>
+      <div className="flex items-center gap-2">
         <LocationClock timezone={location.timezone ?? "UTC"} />
         {isWeather ? <UnitsToggle /> : null}
       </div>
