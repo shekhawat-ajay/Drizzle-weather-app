@@ -3,7 +3,7 @@ export interface WeatherCard {
   temp: number;
   weatherCode: number;
   isDay: number;
-  humidity: number;
+  precipitationProbability: number;
 }
 
 export interface SunEvent {

@@ -21,6 +21,7 @@ export default function useAstronomy(
   latitude: number,
   longitude: number,
   timezone?: string,
+  cloudCover?: number | null,
 ): AstronomyData {
   // ── Timezone & midnight (stable for the session) ──
   const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -60,6 +61,7 @@ export default function useAstronomy(
       moon.illuminationFraction,
       sun.sunset,
       now,
+      cloudCover
     );
     const upcomingEclipses = calcUpcomingEclipses(now);
 
@@ -71,7 +73,7 @@ export default function useAstronomy(
       stargazing,
       upcomingEclipses,
     };
-  }, [latitude, longitude, todayStart]);
+  }, [latitude, longitude, todayStart, cloudCover]);
 
   // ── Tier 2: POSITION data (refreshes every 5 min) ──
   const computePositions = useCallback(() => {

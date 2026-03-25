@@ -1,4 +1,4 @@
-import useWeeklyForecast from "@/hooks/weather/useWeeklyForecast";
+import useDailyForecast from "@/hooks/weather/useDailyForecast";
 import { useContext } from "react";
 import { LocationContext } from "@/App";
 import { weatherImageMap } from "@/utils/maps/weatherImageMap";
@@ -24,7 +24,7 @@ export default function WeeklyForecast() {
     location: ResultType;
   };
   const { units } = useUnits();
-  const { data, isLoading, error } = useWeeklyForecast(
+  const { data, isLoading, error } = useDailyForecast(
     location.latitude,
     location.longitude,
   );
@@ -166,7 +166,7 @@ export default function WeeklyForecast() {
                     <div className="mt-0.5 flex items-center gap-1">
                       <img
                         className="size-4"
-                        src="/raindrops.svg"
+                        src="/raindrop-measure.svg"
                         alt="precipitation"
                       />
                       <span className="font-mono text-xs">

@@ -1,12 +1,16 @@
 import { useContext } from "react";
 import { LocationContext } from "@/App";
 import useCurrentWeather from "@/hooks/weather/useCurrentWeather";
+import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
 import { weatherImageMap } from "@/utils/maps/weatherImageMap";
+import { uvIndexImageMap } from "@/utils/maps/uvIndexImageMap";
+import { getWindDirection } from "@/utils/maps/getWindDirection";
 import { cn } from "@/utils/cn";
 import { ResultType } from "@/schema/location";
 import { useUnits } from "@/context/UnitsContext";
+import { Eye } from "lucide-react";
 import { convertTemp, convertWindSpeed, speedUnit, tempUnit } from "@/utils/unitConversions";
-import { fmtDateLong, fmtTimeFromISO } from "@/utils/formatters";
+import { fmtDateLong, fmtTimeFromISO, getNowAsUTC, parseAsUTC } from "@/utils/formatters";
 
 export default function CurrentWeather() {
   const { location } = useContext(LocationContext) as unknown as {
@@ -14,6 +18,10 @@ export default function CurrentWeather() {
   };
   const { units } = useUnits();
   const { data, isLoading, error } = useCurrentWeather(
+    location.latitude,
+    location.longitude,
+  );
+  const { data: hourlyData } = useHourlyForecast(
     location.latitude,
     location.longitude,
   );
@@ -27,18 +35,49 @@ export default function CurrentWeather() {
     apparentTemperature,
     relativeHumidity2M: relativeHumidity,
     windSpeed10M: windSpeed,
+    windDirection10M: windDirDegrees,
+    uvIndex,
     weatherCode,
     isDay,
   } = weatherInfo || {};
 
   const getWeatherImage = (isDay: number, weatherCode: number) => {
     const imageCode = isDay ? `${weatherCode}d` : `${weatherCode}n`;
-
-    const image = weatherImageMap[imageCode];
-    return image;
+    return weatherImageMap[imageCode];
   };
 
+  const setUvIndexImage = (uv: number) => {
+    const floorUvIndex = Math.floor(uv);
+    if (floorUvIndex < 1) return uvIndexImageMap[1];
+    if (floorUvIndex > 11) return uvIndexImageMap[11];
+    return uvIndexImageMap[floorUvIndex];
+  };
 
+  // Extract visibility from the nearest minutely15 forecast
+  let visibilityVal: number | null = null;
+  if (hourlyData?.minutely15) {
+    const nowMs = getNowAsUTC(location.timezone ?? "UTC");
+    const times = hourlyData.minutely15.time;
+    let closestIdx = 0;
+    let minDiff = Infinity;
+    for (let i = 0; i < times.length; i++) {
+        const ms = parseAsUTC(times[i]!).getTime();
+        const diff = Math.abs(ms - nowMs);
+        if (diff < minDiff) {
+            minDiff = diff;
+            closestIdx = i;
+        } else if (diff > minDiff) {
+            break;
+        }
+    }
+    visibilityVal = hourlyData.minutely15.visibility[closestIdx] ?? null;
+  }
+
+  const visibilityText = visibilityVal != null 
+    ? (units === "imperial" 
+        ? `${(visibilityVal / 1609.34).toFixed(1)} mi` 
+        : `${(visibilityVal / 1000).toFixed(1)} km`)
+    : "--";
 
   const { imageSrc, description: imageDescription } =
     (weatherInfo && getWeatherImage(isDay!, weatherCode!)) || {};
@@ -116,6 +155,39 @@ export default function CurrentWeather() {
                   {convertWindSpeed(windSpeed, units)}
                 </p>
                 <p className="text-xs text-white/60">{speedUnit(units)}</p>
+              </div>
+              <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
+                <img
+                  className="size-8"
+                  src="/compass.svg"
+                  alt="wind direction"
+                />
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {getWindDirection(windDirDegrees ?? 0)} {windDirDegrees}°
+                </p>
+                <p className="text-xs text-white/60">Wind Dir.</p>
+              </div>
+              <div className="flex flex-col items-center justify-between rounded-lg bg-white/10 px-2 py-3">
+                <div className="flex h-8 items-center">
+                  <Eye className="size-7 text-white/90" strokeWidth={1.5} />
+                </div>
+                <div className="text-center mt-1">
+                  <p className="text-sm font-semibold text-white">
+                    {visibilityText}
+                  </p>
+                  <p className="text-xs text-white/60">Visibility</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
+                <img
+                  className="size-8"
+                  src={setUvIndexImage(uvIndex ?? 0)?.imageSrc}
+                  alt="UV Index"
+                />
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {uvIndex?.toFixed(1) ?? "--"}
+                </p>
+                <p className="text-xs text-white/60">UV Index</p>
               </div>
             </div>
           </div>

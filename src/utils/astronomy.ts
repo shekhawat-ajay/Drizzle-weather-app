@@ -539,6 +539,7 @@ export function getStargazingQuality(
   moonIllumination: number,
   sunset: Date | null,
   date: Date,
+  cloudCover?: number | null,
 ): {
   label: string;
   description: string;
@@ -546,29 +547,47 @@ export function getStargazingQuality(
   // Simple heuristic: low moon illumination + nighttime = good stargazing
   const isNight = sunset ? date.getTime() > sunset.getTime() : false;
 
-  if (moonIllumination < 0.25) {
+  if (cloudCover != null && cloudCover > 80) {
     return {
-      label: "Excellent",
-      description: isNight
-        ? "Dark skies with minimal moonlight"
-        : "Dark skies expected tonight",
+      label: "Poor",
+      description: "Too cloudy to see stars",
     };
   }
-  if (moonIllumination < 0.5) {
+
+  if (cloudCover != null && cloudCover > 40) {
     return {
-      label: "Good",
+      label: "Fair",
+      description: "Partly cloudy, some stars visible",
+    };
+  }
+
+  // If cloud cover is low or unknown, fall back to moon-based heuristic
+  if (moonIllumination > 0.8) {
+    return {
+      label: "Poor",
+      description: "Bright full moon washes out most stars",
+    };
+  }
+
+  if (moonIllumination > 0.4) {
+    return {
+      label: "Fair",
       description: "Moderate moonlight, bright stars visible",
     };
   }
-  if (moonIllumination < 0.75) {
+
+  if (moonIllumination <= 0.2 && cloudCover != null && cloudCover < 15) {
     return {
-      label: "Fair",
-      description: "Bright moonlight may wash out faint stars",
+      label: "Excellent",
+      description: "Perfect dark and clear skies",
     };
   }
+
   return {
-    label: "Poor",
-    description: "Bright moon, only the brightest stars visible",
+    label: "Good",
+    description: isNight
+      ? "Dark skies, good visibility"
+      : "Dark skies expected tonight",
   };
 }
 

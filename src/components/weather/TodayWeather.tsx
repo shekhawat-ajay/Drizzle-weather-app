@@ -1,4 +1,4 @@
-import useTodayWeather from "@/hooks/weather/useTodayWeather";
+import useDailyForecast from "@/hooks/weather/useDailyForecast";
 import { useContext } from "react";
 import { LocationContext } from "@/App";
 import { uvIndexImageMap } from "@/utils/maps/uvIndexImageMap";
@@ -13,7 +13,7 @@ export default function TodaysForecast() {
     location: ResultType;
   };
   const { units } = useUnits();
-  const { data, isLoading, error } = useTodayWeather(
+  const { data, isLoading, error } = useDailyForecast(
     location.latitude,
     location.longitude,
   );
@@ -52,13 +52,13 @@ export default function TodaysForecast() {
     return { label: "Extreme", colorClass: "text-fuchsia-400" };
   };
 
-  const sunriseTime = fmtTimeFromISO(sunrise?.[0] ?? "");
-  const sunsetTime = fmtTimeFromISO(sunset?.[0] ?? "");
+  const sunriseTime = fmtTimeFromISO(sunrise?.[1] ?? "");
+  const sunsetTime = fmtTimeFromISO(sunset?.[1] ?? "");
   const { imageSrc: uvIndexImage, description: uvImageDescription } =
-    setUvIndexImage(uvIndex?.[0] ?? 0) || {};
-  const uvLevel = getUvLevel(uvIndex?.[0] ?? 0);
+    setUvIndexImage(uvIndex?.[1] ?? 0) || {};
+  const uvLevel = getUvLevel(uvIndex?.[1] ?? 0);
 
-  const windDirection = getWindDirection(windDirectionDegree?.[0] ?? 0);
+  const windDirection = getWindDirection(windDirectionDegree?.[1] ?? 0);
 
   return (
     <div className="border-base-content/5 bg-base-200 relative h-full rounded-xl border p-5">
@@ -81,7 +81,7 @@ export default function TodaysForecast() {
               Today's Forecast
             </h3>
             <span className="text-base-content/70 font-mono text-sm font-semibold">
-              {Math.round(convertTemp(maxTemperature?.[0], units) ?? 0)}{tempUnit(units)} / {Math.round(convertTemp(minTemperature?.[0], units) ?? 0)}{tempUnit(units)}
+              {Math.round(convertTemp(maxTemperature?.[1], units) ?? 0)}{tempUnit(units)} / {Math.round(convertTemp(minTemperature?.[1], units) ?? 0)}{tempUnit(units)}
             </span>
           </div>
 
@@ -112,7 +112,7 @@ export default function TodaysForecast() {
                 alt={uvImageDescription}
               />
               <p className="mt-2 font-mono text-sm font-semibold">
-                {uvIndex?.[0]?.toFixed(1)}
+                {uvIndex?.[1]?.toFixed(1)}
                 <span className="text-base-content/40"> / 11</span>
               </p>
               <p className={`text-xs font-medium ${uvLevel.colorClass}`}>
@@ -129,7 +129,7 @@ export default function TodaysForecast() {
                 alt="wind direction"
               />
               <p className="mt-2 font-mono text-sm font-semibold">
-                {windDirection} {windDirectionDegree?.[0]}°
+                {windDirection} {windDirectionDegree?.[1]}°
               </p>
               <p className="text-base-content/50 text-xs">Wind Dir.</p>
             </div>
@@ -138,11 +138,11 @@ export default function TodaysForecast() {
             <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
               <img
                 className="size-10"
-                src="/raindrops.svg"
+                src="/raindrop-measure.svg"
                 alt="precipitation"
               />
               <p className="mt-2 font-mono text-sm font-semibold">
-                {convertPrecipitation(precipitationSum?.[0], units)} {precipUnit(units)}
+                {convertPrecipitation(precipitationSum?.[1], units)} {precipUnit(units)}
               </p>
               <p className="text-base-content/50 text-xs">Precipitation</p>
             </div>
@@ -155,7 +155,7 @@ export default function TodaysForecast() {
                 alt="rain probability"
               />
               <p className="mt-2 font-mono text-sm font-semibold">
-                {precipitationProbability?.[0]}%
+                {precipitationProbability?.[1]}%
               </p>
               <p className="text-base-content/50 text-xs">Rain chance</p>
             </div>

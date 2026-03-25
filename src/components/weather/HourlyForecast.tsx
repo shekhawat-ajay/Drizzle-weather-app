@@ -2,6 +2,7 @@ import { useContext, useMemo } from "react";
 import { LocationContext } from "@/App";
 import { ResultType } from "@/schema/location";
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
+import useDailyForecast from "@/hooks/weather/useDailyForecast";
 import { weatherImageMap } from "@/utils/maps/weatherImageMap";
 import { useUnits } from "@/context/UnitsContext";
 import { convertTemp, tempUnit } from "@/utils/unitConversions";
@@ -65,8 +66,13 @@ export default function HourlyForecast() {
     location.longitude,
   );
 
+  const { data: dailyData } = useDailyForecast(
+    location.latitude,
+    location.longitude
+  );
+
   const minutely15 = data?.minutely15;
-  const daily = data?.daily;
+  const daily = dailyData?.daily;
 
   // ── helpers ─────────────────────────────────────────────────
 
@@ -165,7 +171,7 @@ export default function HourlyForecast() {
         temp: minutely15.temperature2M[i]!,
         weatherCode: minutely15.weatherCode[i]!,
         isDay: minutely15.isDay[i]!,
-        humidity: minutely15.relativeHumidity2M[i]!,
+        precipitationProbability: minutely15.precipitationProbability[i]!,
       });
     }
     return result;
@@ -403,11 +409,11 @@ export default function HourlyForecast() {
                   <div className="mt-2 flex items-center gap-1">
                     <img
                       className="size-4"
-                      src="/humidity.svg"
-                      alt="humidity"
+                      src="/rain-probability.svg"
+                      alt="rain probability"
                     />
                     <span className="text-base-content/60 font-mono text-xs">
-                      {card.humidity}%
+                      {card.precipitationProbability}%
                     </span>
                   </div>
                 </div>

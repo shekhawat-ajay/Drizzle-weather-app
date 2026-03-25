@@ -150,11 +150,11 @@ export default function SunPositionArc({
         <span className="text-xs text-white/90 uppercase">Sun Position</span>
       </div>
 
-      <div className="-mt-2 -mb-4 h-56 w-full">
+      <div className="-mt-2 -mb-4 h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={curveData}
-            margin={{ top: 10, right: 30, bottom: 35, left: 30 }}
+            margin={{ top: 10, right: 30, bottom: 60, left: 30 }}
           >
             <defs>
               <filter id="sunGlow" x="-50%" y="-50%" width="200%" height="200%">

@@ -3,6 +3,7 @@ import { LocationContext } from "@/App";
 import { ResultType } from "@/schema/location";
 import useAstronomy from "@/hooks/astronomy/useAstronomy";
 import useCelestial from "@/hooks/astronomy/useCelestial";
+import useCurrentWeather from "@/hooks/weather/useCurrentWeather";
 import {
   Sun,
   Moon,
@@ -11,6 +12,8 @@ import {
   Clock,
   CalendarDays,
   Eclipse,
+  Star,
+  Cloud,
 } from "lucide-react";
 
 import AstroCard from "@/components/astronomy/AstroCard";
@@ -30,6 +33,12 @@ export default function AstronomyPage() {
     location: ResultType;
   };
 
+  const { data: currentW } = useCurrentWeather(
+    location.latitude,
+    location.longitude
+  );
+  const cloudCover = currentW?.current?.cloudCover ?? null;
+
   const {
     sun,
     sunPosition,
@@ -40,7 +49,13 @@ export default function AstronomyPage() {
     nextSeason,
     nextRiseSet,
     upcomingEclipses,
-  } = useAstronomy(location.latitude, location.longitude, location.timezone);
+    stargazing,
+  } = useAstronomy(
+    location.latitude,
+    location.longitude,
+    location.timezone,
+    cloudCover
+  );
 
   const tz = location.timezone;
 
@@ -198,6 +213,27 @@ export default function AstronomyPage() {
         </div>
         <div className="mt-3">
           <MoonPhaseTimeline phases={nextMoonPhases} />
+        </div>
+      </div>
+
+      {/* ── Night Sky Section ── */}
+      <div>
+        <SectionHeader icon={Star} label="Night Sky" color="text-violet-400" />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <AstroCard
+            icon={Star}
+            title="Stargazing Suitability"
+            value={stargazing.label}
+            sub={stargazing.description}
+            accent="violet"
+          />
+          <AstroCard
+            icon={Cloud}
+            title="Cloud Cover"
+            value={cloudCover != null ? `${cloudCover}%` : "--"}
+            sub="Current sky coverage"
+            accent="cyan"
+          />
         </div>
       </div>
 

@@ -17,6 +17,9 @@ export const CurrentWeatherSchema = z.object({
     isDay: z.string(),
     weatherCode: z.string(),
     windSpeed10M: z.string(),
+    windDirection10M: z.string(),
+    cloudCover: z.string(),
+    uvIndex: z.string(),
   }),
   current: z.object({
     time: z.string(),
@@ -27,46 +30,15 @@ export const CurrentWeatherSchema = z.object({
     isDay: z.number(),
     weatherCode: z.number(),
     windSpeed10M: z.number(),
+    windDirection10M: z.number(),
+    cloudCover: z.number(),
+    uvIndex: z.number(),
   }),
 });
 
 export type CurrentWeatherType = z.infer<typeof CurrentWeatherSchema>;
 
-export const TodayWeatherSchema = z.object({
-  latitude: z.number(),
-  longitude: z.number(),
-  generationtimeMs: z.number(),
-  utcOffsetSeconds: z.number(),
-  timezone: z.string(),
-  timezoneAbbreviation: z.string(),
-  elevation: z.number(),
-  dailyUnits: z.object({
-    time: z.string(),
-    temperature2mMax: z.string(),
-    temperature2mMin: z.string(),
-    sunrise: z.string(),
-    sunset: z.string(),
-    uvIndexMax: z.string(),
-    precipitationSum: z.string(),
-    precipitationProbabilityMax: z.string(),
-    windDirection10mDominant: z.string(),
-  }),
-  daily: z.object({
-    time: z.array(z.string()),
-    temperature2mMax: z.array(z.number()),
-    temperature2mMin: z.array(z.number()),
-    sunrise: z.array(z.string()),
-    sunset: z.array(z.string()),
-    uvIndexMax: z.array(z.number()),
-    precipitationSum: z.array(z.number()),
-    precipitationProbabilityMax: z.array(z.number()),
-    windDirection10mDominant: z.array(z.number()),
-  }),
-});
-
-export type TodayWeatherType = z.infer<typeof TodayWeatherSchema>;
-
-export const WeeklyForecastSchema = z.object({
+export const DailyForecastSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
   generationtimeMs: z.number(),
@@ -79,8 +51,12 @@ export const WeeklyForecastSchema = z.object({
     weatherCode: z.string(),
     temperature2mMax: z.string(),
     temperature2mMin: z.string(),
-    precipitationProbabilityMax: z.string(),
+    sunrise: z.string(),
+    sunset: z.string(),
+    uvIndexMax: z.string(),
     precipitationSum: z.string(),
+    precipitationProbabilityMax: z.string(),
+    windDirection10mDominant: z.string(),
     windSpeed10mMax: z.string(),
   }),
   daily: z.object({
@@ -88,13 +64,17 @@ export const WeeklyForecastSchema = z.object({
     weatherCode: z.array(z.number()),
     temperature2mMax: z.array(z.number()),
     temperature2mMin: z.array(z.number()),
-    precipitationProbabilityMax: z.array(z.number()),
+    sunrise: z.array(z.string()),
+    sunset: z.array(z.string()),
+    uvIndexMax: z.array(z.number()),
     precipitationSum: z.array(z.number()),
+    precipitationProbabilityMax: z.array(z.number()),
+    windDirection10mDominant: z.array(z.number()),
     windSpeed10mMax: z.array(z.number()),
   }),
 });
 
-export type WeeklyForecastType = z.infer<typeof WeeklyForecastSchema>;
+export type DailyForecastType = z.infer<typeof DailyForecastSchema>;
 
 export const AirQualitySchema = z.object({
   latitude: z.number(),
@@ -144,26 +124,18 @@ export const HourlyForecastSchema = z.object({
     time: z.string(),
     temperature2M: z.string(),
     weatherCode: z.string(),
-    relativeHumidity2M: z.string(),
+    precipitationProbability: z.string(),
+    visibility: z.string(),
     isDay: z.string(),
   }),
   minutely15: z.object({
     time: z.array(z.string()),
     temperature2M: z.array(z.number()),
     weatherCode: z.array(z.number()),
-    relativeHumidity2M: z.array(z.number()),
+    precipitationProbability: z.array(z.number()),
+    visibility: z.array(z.number()),
     isDay: z.array(z.number()),
-  }),
-  dailyUnits: z.object({
-    time: z.string(),
-    sunrise: z.string(),
-    sunset: z.string(),
-  }),
-  daily: z.object({
-    time: z.array(z.string()),
-    sunrise: z.array(z.string()),
-    sunset: z.array(z.string()),
-  }),
+  })
 });
 
 export type HourlyForecastType = z.infer<typeof HourlyForecastSchema>;
