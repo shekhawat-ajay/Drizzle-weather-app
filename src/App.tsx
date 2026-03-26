@@ -1,12 +1,17 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { Routes, Route } from "react-router";
+import { Routes, Route, Navigate } from "react-router";
 import { ThemeProvider, useAppTheme } from "@/context/ThemeContext";
 import { UnitsProvider, useUnits } from "@/context/UnitsContext";
 import SearchBox from "@/components/SearchBox";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import WeatherPage from "@/pages/WeatherPage";
-import AstronomyPage from "@/pages/AstronomyPage";
+import WeatherPage from "@/pages/WeatherPage.tsx";
+import AstronomyPage from "@/pages/AstronomyPage.tsx";
+import OverviewPage from "@/pages/OverviewPage.tsx";
+import SunPage from "@/pages/SunPage.tsx";
+import MoonPage from "@/pages/MoonPage.tsx";
+import PlanetPage from "@/pages/PlanetPage.tsx";
+import ISSPage from "@/pages/ISSPage.tsx";
 import { ResultType } from "@/schema/location";
 
 import type { LocationContextType } from "@/types/context";
@@ -111,7 +116,14 @@ function App() {
           <SearchRow />
           <Routes>
             <Route path="/" element={<WeatherPage />} />
-            <Route path="/astronomy" element={<AstronomyPage />} />
+            <Route path="/astronomy" element={<AstronomyPage />}>
+              <Route index element={<Navigate to="overview" replace />} />
+              <Route path="overview" element={<OverviewPage />} />
+              <Route path="sun" element={<SunPage />} />
+              <Route path="moon" element={<MoonPage />} />
+              <Route path="iss" element={<ISSPage />} />
+              <Route path=":planet" element={<PlanetPage />} />
+            </Route>
           </Routes>
           <Footer />
         </main>

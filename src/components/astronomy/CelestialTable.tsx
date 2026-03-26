@@ -1,13 +1,13 @@
-import type { PlanetData } from "@/types/astronomy";
+import type { AstronomyData } from "@/types/astronomy";
 import type { CelestialStatus } from "@/types/celestial";
-import { fmtTime, fmtAzimuth } from "@/utils/formatters";
+import { fmtTime, fmtAzimuth, fmtDurationMs } from "@/utils/formatters";
 import {
   ArrowUp,
   ArrowDown,
   Compass,
   Info,
   Star,
-  Sun,
+  Sun as SunIcon,
   Eye,
 } from "lucide-react";
 
@@ -15,6 +15,8 @@ import {
 
 /** Planet emoji lookup */
 const PLANET_EMOJI: Record<string, string> = {
+  Sun: "☀️",
+  Moon: "🌙",
   Mercury: "☿",
   Venus: "♀",
   Mars: "♂",
@@ -30,14 +32,10 @@ const MAG_TOOLTIP =
 /** Merged data for a single row */
 interface MergedPlanet {
   name: string;
-  // From PlanetData (position)
-  rise: Date | null;
-  set: Date | null;
   altitude: number;
   azimuth: number;
   isAboveHorizon: boolean;
   magnitude: number;
-  // From CelestialStatus (state + labels)
   state: "ABOVE" | "BELOW" | null;
   pastLabel: string;
   futureLabel: string;
@@ -50,20 +48,78 @@ interface MergedPlanet {
 }
 
 function mergePlanetData(
-  planets: PlanetData[],
+  data: AstronomyData,
   celestial: CelestialStatus[],
 ): MergedPlanet[] {
-  // Build lookup from celestial data by body name
+  const nowMs = Date.now();
+
+  // 1. Synthesize Sun
+  const { sun, sunPosition } = data;
+  const sunEvents = [
+    { type: "RISE" as const, ts: sun.sunrise },
+    { type: "SET" as const, ts: sun.sunset },
+    { type: "RISE" as const, ts: data.nextRiseSet.nextSunrise },
+    { type: "SET" as const, ts: data.nextRiseSet.prevSunset },
+  ].filter((e) => e.ts !== null) as { type: "RISE" | "SET"; ts: Date }[];
+
+  const pastSunEvents = sunEvents.filter((e) => e.ts.getTime() <= nowMs).sort((a, b) => b.ts.getTime() - a.ts.getTime());
+  const futureSunEvents = sunEvents.filter((e) => e.ts.getTime() > nowMs).sort((a, b) => a.ts.getTime() - b.ts.getTime());
+  
+  const pastSun = pastSunEvents[0] || null;
+  const futureSun = futureSunEvents[0] || null;
+
+  const sunRow: MergedPlanet = {
+    name: "Sun",
+    altitude: sunPosition.altitude,
+    azimuth: sunPosition.azimuth,
+    isAboveHorizon: sunPosition.isAboveHorizon,
+    magnitude: -26.74, 
+    state: sunPosition.isAboveHorizon ? "ABOVE" : "BELOW",
+    pastType: pastSun?.type || null,
+    pastTimestamp: pastSun?.ts || null,
+    pastLabel: pastSun ? `${fmtDurationMs(nowMs - pastSun.ts.getTime())} ago` : "--",
+    futureType: futureSun?.type || null,
+    futureTimestamp: futureSun?.ts || null,
+    futureLabel: futureSun ? `in ${fmtDurationMs(futureSun.ts.getTime() - nowMs)}` : "--",
+    elongation: null,
+    visibilityNote: "Our closest star. NEVER look directly without a solar filter.",
+  };
+
+  // 2. Synthesize Moon
+  const { moonPosition } = data;
+  let pastMoonLabel = "--";
+  let futureMoonLabel = "--";
+  const prevMoon = moonPosition.previousEvent;
+  const nextMoon = moonPosition.nextEvent;
+
+  if (prevMoon) pastMoonLabel = `${fmtDurationMs(nowMs - prevMoon.getTime())} ago`;
+  if (nextMoon) futureMoonLabel = `in ${fmtDurationMs(nextMoon.getTime() - nowMs)}`;
+
+  const moonRow: MergedPlanet = {
+    name: "Moon",
+    altitude: moonPosition.altitude,
+    azimuth: moonPosition.azimuth,
+    isAboveHorizon: moonPosition.isAboveHorizon,
+    magnitude: -12.7, 
+    state: moonPosition.isAboveHorizon ? "ABOVE" : "BELOW",
+    pastType: moonPosition.isAboveHorizon ? "RISE" : "SET",
+    pastTimestamp: prevMoon,
+    pastLabel: pastMoonLabel,
+    futureType: moonPosition.isAboveHorizon ? "SET" : "RISE",
+    futureTimestamp: nextMoon,
+    futureLabel: futureMoonLabel,
+    elongation: null,
+    visibilityNote: "Visible consistently except during New Moon phases.",
+  };
+
+  // 3. Process Planets
   const celestialMap = new Map<string, CelestialStatus>();
   for (const c of celestial) celestialMap.set(c.body, c);
 
-  // First, map all planets
-  const merged: MergedPlanet[] = planets.map((p) => {
+  const planetRows: MergedPlanet[] = data.planets.map((p) => {
     const c = celestialMap.get(p.name);
     return {
       name: p.name,
-      rise: p.rise,
-      set: p.set,
       altitude: p.altitude,
       azimuth: p.azimuth,
       isAboveHorizon: p.isAboveHorizon,
@@ -80,24 +136,23 @@ function mergePlanetData(
     };
   });
 
-  return merged;
+  return [sunRow, moonRow, ...planetRows];
 }
 
 /* ── Component ── */
 
-interface PlanetsTableProps {
-  planets: PlanetData[];
+interface CelestialTableProps {
+  data: AstronomyData;
   celestial: CelestialStatus[];
   timezone?: string | undefined;
 }
 
-export default function PlanetsTable({
-  planets,
+export default function CelestialTable({
+  data,
   celestial,
   timezone,
-}: PlanetsTableProps) {
-  const merged = mergePlanetData(planets, celestial);
-  const isMoon = (name: string) => name === "Moon";
+}: CelestialTableProps) {
+  const merged = mergePlanetData(data, celestial);
 
   return (
     <>
@@ -203,53 +258,41 @@ export default function PlanetsTable({
 
                 {/* Elevation */}
                 <td>
-                  {!isMoon(p.name) ? (
-                    <div className="flex items-center gap-1">
-                      {p.isAboveHorizon ? (
-                        <ArrowUp size={14} className="text-emerald-400" />
-                      ) : (
-                        <ArrowDown size={14} className="text-rose-400" />
-                      )}
-                      <span
-                        className={`text-sm font-medium ${
-                          p.isAboveHorizon
-                            ? "text-emerald-400"
-                            : "text-base-content/50"
-                        }`}
-                      >
-                        {p.altitude.toFixed(1)}°
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-base-content/30 text-xs">—</span>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {p.isAboveHorizon ? (
+                       <ArrowUp size={14} className="text-emerald-400" />
+                    ) : (
+                       <ArrowDown size={14} className="text-rose-400" />
+                    )}
+                    <span
+                      className={`text-sm font-medium ${
+                        p.isAboveHorizon
+                          ? "text-emerald-400"
+                          : "text-base-content/50"
+                      }`}
+                    >
+                      {p.altitude.toFixed(1)}°
+                    </span>
+                  </div>
                 </td>
 
                 {/* Azimuth */}
                 <td>
-                  {!isMoon(p.name) ? (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-base-content text-sm font-medium">
-                        {p.azimuth.toFixed(1)}°
-                      </span>
-                      <span className="text-base-content/40 text-xs">
-                        {fmtAzimuth(p.azimuth)}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-base-content/30 text-xs">—</span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base-content text-sm font-medium">
+                      {p.azimuth.toFixed(1)}°
+                    </span>
+                    <span className="text-base-content/40 text-xs">
+                      {fmtAzimuth(p.azimuth)}
+                    </span>
+                  </div>
                 </td>
 
                 {/* Magnitude */}
                 <td>
-                  {!isMoon(p.name) ? (
-                    <span className="text-base-content text-sm font-medium">
-                      {p.magnitude.toFixed(1)}
-                    </span>
-                  ) : (
-                    <span className="text-base-content/30 text-xs">—</span>
-                  )}
+                  <span className="text-base-content text-sm font-medium">
+                    {p.magnitude.toFixed(1)}
+                  </span>
                 </td>
 
                 {/* Visibility */}
@@ -257,7 +300,7 @@ export default function PlanetsTable({
                   {p.elongation !== null ? (
                     <div className="flex flex-col items-start gap-0.5">
                       <span className="text-base-content/60 inline-flex items-center gap-1 text-xs">
-                        <Sun size={10} className="text-amber-400" />
+                        <SunIcon size={10} className="text-amber-400" />
                         {p.elongation.toFixed(0)}° from Sun
                       </span>
                       <span className="text-base-content/40 max-w-[180px] text-[10px] leading-tight">
@@ -324,61 +367,55 @@ export default function PlanetsTable({
             {/* Data grid */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               {/* Elevation */}
-              {!isMoon(p.name) && (
-                <div>
-                  <p className="text-base-content/40 mb-0.5 text-[10px] font-medium tracking-wider uppercase">
-                    Elevation
-                  </p>
-                  <div className="flex items-center gap-1.5">
-                    {p.isAboveHorizon ? (
-                      <ArrowUp size={14} className="text-emerald-400" />
-                    ) : (
-                      <ArrowDown size={14} className="text-rose-400" />
-                    )}
-                    <span
-                      className={`text-sm font-medium ${
-                        p.isAboveHorizon
-                          ? "text-emerald-400"
-                          : "text-base-content/50"
-                      }`}
-                    >
-                      {p.altitude.toFixed(1)}°
-                    </span>
-                  </div>
+              <div>
+                <p className="text-base-content/40 mb-0.5 text-[10px] font-medium tracking-wider uppercase">
+                  Elevation
+                </p>
+                <div className="flex items-center gap-1.5">
+                  {p.isAboveHorizon ? (
+                    <ArrowUp size={14} className="text-emerald-400" />
+                  ) : (
+                    <ArrowDown size={14} className="text-rose-400" />
+                  )}
+                  <span
+                    className={`text-sm font-medium ${
+                      p.isAboveHorizon
+                        ? "text-emerald-400"
+                        : "text-base-content/50"
+                    }`}
+                  >
+                    {p.altitude.toFixed(1)}°
+                  </span>
                 </div>
-              )}
+              </div>
 
               {/* Azimuth */}
-              {!isMoon(p.name) && (
-                <div>
-                  <p className="text-base-content/40 mb-0.5 text-[10px] font-medium tracking-wider uppercase">
-                    Azimuth
-                  </p>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-base-content text-sm font-medium">
-                      {p.azimuth.toFixed(1)}°
-                    </span>
-                    <span className="text-base-content/40 text-xs">
-                      {fmtAzimuth(p.azimuth)}
-                    </span>
-                  </div>
+              <div>
+                <p className="text-base-content/40 mb-0.5 text-[10px] font-medium tracking-wider uppercase">
+                  Azimuth
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base-content text-sm font-medium">
+                    {p.azimuth.toFixed(1)}°
+                  </span>
+                  <span className="text-base-content/40 text-xs">
+                    {fmtAzimuth(p.azimuth)}
+                  </span>
                 </div>
-              )}
+              </div>
 
               {/* Magnitude */}
-              {!isMoon(p.name) && (
-                <div>
-                  <p className="text-base-content/40 mb-0.5 text-[10px] font-medium tracking-wider uppercase">
-                    Magnitude
-                  </p>
-                  <div className="flex items-center gap-1.5">
-                    <Star size={14} className="text-amber-400" />
-                    <span className="text-base-content text-sm font-medium">
-                      {p.magnitude.toFixed(1)}
-                    </span>
-                  </div>
+              <div>
+                <p className="text-base-content/40 mb-0.5 text-[10px] font-medium tracking-wider uppercase">
+                  Magnitude
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <Star size={14} className="text-amber-400" />
+                  <span className="text-base-content text-sm font-medium">
+                    {p.magnitude.toFixed(1)}
+                  </span>
                 </div>
-              )}
+              </div>
 
               {/* Elongation */}
               {p.elongation !== null && (
@@ -387,7 +424,7 @@ export default function PlanetsTable({
                     Elongation
                   </p>
                   <div className="flex items-center gap-1.5">
-                    <Sun size={14} className="text-amber-400" />
+                    <SunIcon size={14} className="text-amber-400" />
                     <span className="text-base-content text-sm font-medium">
                       {p.elongation.toFixed(0)}°
                     </span>

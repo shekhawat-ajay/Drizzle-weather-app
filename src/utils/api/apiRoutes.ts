@@ -3,6 +3,7 @@ const AIR_QUALITY_BASE_URL: string = import.meta.env[
   "VITE_AIR_QUALITY_BASE_URL"
 ];
 const GEOCODING_BASE_URL: string = import.meta.env["VITE_GEOCODING_BASE_URL"];
+const ISS_BASE_URL: string = import.meta.env["VITE_ISS_BASE_URL"];
 
 export const apiRoutes = {
   currentWeather: (latitude: number, longitude: number) =>
@@ -15,4 +16,6 @@ export const apiRoutes = {
     `${AIR_QUALITY_BASE_URL}/air-quality?latitude=${latitude}&longitude=${longitude}&hourly=pm10,pm2_5,nitrogen_dioxide,sulphur_dioxide,ammonia,carbon_monoxide,ozone,european_aqi,us_aqi&timezone=auto&past_days=1&forecast_days=1`,
   location: (query: string) =>
     `${GEOCODING_BASE_URL}/search?name=${query}&count=10&language=en&format=json`,
+  iss: () => `${ISS_BASE_URL}/satellites/25544`,
+  issPositions: (timestamps: number[]) => `${ISS_BASE_URL}/satellites/25544/positions?timestamps=${timestamps.join(",")}`,
 };
