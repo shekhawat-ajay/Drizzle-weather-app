@@ -534,61 +534,169 @@ export function calcNextSeason(date: Date): SeasonData {
   };
 }
 
-/* ─── Stargazing quality heuristic ─── */
+/* ─── Stargazing index ─── */
+
+export interface StargazingFactor {
+  param: string;
+  impact: "positive" | "negative" | "neutral";
+  detail: string;
+}
+
+export interface StargazingResult {
+  score: number;
+  label: string;
+  description: string;
+  factors: StargazingFactor[];
+}
+
+export interface StargazingParams {
+  cloudCover: number;
+  cloudCoverLow: number;
+  cloudCoverMid: number;
+  cloudCoverHigh: number;
+  humidity: number;
+  pressure: number;
+  wind: number;
+  visibility: number;
+  precipProb: number;
+  temperature: number;
+  dewPoint: number;
+  isDay: boolean;
+  moonIllumination: number;
+}
+
+function getStargazingLabel(score: number): { label: string; description: string } {
+  if (score >= 80) return { label: "Excellent", description: "Crystal clear, perfect conditions" };
+  if (score >= 60) return { label: "Good", description: "Most stars visible, minor interference" };
+  if (score >= 40) return { label: "Fair", description: "Bright stars visible, faint objects difficult" };
+  if (score >= 20) return { label: "Poor", description: "Heavy cloud or moisture, limited visibility" };
+  return { label: "Very Poor", description: "Overcast or daytime, not suitable" };
+}
+
+export function computeStargazingIndex(params: StargazingParams): StargazingResult {
+  const factors: StargazingFactor[] = [];
+  let score = 100;
+
+  // ── Day/night gate (heaviest weight) ──
+  if (params.isDay) {
+    return {
+      score: 0,
+      label: "Daytime",
+      description: "Sun is still up — stargazing not possible",
+      factors: [{ param: "Daylight", impact: "negative", detail: "Sun above horizon" }],
+    };
+  }
+
+  // ── Weighted cloud penalty (40% weight) ──
+  const cloudPenalty =
+    (params.cloudCoverLow * 0.50 +
+      params.cloudCoverMid * 0.30 +
+      params.cloudCoverHigh * 0.20) *
+    0.40;
+  score -= cloudPenalty;
+
+  if (params.cloudCover <= 15) {
+    factors.push({ param: "Cloud", impact: "positive", detail: "Clear skies" });
+  } else if (params.cloudCover <= 50) {
+    factors.push({ param: "Cloud", impact: "neutral", detail: `${params.cloudCover}% coverage` });
+  } else {
+    factors.push({ param: "Cloud", impact: "negative", detail: `${params.cloudCover}% cloud cover` });
+  }
+
+  // ── Moon illumination (#2 factor) ──
+  if (params.moonIllumination > 0.8) {
+    score -= 20;
+    factors.push({ param: "Moon", impact: "negative", detail: "Bright moon washing out stars" });
+  } else if (params.moonIllumination > 0.5) {
+    score -= 12;
+    factors.push({ param: "Moon", impact: "negative", detail: "Moderate moonlight" });
+  } else if (params.moonIllumination > 0.25) {
+    score -= 5;
+    factors.push({ param: "Moon", impact: "neutral", detail: "Quarter moon" });
+  } else {
+    factors.push({ param: "Moon", impact: "positive", detail: "Dark sky, minimal moonlight" });
+  }
+
+  // ── Humidity penalty ──
+  if (params.humidity > 80) {
+    const penalty = (params.humidity - 80) * 0.5;
+    score -= penalty;
+    factors.push({ param: "Humidity", impact: "negative", detail: `${params.humidity}% — haze likely` });
+  }
+
+  // ── Pressure bonus / penalty ──
+  if (params.pressure >= 1020) {
+    score += 5;
+    factors.push({ param: "Pressure", impact: "positive", detail: "High pressure, stable air" });
+  } else if (params.pressure < 1005) {
+    score -= 10;
+    factors.push({ param: "Pressure", impact: "negative", detail: "Low pressure, unstable air" });
+  }
+
+  // ── Wind penalty ──
+  if (params.wind > 25) {
+    const penalty = (params.wind - 25) * 0.3;
+    score -= penalty;
+    factors.push({ param: "Wind", impact: "negative", detail: `${Math.round(params.wind)} km/h — turbulence` });
+  }
+
+  // ── Visibility bonus / penalty ──
+  if (params.visibility >= 30000) {
+    score += 5;
+    factors.push({ param: "Visibility", impact: "positive", detail: "Excellent visibility" });
+  } else if (params.visibility < 10000) {
+    score -= 15;
+    factors.push({ param: "Visibility", impact: "negative", detail: "Low visibility" });
+  }
+
+  // ── Precipitation kill switch ──
+  if (params.precipProb > 50) {
+    const penalty = params.precipProb * 0.3;
+    score -= penalty;
+    factors.push({ param: "Rain", impact: "negative", detail: `${params.precipProb}% chance of precipitation` });
+  }
+
+  // ── Dew point spread ──
+  const dewSpread = params.temperature - params.dewPoint;
+  if (dewSpread < 3) {
+    score -= 15;
+    factors.push({ param: "Dew", impact: "negative", detail: "Dew/fog very likely" });
+  } else if (dewSpread < 5) {
+    score -= 8;
+    factors.push({ param: "Dew", impact: "negative", detail: "Dew possible" });
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  const { label, description } = getStargazingLabel(score);
+
+  return { score, label, description, factors };
+}
+
+/** Lightweight backward-compatible wrapper (used by useAstronomy) */
 export function getStargazingQuality(
   moonIllumination: number,
   sunset: Date | null,
   date: Date,
   cloudCover?: number | null,
-): {
-  label: string;
-  description: string;
-} {
-  // Simple heuristic: low moon illumination + nighttime = good stargazing
-  const isNight = sunset ? date.getTime() > sunset.getTime() : false;
-
-  if (cloudCover != null && cloudCover > 80) {
-    return {
-      label: "Poor",
-      description: "Too cloudy to see stars",
-    };
-  }
-
-  if (cloudCover != null && cloudCover > 40) {
-    return {
-      label: "Fair",
-      description: "Partly cloudy, some stars visible",
-    };
-  }
-
-  // If cloud cover is low or unknown, fall back to moon-based heuristic
-  if (moonIllumination > 0.8) {
-    return {
-      label: "Poor",
-      description: "Bright full moon washes out most stars",
-    };
-  }
-
-  if (moonIllumination > 0.4) {
-    return {
-      label: "Fair",
-      description: "Moderate moonlight, bright stars visible",
-    };
-  }
-
-  if (moonIllumination <= 0.2 && cloudCover != null && cloudCover < 15) {
-    return {
-      label: "Excellent",
-      description: "Perfect dark and clear skies",
-    };
-  }
-
-  return {
-    label: "Good",
-    description: isNight
-      ? "Dark skies, good visibility"
-      : "Dark skies expected tonight",
-  };
+): { label: string; description: string } {
+  const isDay = sunset ? date.getTime() < sunset.getTime() : true;
+  const cc = cloudCover ?? 50;
+  const result = computeStargazingIndex({
+    cloudCover: cc,
+    cloudCoverLow: cc * 0.5,
+    cloudCoverMid: cc * 0.3,
+    cloudCoverHigh: cc * 0.2,
+    humidity: 50,
+    pressure: 1013,
+    wind: 10,
+    visibility: 20000,
+    precipProb: 0,
+    temperature: 20,
+    dewPoint: 10,
+    isDay,
+    moonIllumination,
+  });
+  return { label: result.label, description: result.description };
 }
 
 export function calcNextRiseSet(

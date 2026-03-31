@@ -98,9 +98,9 @@ function SearchRow() {
 function App() {
   const [location, setLocation] = useState<ResultType>({
     id: 1273294,
-    name: "Pilāni",
-    latitude: 28.36725,
-    longitude: 75.60352,
+    name: "Doodwa",
+    latitude: 28.45860854303801,
+    longitude: 75.73679191792027,
     admin1: "Rajasthan",
     country: "India",
     countryCode: "IN",

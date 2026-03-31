@@ -135,7 +135,33 @@ export const HourlyForecastSchema = z.object({
     precipitationProbability: z.array(z.number()),
     visibility: z.array(z.number()),
     isDay: z.array(z.number()),
-  })
+  }),
+  hourlyUnits: z.object({
+    time: z.string(),
+    cloudCover: z.string(),
+    cloudCoverLow: z.string(),
+    cloudCoverMid: z.string(),
+    cloudCoverHigh: z.string(),
+    isDay: z.string(),
+    relativeHumidity2M: z.string(),
+    dewPoint2M: z.string(),
+    surfacePressure: z.string(),
+    windSpeed10M: z.string(),
+    temperature2M: z.string(),
+  }).optional(),
+  hourly: z.object({
+    time: z.array(z.string()),
+    cloudCover: z.array(z.number()),
+    cloudCoverLow: z.array(z.number()),
+    cloudCoverMid: z.array(z.number()),
+    cloudCoverHigh: z.array(z.number()),
+    isDay: z.array(z.number()),
+    relativeHumidity2M: z.array(z.number()),
+    dewPoint2M: z.array(z.number()),
+    surfacePressure: z.array(z.number()),
+    windSpeed10M: z.array(z.number()),
+    temperature2M: z.array(z.number()),
+  }).optional(),
 });
 
 export type HourlyForecastType = z.infer<typeof HourlyForecastSchema>;

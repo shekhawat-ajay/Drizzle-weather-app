@@ -1,15 +1,16 @@
 import { useOutletContext } from "react-router";
-import { Clock, CalendarDays, Eclipse, Globe, Star, Cloud } from "lucide-react";
+import { Clock, CalendarDays, Eclipse, Globe } from "lucide-react";
 import SectionHeader from "@/components/astronomy/SectionHeader";
 import AstroCard from "@/components/astronomy/AstroCard";
 import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import CelestialTable from "@/components/astronomy/CelestialTable";
+import NightSky from "@/components/astronomy/NightSky";
 import { fmtTime } from "@/utils/formatters";
 import type { AstronomyOutletContext } from "@/pages/AstronomyPage";
 
 export default function OverviewPage() {
-  const { tz, cloudCover, astronomyData, celestialData } = useOutletContext<AstronomyOutletContext>();
-  const { sun, nextSeason, upcomingEclipses, stargazing } = astronomyData;
+  const { tz, astronomyData, celestialData } = useOutletContext<AstronomyOutletContext>();
+  const { sun, nextSeason, upcomingEclipses } = astronomyData;
 
   return (
     <div className="space-y-6">
@@ -21,24 +22,9 @@ export default function OverviewPage() {
 
       {/* ── Night Sky Section ── */}
       <div className="mt-4">
-        <SectionHeader icon={Star} label="Night Sky" color="text-violet-400" />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <AstroCard
-            icon={Star}
-            title="Stargazing Suitability"
-            value={stargazing.label}
-            sub={stargazing.description}
-            accent="violet"
-          />
-          <AstroCard
-            icon={Cloud}
-            title="Cloud Cover"
-            value={cloudCover != null ? `${cloudCover}%` : "--"}
-            sub="Current sky coverage"
-            accent="cyan"
-          />
-        </div>
+        <NightSky />
       </div>
+
 
       {/* ── Upcoming Event ── */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
