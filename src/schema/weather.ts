@@ -18,7 +18,6 @@ export const CurrentWeatherSchema = z.object({
     weatherCode: z.string(),
     windSpeed10M: z.string(),
     windDirection10M: z.string(),
-    cloudCover: z.string(),
     uvIndex: z.string(),
   }),
   current: z.object({
@@ -31,7 +30,6 @@ export const CurrentWeatherSchema = z.object({
     weatherCode: z.number(),
     windSpeed10M: z.number(),
     windDirection10M: z.number(),
-    cloudCover: z.number(),
     uvIndex: z.number(),
   }),
 });
@@ -49,8 +47,8 @@ export const DailyForecastSchema = z.object({
   dailyUnits: z.object({
     time: z.string(),
     weatherCode: z.string(),
-    temperature2mMax: z.string(),
-    temperature2mMin: z.string(),
+    apparentTemperatureMax: z.string(),
+    apparentTemperatureMin: z.string(),
     sunrise: z.string(),
     sunset: z.string(),
     uvIndexMax: z.string(),
@@ -58,12 +56,13 @@ export const DailyForecastSchema = z.object({
     precipitationProbabilityMax: z.string(),
     windDirection10mDominant: z.string(),
     windSpeed10mMax: z.string(),
+    sunshineDuration: z.string(),
   }),
   daily: z.object({
     time: z.array(z.string()),
     weatherCode: z.array(z.number()),
-    temperature2mMax: z.array(z.number()),
-    temperature2mMin: z.array(z.number()),
+    apparentTemperatureMax: z.array(z.number()),
+    apparentTemperatureMin: z.array(z.number()),
     sunrise: z.array(z.string()),
     sunset: z.array(z.string()),
     uvIndexMax: z.array(z.number()),
@@ -71,6 +70,7 @@ export const DailyForecastSchema = z.object({
     precipitationProbabilityMax: z.array(z.number()),
     windDirection10mDominant: z.array(z.number()),
     windSpeed10mMax: z.array(z.number()),
+    sunshineDuration: z.array(z.number()),
   }),
 });
 

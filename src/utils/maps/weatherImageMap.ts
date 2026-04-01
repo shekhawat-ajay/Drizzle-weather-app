@@ -66,11 +66,11 @@ export const weatherImageMap: {
     description: "Moderate Drizzle",
   },
   "55d": {
-    imageSrc: "/partly-cloudy-day-drizzle.svg",
+    imageSrc: "/extreme-day-drizzle.svg",
     description: "Heavy Drizzle",
   },
   "55n": {
-    imageSrc: "/partly-cloudy-night-drizzle.svg",
+    imageSrc: "/extreme-night-drizzle.svg",
     description: "Heavy Drizzle",
   },
   "56d": {
@@ -106,11 +106,11 @@ export const weatherImageMap: {
     description: "Moderate Rain",
   },
   "65d": {
-    imageSrc: "/partly-cloudy-day-rain.svg",
+    imageSrc: "/extreme-day-rain.svg",
     description: "Heavy Rain",
   },
   "65n": {
-    imageSrc: "/partly-cloudy-night-rain.svg",
+    imageSrc: "/extreme-night-rain.svg",
     description: "Heavy Rain",
   },
   "66d": {
@@ -122,11 +122,11 @@ export const weatherImageMap: {
     description: "Light Freezing Rain",
   },
   "67d": {
-    imageSrc: "/partly-cloudy-day-sleet.svg",
+    imageSrc: "/extreme-day-sleet.svg",
     description: "Heavy Freezing Rain",
   },
   "67n": {
-    imageSrc: "/partly-cloudy-night-sleet.svg",
+    imageSrc: "/extreme-night-sleet.svg",
     description: "Heavy Freezing Rain",
   },
   "71d": {
@@ -146,11 +146,11 @@ export const weatherImageMap: {
     description: "Moderate Snowfall",
   },
   "75d": {
-    imageSrc: "/partly-cloudy-day-snow.svg",
+    imageSrc: "/extreme-day-snow.svg",
     description: "Heavy Snowfall",
   },
   "75n": {
-    imageSrc: "/partly-cloudy-night-snow.svg",
+    imageSrc: "/extreme-night-snow.svg",
     description: "Heavy Snowfall",
   },
   "77d": {
@@ -178,11 +178,11 @@ export const weatherImageMap: {
     description: "Moderate Rain Showers",
   },
   "82d": {
-    imageSrc: "/rain.svg",
+    imageSrc: "/extreme-day-rain.svg",
     description: "Heavy Rain Showers",
   },
   "82n": {
-    imageSrc: "/rain.svg",
+    imageSrc: "/extreme-night-rain.svg",
     description: "Heavy Rain Showers",
   },
   "85d": {
@@ -194,11 +194,11 @@ export const weatherImageMap: {
     description: "Light Snow Showers",
   },
   "86d": {
-    imageSrc: "/snow.svg",
+    imageSrc: "/extreme-day-snow.svg",
     description: "Heavy Snow Showers",
   },
   "86n": {
-    imageSrc: "/snow.svg",
+    imageSrc: "/extreme-night-snow.svg",
     description: "Heavy Snow Showers",
   },
   "95d": {

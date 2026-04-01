@@ -83,12 +83,13 @@ export default function HourlyForecast() {
 
 
 
-  // ── Chart data (now → now+25h) with highest/lowest flags ─────
+  // ── Chart data (last :15 → now+24h) with highest/lowest flags ─────
 
   const { chartData, chartStartMs, chartEndMs } = useMemo(() => {
     if (!minutely15) return { chartData: [], chartStartMs: 0, chartEndMs: 0 };
     const nowMs = getNowAsUTC(location.timezone ?? "UTC");
-    const endMs = nowMs + 25 * 60 * 60 * 1000;
+    const startMs = nowMs - (nowMs % (15 * 60 * 1000));
+    const endMs = nowMs + 24 * 60 * 60 * 1000;
 
     const points: {
       ts: number;
@@ -101,7 +102,7 @@ export default function HourlyForecast() {
     }[] = [];
     for (let i = 0; i < minutely15.time.length; i++) {
       const ms = parseAsUTC(minutely15.time[i]!).getTime();
-      if (ms >= nowMs && ms <= endMs) {
+      if (ms >= startMs && ms <= endMs) {
         points.push({
           ts: ms,
           time: minutely15.time[i]!,
@@ -129,7 +130,7 @@ export default function HourlyForecast() {
       }
     }
 
-    return { chartData: points, chartStartMs: nowMs, chartEndMs: endMs };
+    return { chartData: points, chartStartMs: startMs, chartEndMs: endMs };
   }, [minutely15, location.timezone]);
 
   // ── Sunrise/sunset events within range ──────────────────────

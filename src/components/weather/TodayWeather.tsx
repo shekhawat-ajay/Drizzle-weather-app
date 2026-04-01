@@ -1,3 +1,4 @@
+import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
 import useDailyForecast from "@/hooks/weather/useDailyForecast";
 import { useContext } from "react";
 import { LocationContext } from "@/App";
@@ -17,17 +18,59 @@ export default function TodaysForecast() {
     location.latitude,
     location.longitude,
   );
+  const { data: hourlyData } = useHourlyForecast(
+    location.latitude,
+    location.longitude,
+  );
 
   const {
-    temperature2mMax: maxTemperature,
-    temperature2mMin: minTemperature,
+    apparentTemperatureMax: maxTemperature,
+    apparentTemperatureMin: minTemperature,
     sunrise,
     sunset,
     uvIndexMax: uvIndex,
     windDirection10mDominant: windDirectionDegree,
     precipitationSum: precipitationSum,
     precipitationProbabilityMax: precipitationProbability,
+    sunshineDuration,
   } = data?.daily || {};
+
+  // Find min/max cloud cover for today
+  const hourly = hourlyData?.hourly;
+  let cloudCoverMin = 0;
+  let cloudCoverMax = 0;
+  let hasCloudCover = false;
+
+  if (hourly?.time && hourly?.cloudCover && data?.daily?.time) {
+    const todayStr = data.daily.time[1]; // format "YYYY-MM-DD"
+    if (todayStr) {
+      let min = 100;
+      let max = 0;
+      let count = 0;
+      for (let i = 0; i < hourly.time.length; i++) {
+        if (hourly.time[i]?.startsWith(todayStr)) {
+          min = Math.min(min, hourly.cloudCover[i]!);
+          max = Math.max(max, hourly.cloudCover[i]!);
+          count++;
+        }
+      }
+      if (count > 0) {
+        cloudCoverMin = min;
+        cloudCoverMax = max;
+        hasCloudCover = true;
+      }
+    }
+  }
+
+  const cloudCoverDisplay = hasCloudCover ? `${cloudCoverMin}% - ${cloudCoverMax}%` : "--%";
+
+  let sunshineFormatted = "--";
+  if (sunshineDuration && sunshineDuration[1] != null) {
+    const secs = sunshineDuration[1];
+    const hrs = Math.floor(secs / 3600);
+    const mins = Math.floor((secs % 3600) / 60);
+    sunshineFormatted = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+  }
 
 
 
@@ -85,79 +128,114 @@ export default function TodaysForecast() {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {/* Sunrise */}
-            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
-              <img className="size-10" src="/sunrise.svg" alt="sunrise" />
-              <p className="mt-2 font-mono text-sm font-semibold">
-                {sunriseTime}
-              </p>
-              <p className="text-base-content/50 text-xs">Sunrise</p>
-            </div>
-
-            {/* Sunset */}
-            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
-              <img className="size-10" src="/sunset.svg" alt="sunset" />
-              <p className="mt-2 font-mono text-sm font-semibold">
-                {sunsetTime}
-              </p>
-              <p className="text-base-content/50 text-xs">Sunset</p>
-            </div>
-
-            {/* UV Index */}
-            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
-              <img
-                className="size-10"
-                src={uvIndexImage}
-                alt={uvImageDescription}
-              />
-              <p className="mt-2 font-mono text-sm font-semibold">
-                {uvIndex?.[1]?.toFixed(1)}
-                <span className="text-base-content/40"> / 11</span>
-              </p>
-              <p className={`text-xs font-medium ${uvLevel.colorClass}`}>
-                {uvLevel.label}
-              </p>
-              <p className="text-base-content/50 text-xs">UV Index</p>
-            </div>
-
-            {/* Wind Direction */}
-            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
-              <img
-                className="size-10"
-                src="/compass.svg"
-                alt="wind direction"
-              />
-              <p className="mt-2 font-mono text-sm font-semibold">
-                {windDirection} {windDirectionDegree?.[1]}°
-              </p>
-              <p className="text-base-content/50 text-xs">Wind Dir.</p>
-            </div>
-
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-8">
             {/* Precipitation */}
-            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
+            <div className="border-base-content/5 bg-base-300 flex h-full flex-col items-center rounded-lg border px-3 py-4 text-center">
               <img
                 className="size-10"
                 src="/raindrop-measure.svg"
                 alt="precipitation"
               />
-              <p className="mt-2 font-mono text-sm font-semibold">
-                {convertPrecipitation(precipitationSum?.[1], units)} {precipUnit(units)}
-              </p>
-              <p className="text-base-content/50 text-xs">Precipitation</p>
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
+                  {convertPrecipitation(precipitationSum?.[1], units)} {precipUnit(units)}
+                </p>
+              </div>
+              <p className="text-base-content/50 mt-2 text-xs">Precipitation</p>
             </div>
 
             {/* Rain Probability */}
-            <div className="border-base-content/5 bg-base-300 flex flex-col items-center rounded-lg border px-3 py-4">
+            <div className="border-base-content/5 bg-base-300 flex h-full flex-col items-center rounded-lg border px-3 py-4 text-center">
               <img
                 className="size-10"
                 src="/rain-probability.svg"
                 alt="rain probability"
               />
-              <p className="mt-2 font-mono text-sm font-semibold">
-                {precipitationProbability?.[1]}%
-              </p>
-              <p className="text-base-content/50 text-xs">Rain chance</p>
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
+                  {precipitationProbability?.[1]}%
+                </p>
+              </div>
+              <p className="text-base-content/50 mt-2 text-xs">Rain chance</p>
+            </div>
+
+            {/* UV Index */}
+            <div className="border-base-content/5 bg-base-300 flex h-full flex-col items-center rounded-lg border px-3 py-4 text-center">
+              <img
+                className="size-10"
+                src={uvIndexImage}
+                alt={uvImageDescription}
+              />
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
+                  <span className={uvLevel.colorClass}>{uvIndex?.[1]?.toFixed(1)}</span>
+                  <span className="text-base-content/40 ml-1">/ 11</span>
+                </p>
+              </div>
+              <p className="text-base-content/50 mt-2 text-xs">UV Index</p>
+            </div>
+
+            {/* Cloud Cover */}
+            <div className="border-base-content/5 bg-base-300 flex h-full flex-col items-center rounded-lg border px-3 py-4 text-center">
+              <img
+                className="size-10"
+                src="/cloud-up.svg"
+                alt="cloud cover"
+              />
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
+                  {cloudCoverDisplay}
+                </p>
+              </div>
+              <p className="text-base-content/50 mt-2 text-xs">Cloud Cover</p>
+            </div>
+
+            {/* Sunshine Duration */}
+            <div className="border-base-content/5 bg-base-300 flex h-full flex-col items-center rounded-lg border px-3 py-4 text-center">
+              <img className="size-10" src="/sunshine-duration.svg" alt="sunshine" />
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
+                  {sunshineFormatted}
+                </p>
+              </div>
+              <p className="text-base-content/50 mt-2 text-xs">Sunshine</p>
+            </div>
+
+            {/* Wind Direction */}
+            <div className="border-base-content/5 bg-base-300 flex h-full flex-col items-center rounded-lg border px-3 py-4 text-center">
+              <img
+                className="size-10"
+                src="/compass.svg"
+                alt="wind direction"
+              />
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
+                  {windDirection} {windDirectionDegree?.[1]}°
+                </p>
+              </div>
+              <p className="text-base-content/50 mt-2 text-xs">Wind Dir.</p>
+            </div>
+
+            {/* Sunrise */}
+            <div className="border-base-content/5 bg-base-300 flex h-full flex-col items-center rounded-lg border px-3 py-4 text-center">
+              <img className="size-10" src="/sunrise.svg" alt="sunrise" />
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
+                  {sunriseTime}
+                </p>
+              </div>
+              <p className="text-base-content/50 mt-2 text-xs">Sunrise</p>
+            </div>
+
+            {/* Sunset */}
+            <div className="border-base-content/5 bg-base-300 flex h-full flex-col items-center rounded-lg border px-3 py-4 text-center">
+              <img className="size-10" src="/sunset.svg" alt="sunset" />
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
+                  {sunsetTime}
+                </p>
+              </div>
+              <p className="text-base-content/50 mt-2 text-xs">Sunset</p>
             </div>
           </div>
         </div>

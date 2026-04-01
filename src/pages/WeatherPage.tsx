@@ -14,10 +14,10 @@ export default function WeatherPage() {
       <div className="col-span-12">
         <HourlyForecast />
       </div>
-      <div className="col-span-12 md:col-span-6">
+      <div className="col-span-12">
         <TodaysForecast />
       </div>
-      <div className="col-span-12 md:col-span-6">
+      <div className="col-span-12">
         <AirQuality />
       </div>
       <div className="col-span-12">

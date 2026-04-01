@@ -32,8 +32,8 @@ export default function WeeklyForecast() {
   const {
     time,
     weatherCode: weatherCode,
-    temperature2mMax: maxTemperature,
-    temperature2mMin: minTemperature,
+    apparentTemperatureMax: maxTemperature,
+    apparentTemperatureMin: minTemperature,
     precipitationProbabilityMax: precipitationProbability,
     precipitationSum,
     windSpeed10mMax: windSpeed,
