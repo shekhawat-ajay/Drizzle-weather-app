@@ -5,6 +5,7 @@ import {
   SearchAltitude,
   MoonPhase,
   Illumination,
+  GeoMoon,
   SearchMoonQuarter,
   NextMoonQuarter,
   SearchLunarEclipse,
@@ -31,62 +32,29 @@ import type {
 } from "@/types/astronomy";
 
 /* ─── Helpers ─── */
-const PHASE_NAMES: Record<
-  number,
-  { name: string; emoji: string; icon: string }
-> = {
-  0: { name: "New Moon", emoji: "🌑", icon: "/moon-new.svg" },
-  1: { name: "First Quarter", emoji: "🌓", icon: "/moon-first-quarter.svg" },
-  2: { name: "Full Moon", emoji: "🌕", icon: "/moon-full.svg" },
-  3: { name: "Third Quarter", emoji: "🌗", icon: "/moon-last-quarter.svg" },
-};
 
 function getMoonPhaseName(degrees: number): {
   name: string;
-  emoji: string;
   icon: string;
+  iconFallback: string;
 } {
   if (degrees < 22.5)
-    return { name: "New Moon", emoji: "🌑", icon: "/moon-new.svg" };
+    return { name: "New Moon", icon: "/moon-new.webp", iconFallback: "/moon-new.svg" };
   if (degrees < 67.5)
-    return {
-      name: "Waxing Crescent",
-      emoji: "🌒",
-      icon: "/moon-waxing-crescent.svg",
-    };
+    return { name: "Waxing Crescent", icon: "/moon-waxing-crescent.webp", iconFallback: "/moon-waxing-crescent.svg" };
   if (degrees < 112.5)
-    return {
-      name: "First Quarter",
-      emoji: "🌓",
-      icon: "/moon-first-quarter.svg",
-    };
+    return { name: "First Quarter", icon: "/moon-first-quarter.webp", iconFallback: "/moon-first-quarter.svg" };
   if (degrees < 157.5)
-    return {
-      name: "Waxing Gibbous",
-      emoji: "🌔",
-      icon: "/moon-waxing-gibbous.svg",
-    };
+    return { name: "Waxing Gibbous", icon: "/moon-waxing-gibbous.webp", iconFallback: "/moon-waxing-gibbous.svg" };
   if (degrees < 202.5)
-    return { name: "Full Moon", emoji: "🌕", icon: "/moon-full.svg" };
+    return { name: "Full Moon", icon: "/moon-full.webp", iconFallback: "/moon-full.svg" };
   if (degrees < 247.5)
-    return {
-      name: "Waning Gibbous",
-      emoji: "🌖",
-      icon: "/moon-waning-gibbous.svg",
-    };
+    return { name: "Waning Gibbous", icon: "/moon-waning-gibbous.webp", iconFallback: "/moon-waning-gibbous.svg" };
   if (degrees < 292.5)
-    return {
-      name: "Third Quarter",
-      emoji: "🌗",
-      icon: "/moon-last-quarter.svg",
-    };
+    return { name: "Third Quarter", icon: "/moon-third-quarter.webp", iconFallback: "/moon-last-quarter.svg" };
   if (degrees < 337.5)
-    return {
-      name: "Waning Crescent",
-      emoji: "🌘",
-      icon: "/moon-waning-crescent.svg",
-    };
-  return { name: "New Moon", emoji: "🌑", icon: "/moon-new.svg" };
+    return { name: "Waning Crescent", icon: "/moon-waning-crescent.webp", iconFallback: "/moon-waning-crescent.svg" };
+  return { name: "New Moon", icon: "/moon-new.webp", iconFallback: "/moon-new.svg" };
 }
 
 function toDateOrNull(
@@ -279,10 +247,18 @@ export function calcMoonData(lat: number, lon: number, date: Date): MoonData {
   const moonset = SearchRiseSet(Body.Moon, observer, -1, date, 1);
 
   const phaseDegrees = MoonPhase(date);
-  const { name: phaseName, emoji, icon } = getMoonPhaseName(phaseDegrees);
+  const { name: phaseName, icon, iconFallback } = getMoonPhaseName(phaseDegrees);
 
   const illum = Illumination(Body.Moon, date);
   const illuminationFraction = illum.phase_fraction;
+
+  // Moon age: days into the current lunation (~29.53 day cycle)
+  const moonAge = (phaseDegrees / 360) * 29.53;
+
+  // Moon distance from Earth in km
+  const moonGeo = GeoMoon(MakeTime(date));
+  const distAU = Math.sqrt(moonGeo.x * moonGeo.x + moonGeo.y * moonGeo.y + moonGeo.z * moonGeo.z);
+  const distanceKm = Math.round(distAU * 149597870.7);
 
   return {
     moonrise: toDateOrNull(moonrise),
@@ -290,8 +266,10 @@ export function calcMoonData(lat: number, lon: number, date: Date): MoonData {
     phaseDegrees,
     phaseName,
     illuminationFraction,
-    emoji,
+    moonAge,
+    distanceKm,
     icon,
+    iconFallback,
   };
 }
 
@@ -437,28 +415,56 @@ export function calcPlanetData(
   });
 }
 
-export function calcNextMoonPhases(date: Date, count = 4): NextMoonPhaseData[] {
-  const phases: NextMoonPhaseData[] = [];
+/** All 8 phase definitions keyed by their order index (0-7). */
+const ALL_PHASES: Record<number, { name: string; icon: string; iconFallback: string }> = {
+  0: { name: "New Moon", icon: "/moon-new.webp", iconFallback: "/moon-new.svg" },
+  1: { name: "Waxing Crescent", icon: "/moon-waxing-crescent.webp", iconFallback: "/moon-waxing-crescent.svg" },
+  2: { name: "First Quarter", icon: "/moon-first-quarter.webp", iconFallback: "/moon-first-quarter.svg" },
+  3: { name: "Waxing Gibbous", icon: "/moon-waxing-gibbous.webp", iconFallback: "/moon-waxing-gibbous.svg" },
+  4: { name: "Full Moon", icon: "/moon-full.webp", iconFallback: "/moon-full.svg" },
+  5: { name: "Waning Gibbous", icon: "/moon-waning-gibbous.webp", iconFallback: "/moon-waning-gibbous.svg" },
+  6: { name: "Third Quarter", icon: "/moon-third-quarter.webp", iconFallback: "/moon-last-quarter.svg" },
+  7: { name: "Waning Crescent", icon: "/moon-waning-crescent.webp", iconFallback: "/moon-waning-crescent.svg" },
+};
+
+/** Map major quarter index (0-3) to the all-phases index (0,2,4,6). */
+const QUARTER_TO_PHASE = [0, 2, 4, 6] as const;
+
+export function calcNextMoonPhases(date: Date, count = 8): NextMoonPhaseData[] {
+  // Gather enough major quarters to cover requested phases
+  const majorCount = Math.ceil(count / 2) + 1;
+  const majors: { phaseIdx: number; date: Date }[] = [];
   let mq = SearchMoonQuarter(date);
 
-  for (let i = 0; i < count; i++) {
-    // mq.quarter is 0-3 guaranteed by library, but TS doesn't know. Fallback for safety.
-    const info = PHASE_NAMES[mq.quarter] ??
-      PHASE_NAMES[0] ?? {
-        name: "New Moon",
-        emoji: "🌑",
-        icon: "/moon-new.svg",
-      };
-    phases.push({
-      name: info.name,
+  for (let i = 0; i < majorCount; i++) {
+    majors.push({
+      phaseIdx: QUARTER_TO_PHASE[mq.quarter] ?? 0,
       date: mq.time.date,
-      emoji: info.emoji,
-      icon: info.icon,
     });
     mq = NextMoonQuarter(mq);
   }
 
-  return phases;
+  // Build full list: major → intermediate (midpoint) → major → ...
+  const all: NextMoonPhaseData[] = [];
+
+  for (let i = 0; i < majors.length && all.length < count; i++) {
+    const major = majors[i]!;
+    const info = ALL_PHASES[major.phaseIdx]!;
+    all.push({ name: info.name, date: major.date, icon: info.icon, iconFallback: info.iconFallback });
+
+    // Insert the intermediate phase between this major and the next
+    if (i < majors.length - 1 && all.length < count) {
+      const next = majors[i + 1]!;
+      const midMs = (major.date.getTime() + next.date.getTime()) / 2;
+      const midDate = new Date(midMs);
+      // Intermediate is the phase index right after the current major
+      const interIdx = (major.phaseIdx + 1) % 8;
+      const interInfo = ALL_PHASES[interIdx]!;
+      all.push({ name: interInfo.name, date: midDate, icon: interInfo.icon, iconFallback: interInfo.iconFallback });
+    }
+  }
+
+  return all;
 }
 
 export function calcUpcomingEclipses(now: Date): EclipseEvent[] {
