@@ -55,7 +55,7 @@ export default function useAstronomy(
     const now = new Date();
     const sun = calcSunData(latitude, longitude, todayStart);
     const moon = calcMoonData(latitude, longitude, todayStart);
-    const nextMoonPhases = calcNextMoonPhases(now, 4);
+    const nextMoonPhases = calcNextMoonPhases(now, 6);
     const nextSeason = calcNextSeason(now);
     const stargazing = getStargazingQuality(
       moon.illuminationFraction,

@@ -17,8 +17,10 @@ export interface MoonData {
   phaseDegrees: number;
   phaseName: string;
   illuminationFraction: number;
-  emoji: string;
+  moonAge: number;
+  distanceKm: number;
   icon: string;
+  iconFallback: string;
 }
 
 export interface PlanetData {
@@ -38,8 +40,8 @@ export interface PlanetData {
 export interface NextMoonPhaseData {
   name: string;
   date: Date;
-  emoji: string;
   icon: string;
+  iconFallback: string;
 }
 
 export interface SeasonData {

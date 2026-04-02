@@ -35,6 +35,7 @@ type AccentColor = keyof typeof accentMap;
 interface AstroCardProps {
   icon?: LucideIcon;
   imageSrc?: string;
+  imageSize?: "sm" | "lg";
   title: string;
   value: string;
   sub?: string;
@@ -46,6 +47,7 @@ interface AstroCardProps {
 export default function AstroCard({
   icon: Icon,
   imageSrc,
+  imageSize = "sm",
   title,
   value,
   sub,
@@ -54,6 +56,7 @@ export default function AstroCard({
   accent = "violet",
 }: AstroCardProps) {
   const a = accentMap[accent];
+  const isLg = imageSize === "lg";
 
   return (
     <div
@@ -61,10 +64,16 @@ export default function AstroCard({
     >
       <div className="flex items-start gap-4">
         <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${a.iconBg}`}
+          className={`flex shrink-0 items-center justify-center rounded-lg ${a.iconBg} ${
+            isLg ? "h-14 w-14 rounded-full" : "h-10 w-10"
+          }`}
         >
           {imageSrc ? (
-            <img src={imageSrc} alt={title} className="h-7 w-7" />
+            <img
+              src={imageSrc}
+              alt={title}
+              className={isLg ? "size-14 rounded-full object-cover" : "h-7 w-7"}
+            />
           ) : Icon ? (
             <Icon className={a.iconText} size={20} />
           ) : null}

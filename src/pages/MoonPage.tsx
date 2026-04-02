@@ -1,5 +1,5 @@
 import { useOutletContext } from "react-router";
-import { Moon, Eye } from "lucide-react";
+import { Moon, Ruler, Calendar } from "lucide-react";
 import SectionHeader from "@/components/astronomy/SectionHeader";
 import AstroCard from "@/components/astronomy/AstroCard";
 import CountdownBadge from "@/components/astronomy/CountdownBadge";
@@ -23,21 +23,52 @@ export default function MoonPage() {
 
   return (
     <div className="space-y-4">
-      {/* ── Moon Section ── */}
       <div>
         <SectionHeader icon={Moon} label="Moon" color="text-violet-400" />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+
+        {/* ── Hero: Current Moon Phase Image ── */}
+        <div className="flex flex-col items-center gap-3 mb-4">
+          <div className="relative">
+            <img
+              src={moon.icon}
+              alt={moon.phaseName}
+              className="size-68 rounded-full object-cover ring-2 ring-violet-500/20"
+              onError={(e) => {
+                e.currentTarget.src = moon.iconFallback;
+              }}
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-base-content text-lg font-semibold">
+              {moon.phaseName}
+            </p>
+            <p className="text-base-content/40 text-sm">
+              {Math.round(moon.illuminationFraction * 100)}% illuminated ·{" "}
+              {Math.round(moon.phaseDegrees)}°
+            </p>
+          </div>
+        </div>
+
+        {/* ── Info Cards ── */}
+        <div className="grid gap-3 md:grid-cols-4">
           <AstroCard
-            imageSrc={moon.icon}
-            title="Phase"
-            value={moon.phaseName}
-            sub={`${Math.round(moon.phaseDegrees)}°`}
+            icon={Calendar}
+            title="Moon Age"
+            value={`${moon.moonAge.toFixed(1)} days`}
+            sub="Into current lunation"
             accent="violet"
           />
           <AstroCard
-            icon={Eye}
-            title="Illumination"
-            value={`${Math.round(moon.illuminationFraction * 100)}%`}
+            icon={Ruler}
+            title="Distance"
+            value={`${(moon.distanceKm / 1000).toFixed(0)}k km`}
+            sub={
+              moon.distanceKm < 363300
+                ? "Near perigee"
+                : moon.distanceKm > 405500
+                  ? "Near apogee"
+                  : "Average distance"
+            }
             accent="cyan"
           />
           <AstroCard
@@ -65,6 +96,8 @@ export default function MoonPage() {
             accent="violet"
           />
         </div>
+
+        {/* ── Moon Position Arc ── */}
         <div className="mt-3">
           <MoonPositionArc
             moonPosition={moonPosition}
@@ -72,6 +105,8 @@ export default function MoonPage() {
             timezone={tz}
           />
         </div>
+
+        {/* ── Upcoming Phases ── */}
         <div className="mt-3">
           <MoonPhaseTimeline phases={nextMoonPhases} />
         </div>
