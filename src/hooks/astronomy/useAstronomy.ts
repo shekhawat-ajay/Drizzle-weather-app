@@ -4,12 +4,15 @@ import {
   calcSunPosition,
   calcMoonData,
   calcMoonPosition,
-  calcNextMoonPhases,
   calcNextSeason,
   calcPlanetData,
   calcNextRiseSet,
   getStargazingQuality,
   calcUpcomingEclipses,
+  getFullMoonCycle,
+  getNextDistanceExtremes,
+  getNextLunarEclipse,
+  getNextSupermoon,
 } from "@/utils/astronomy";
 
 import type { AstronomyData } from "@/types/astronomy";
@@ -55,7 +58,9 @@ export default function useAstronomy(
     const now = new Date();
     const sun = calcSunData(latitude, longitude, todayStart);
     const moon = calcMoonData(latitude, longitude, todayStart);
-    const nextMoonPhases = calcNextMoonPhases(now, 6);
+    const distanceExtremes = getNextDistanceExtremes(todayStart);
+    const lunarEclipseInfo = getNextLunarEclipse(todayStart);
+    const supermoonInfo = getNextSupermoon(todayStart);
     const nextSeason = calcNextSeason(now);
     const stargazing = getStargazingQuality(
       moon.illuminationFraction,
@@ -63,12 +68,14 @@ export default function useAstronomy(
       now,
       cloudCover
     );
-    const upcomingEclipses = calcUpcomingEclipses(now);
+    const upcomingEclipses = calcUpcomingEclipses(latitude, longitude, now);
 
     return {
       sun,
       moon,
-      nextMoonPhases,
+      distanceExtremes,
+      lunarEclipseInfo,
+      supermoonInfo,
       nextSeason,
       stargazing,
       upcomingEclipses,
@@ -82,14 +89,13 @@ export default function useAstronomy(
       latitude,
       longitude,
       now,
-      staticData.sun.sunrise,
-      staticData.sun.sunset,
     );
     const moonPosition = calcMoonPosition(latitude, longitude, now);
     const planets = calcPlanetData(latitude, longitude, todayStart, now);
     const nextRiseSet = calcNextRiseSet(latitude, longitude, now);
+    const fullMoonCycle = getFullMoonCycle(now);
 
-    return { sunPosition, moonPosition, planets, nextRiseSet };
+    return { sunPosition, moonPosition, planets, nextRiseSet, fullMoonCycle };
   }, [
     latitude,
     longitude,

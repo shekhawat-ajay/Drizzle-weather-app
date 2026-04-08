@@ -37,11 +37,88 @@ export interface PlanetData {
   magnitude: number;
 }
 
-export interface NextMoonPhaseData {
-  name: string;
-  date: Date;
+export interface MoonPhaseEvent {
+  phaseName: string;
   icon: string;
   iconFallback: string;
+  angle: number;
+  time: Date;
+  daysFromNow: number;
+  illuminationPercent: number;
+  magnitude: number;
+  distanceKm: number;
+  angularDiameterArcmin: number;
+  isSupermoon: boolean;
+  lunarEclipse: "penumbral" | "partial" | "total" | null;
+}
+
+export interface FullMoonCycle {
+  current: {
+    phaseName: string;
+    icon: string;
+    iconFallback: string;
+    exactAngle: number;
+    illuminationPercent: number;
+    moonAgeDays: number;
+    waxing: boolean;
+    distanceKm: number;
+    angularDiameterArcmin: number;
+  };
+  upcoming: MoonPhaseEvent[];
+  cycleLengthDays: number;
+}
+
+export interface DistanceExtremes {
+  currentDistanceKm: number;
+  distanceTrend: "approaching" | "receding";
+  nextPerigee: {
+    time: Date;
+    distanceKm: number;
+    daysFromNow: number;
+    isClosest: boolean;
+  };
+  nextApogee: {
+    time: Date;
+    distanceKm: number;
+    daysFromNow: number;
+  };
+  averageDistanceKm: number;
+}
+
+export interface LunarEclipseInfo {
+  next: {
+    kind: "penumbral" | "partial" | "total";
+    peakTime: Date;
+    daysFromNow: number;
+    obscurationPercent: number;
+    totalDurationMinutes: number;
+    contacts: {
+      penumbralStart: Date;
+      partialStart: Date | null;
+      totalStart: Date | null;
+      peak: Date;
+      totalEnd: Date | null;
+      partialEnd: Date | null;
+      penumbralEnd: Date;
+    };
+  };
+  nextTotal: {
+    peakTime: Date;
+    daysFromNow: number;
+    totalDurationMinutes: number;
+  } | null;
+}
+
+export interface SupermoonInfo {
+  nextSupermoon: {
+    fullMoonTime: Date;
+    perigeeTime: Date;
+    daysFromNow: number;
+    distanceKm: number;
+    angularDiameterArcmin: number;
+    sizeRatioVsAverage: number;
+    illuminationPercent: number;
+  } | null;
 }
 
 export interface SeasonData {
@@ -54,6 +131,7 @@ export interface EclipseEvent {
   type: string; // e.g., "Total", "Partial", "Penumbral", "Annular"
   peak: Date;
   obscuration?: number; // Solar obscuration fraction (0-1)
+  isLocal: boolean;
 }
 
 export interface NextRiseSetData {
@@ -65,6 +143,8 @@ export interface NextRiseSetData {
   nextMoonrise: Date | null;
   /** Next moonset from current moment */
   nextMoonset: Date | null;
+  /** Next astronomical dawn from current moment */
+  nextAstronomicalDawn: Date | null;
   /** Most recent sunset (for early morning before sunrise) */
   prevSunset: Date | null;
 }
@@ -97,10 +177,18 @@ export interface AstronomyData {
   moon: MoonData;
   moonPosition: MoonPositionData;
   planets: PlanetData[];
-  nextMoonPhases: NextMoonPhaseData[];
+  fullMoonCycle: FullMoonCycle;
+  distanceExtremes: DistanceExtremes;
+  lunarEclipseInfo: LunarEclipseInfo | null;
+  supermoonInfo: SupermoonInfo;
   nextSeason: SeasonData;
   nextRiseSet: NextRiseSetData;
-  stargazing: { label: string; description: string };
+  stargazing: {
+    score: number;
+    label: string;
+    description: string;
+    factors: { param: string; impact: "positive" | "negative" | "neutral"; detail: string }[];
+  };
   upcomingEclipses: EclipseEvent[];
 }
 
@@ -109,16 +197,19 @@ export interface SunPositionData {
   altitude: number;
   /** Current azimuth in degrees (0 = North, 90 = East, 180 = South, 270 = West) */
   azimuth: number;
-  /** 0 = sunrise, 0.5 = solar noon, 1 = sunset. null if no rise/set today */
-  arcFraction: number | null;
-  /** Maximum altitude the sun reaches today (solar noon) in degrees */
-  noonAltitude: number;
   /** Is the sun currently above the horizon? */
   isAboveHorizon: boolean;
-  /** Sampled altitude points across the day for the curve */
-  altitudeCurve: { fraction: number; altitude: number; timestamp: number }[];
-  /** Lowest altitude in the curve (most negative) */
+
+  /** Past horizon-crossing event relative to now */
+  previousEvent: Date | null;
+  /** Future horizon-crossing event relative to now */
+  nextEvent: Date | null;
+
+  /** Highest altitude during the current window */
+  peakAltitude: number;
+  /** Lowest altitude during the current window */
   minAltitude: number;
-  /** Fraction through the curve window where sun currently is (0→1) */
-  dayFraction: number;
+
+  /** Sampled altitude points across the window for the curve */
+  altitudeCurve: { fraction: number; altitude: number; timestamp: number }[];
 }

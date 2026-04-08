@@ -5,15 +5,21 @@ import AstroCard from "@/components/astronomy/AstroCard";
 import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import CelestialTable from "@/components/astronomy/CelestialTable";
 import NightSky from "@/components/astronomy/NightSky";
+import StargazingBanner from "@/components/astronomy/StargazingBanner";
 import { fmtTime } from "@/utils/formatters";
 import type { AstronomyOutletContext } from "@/pages/AstronomyPage";
 
 export default function OverviewPage() {
   const { tz, astronomyData, celestialData } = useOutletContext<AstronomyOutletContext>();
-  const { sun, nextSeason, upcomingEclipses } = astronomyData;
+  const { sun, nextSeason, upcomingEclipses, stargazing, sunPosition } = astronomyData;
+
+  const isDaytime = sunPosition.isAboveHorizon;
 
   return (
     <div className="space-y-6">
+      {/* ── Top Status Banner ── */}
+      <StargazingBanner stargazing={stargazing} isDaytime={isDaytime} />
+
       {/* ── All Bodies Table ── */}
       <div>
         <SectionHeader icon={Globe} label="Celestial Overview" color="text-teal-400" />
@@ -72,31 +78,34 @@ export default function OverviewPage() {
         <div className="flex flex-col">
           <SectionHeader
             icon={Eclipse}
-            label="Eclipses this Year"
+            label="Visible Eclipses"
             color="text-rose-400"
           />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {upcomingEclipses.slice(0, 2).map((eclipse, i) => (
-              <AstroCard
-                key={i}
-                icon={Eclipse}
-                title={`${eclipse.type} ${eclipse.kind} Eclipse`}
-                value={eclipse.peak.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
-                badge={
-                  <CountdownBadge
-                    target={eclipse.peak}
-                    className="bg-rose-500/10 text-rose-400"
-                  />
-                }
-                accent="rose"
-              />
-            ))}
-            {upcomingEclipses.length === 0 && (
+            {upcomingEclipses
+              .filter((e) => e.isLocal)
+              .slice(0, 2)
+              .map((eclipse, i) => (
+                <AstroCard
+                  key={i}
+                  icon={Eclipse}
+                  title={`${eclipse.type} ${eclipse.kind} Eclipse`}
+                  value={eclipse.peak.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                  badge={
+                    <CountdownBadge
+                      target={eclipse.peak}
+                      className="bg-rose-500/10 text-rose-400"
+                    />
+                  }
+                  accent="rose"
+                />
+              ))}
+            {upcomingEclipses.filter((e) => e.isLocal).length === 0 && (
               <p className="text-base-content/50 text-sm">
-                No more eclipses this year.
+                No visible eclipses expected soon.
               </p>
             )}
           </div>

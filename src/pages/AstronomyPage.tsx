@@ -4,7 +4,8 @@ import { LocationContext } from "@/App";
 import { ResultType } from "@/schema/location";
 import useAstronomy from "@/hooks/astronomy/useAstronomy";
 import useCelestial from "@/hooks/astronomy/useCelestial";
-import useCurrentWeather from "@/hooks/weather/useCurrentWeather";
+import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
+import { getNowAsUTC, parseAsUTC } from "@/utils/formatters";
 
 import AstroHero from "@/components/astronomy/AstroHero";
 import CelestialNav from "@/components/astronomy/CelestialNav";
@@ -24,19 +25,32 @@ export default function AstronomyPage() {
     location: ResultType;
   };
 
-  const { data: currentW } = useCurrentWeather(
+  const tz = location.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const { data: hourlyData } = useHourlyForecast(
     location.latitude,
     location.longitude
   );
-  const cloudCover = currentW?.current?.cloudCover ?? null;
+
+  let cloudCover: number | null = null;
+  const hourly = hourlyData?.hourly;
+  if (hourly?.time && hourly?.cloudCover) {
+    const nowMs = getNowAsUTC(tz);
+    let curIdx = 0;
+    for (let i = 0; i < hourly.time.length; i++) {
+       const ms = parseAsUTC(hourly.time[i]!).getTime();
+       if (ms <= nowMs) curIdx = i;
+    }
+    cloudCover = hourly.cloudCover[curIdx] ?? null;
+  }
 
   const astronomyData = useAstronomy(
     location.latitude,
     location.longitude,
-    location.timezone
+    location.timezone,
+    cloudCover
   );
 
-  const tz = location.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const celestialData = useCelestial(location.latitude, location.longitude);
 
   const contextValue: AstronomyOutletContext = {
