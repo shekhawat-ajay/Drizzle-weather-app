@@ -29,6 +29,15 @@ const PLANET_EMOJI: Record<string, string> = {
 const MAG_TOOLTIP =
   "Visual magnitude measures brightness as seen from Earth. Lower = brighter. Negative values are very bright (e.g. Venus at −4). Above +6 needs a telescope.";
 
+const ELEV_TOOLTIP =
+  "Elevation angle: the height of the object in degrees relative to your horizon. 90° is directly overhead, 0° is on the horizon, and negative values are below the horizon.";
+
+const AZIMUTH_TOOLTIP =
+  "Compass direction of the object in degrees. 0° is North (0°), 90° is East (90°), 180° is South (180°), and 270° is West (270°).";
+
+const VISIBILITY_TOOLTIP =
+  "Observational conditions based on altitude, angular separation (elongation) from the Sun, and current skylight phases.";
+
 /** Merged data for a single row */
 interface MergedPlanet {
   name: string;
@@ -36,127 +45,154 @@ interface MergedPlanet {
   azimuth: number;
   isAboveHorizon: boolean;
   magnitude: number;
-  state: "ABOVE" | "BELOW" | null;
+  state: "ABOVE" | "BELOW";
   pastLabel: string;
+  pastType: "RISE" | "SET";
+  pastTimestamp: Date | null;
   futureLabel: string;
+  futureType: "RISE" | "SET";
+  futureTimestamp: Date | null;
   elongation: number | null;
   visibilityNote: string;
-  pastType: "RISE" | "SET" | null;
-  futureType: "RISE" | "SET" | null;
-  pastTimestamp: Date | null;
-  futureTimestamp: Date | null;
 }
 
 function mergePlanetData(
-  data: AstronomyData,
-  celestial: CelestialStatus[],
+  astro: AstronomyData,
+  celestial: CelestialStatus | null
 ): MergedPlanet[] {
-  const nowMs = Date.now();
+  if (!celestial) return [];
 
-  // 1. Synthesize Sun
-  const { sun, sunPosition } = data;
-  const sunEvents = [
-    { type: "RISE" as const, ts: sun.sunrise },
-    { type: "SET" as const, ts: sun.sunset },
-    { type: "RISE" as const, ts: data.nextRiseSet.nextSunrise },
-    { type: "SET" as const, ts: data.nextRiseSet.prevSunset },
-  ].filter((e) => e.ts !== null) as { type: "RISE" | "SET"; ts: Date }[];
+  const { sun, moon, planets } = celestial;
+  const { sunRiseSet, moonRiseSet, planetsRiseSet } = astro;
 
-  const pastSunEvents = sunEvents.filter((e) => e.ts.getTime() <= nowMs).sort((a, b) => b.ts.getTime() - a.ts.getTime());
-  const futureSunEvents = sunEvents.filter((e) => e.ts.getTime() > nowMs).sort((a, b) => a.ts.getTime() - b.ts.getTime());
-  
-  const pastSun = pastSunEvents[0] || null;
-  const futureSun = futureSunEvents[0] || null;
+  const merged: MergedPlanet[] = [];
 
-  const sunRow: MergedPlanet = {
+  // 1. Sun
+  const sunRise = sunRiseSet.sunrise;
+  const sunSet = sunRiseSet.sunset;
+  const sunIsAbove = sun.altitude > 0;
+  const sunState = sunIsAbove ? "ABOVE" : "BELOW";
+  const sunPast = sunIsAbove
+    ? { label: "Sunrise", type: "RISE" as const, time: sunRise }
+    : { label: "Sunset", type: "SET" as const, time: sunSet };
+  const sunFuture = sunIsAbove
+    ? { label: "Sunset", type: "SET" as const, time: sunSet }
+    : { label: "Sunrise", type: "RISE" as const, time: sunRise };
+
+  merged.push({
     name: "Sun",
-    altitude: sunPosition.altitude,
-    azimuth: sunPosition.azimuth,
-    isAboveHorizon: sunPosition.isAboveHorizon,
-    magnitude: -26.74, 
-    state: sunPosition.isAboveHorizon ? "ABOVE" : "BELOW",
-    pastType: pastSun?.type || null,
-    pastTimestamp: pastSun?.ts || null,
-    pastLabel: pastSun ? `${fmtDurationMs(nowMs - pastSun.ts.getTime())} ago` : "--",
-    futureType: futureSun?.type || null,
-    futureTimestamp: futureSun?.ts || null,
-    futureLabel: futureSun ? `in ${fmtDurationMs(futureSun.ts.getTime() - nowMs)}` : "--",
+    altitude: sun.altitude,
+    azimuth: sun.azimuth,
+    isAboveHorizon: sunIsAbove,
+    magnitude: -26.74,
+    state: sunState,
+    pastLabel: sunPast.label,
+    pastType: sunPast.type,
+    pastTimestamp: sunPast.time,
+    futureLabel: sunFuture.label,
+    futureType: sunFuture.type,
+    futureTimestamp: sunFuture.time,
     elongation: null,
-    visibilityNote: "Our closest star. NEVER look directly without a solar filter.",
-  };
-
-  // 2. Synthesize Moon
-  const { moonPosition } = data;
-  let pastMoonLabel = "--";
-  let futureMoonLabel = "--";
-  const prevMoon = moonPosition.previousEvent;
-  const nextMoon = moonPosition.nextEvent;
-
-  if (prevMoon) pastMoonLabel = `${fmtDurationMs(nowMs - prevMoon.getTime())} ago`;
-  if (nextMoon) futureMoonLabel = `in ${fmtDurationMs(nextMoon.getTime() - nowMs)}`;
-
-  const moonRow: MergedPlanet = {
-    name: "Moon",
-    altitude: moonPosition.altitude,
-    azimuth: moonPosition.azimuth,
-    isAboveHorizon: moonPosition.isAboveHorizon,
-    magnitude: -12.7, 
-    state: moonPosition.isAboveHorizon ? "ABOVE" : "BELOW",
-    pastType: moonPosition.isAboveHorizon ? "RISE" : "SET",
-    pastTimestamp: prevMoon,
-    pastLabel: pastMoonLabel,
-    futureType: moonPosition.isAboveHorizon ? "SET" : "RISE",
-    futureTimestamp: nextMoon,
-    futureLabel: futureMoonLabel,
-    elongation: null,
-    visibilityNote: "Visible consistently except during New Moon phases.",
-  };
-
-  // 3. Process Planets
-  const celestialMap = new Map<string, CelestialStatus>();
-  for (const c of celestial) celestialMap.set(c.body, c);
-
-  const planetRows: MergedPlanet[] = data.planets.map((p) => {
-    const c = celestialMap.get(p.name);
-    return {
-      name: p.name,
-      altitude: p.altitude,
-      azimuth: p.azimuth,
-      isAboveHorizon: p.isAboveHorizon,
-      magnitude: p.magnitude,
-      state: c?.state ?? null,
-      pastLabel: c?.pastLabel ?? "",
-      futureLabel: c?.futureLabel ?? "",
-      elongation: c?.elongation ?? null,
-      visibilityNote: c?.visibilityNote ?? "",
-      pastType: c?.pastEvent?.type ?? null,
-      futureType: c?.futureEvent?.type ?? null,
-      pastTimestamp: c?.pastEvent?.timestamp ?? null,
-      futureTimestamp: c?.futureEvent?.timestamp ?? null,
-    };
+    visibilityNote: sunIsAbove
+      ? "Daylight: floods sky with bright light."
+      : "Below horizon: creates twilight/night conditions.",
   });
 
-  return [sunRow, moonRow, ...planetRows];
+  // 2. Moon
+  const moonRise = moonRiseSet.moonrise;
+  const moonSet = moonRiseSet.moonset;
+  const moonIsAbove = moon.altitude > 0;
+  const moonState = moonIsAbove ? "ABOVE" : "BELOW";
+  const moonPast = moonIsAbove
+    ? { label: "Moonrise", type: "RISE" as const, time: moonRise }
+    : { label: "Moonset", type: "SET" as const, time: moonSet };
+  const moonFuture = moonIsAbove
+    ? { label: "Moonset", type: "SET" as const, time: moonSet }
+    : { label: "Moonrise", type: "RISE" as const, time: moonRise };
+
+  const moonPhaseDesc = `${(moon.phase.fraction * 100).toFixed(0)}% ${moon.phase.name}`;
+
+  merged.push({
+    name: "Moon",
+    altitude: moon.altitude,
+    azimuth: moon.azimuth,
+    isAboveHorizon: moonIsAbove,
+    magnitude: moon.phase.fraction > 0 ? -12.7 * moon.phase.fraction : -3.0,
+    state: moonState,
+    pastLabel: moonPast.label,
+    pastType: moonPast.type,
+    pastTimestamp: moonPast.time,
+    futureLabel: moonFuture.label,
+    futureType: moonFuture.type,
+    futureTimestamp: moonFuture.time,
+    elongation: null,
+    visibilityNote: moonIsAbove
+      ? `Visible (${moonPhaseDesc}). Light wash: moderate.`
+      : `Hidden (${moonPhaseDesc}). Sky background: dark.`,
+  });
+
+  // 3. Planets
+  for (const name of Object.keys(planets) as Array<keyof typeof planets>) {
+    const p = planets[name];
+    const r = planetsRiseSet[name];
+    if (!r) continue;
+
+    const isAbove = p.altitude > 0;
+    const state = isAbove ? "ABOVE" : "BELOW";
+    const past = isAbove
+      ? { label: "Rise", type: "RISE" as const, time: r.rise }
+      : { label: "Set", type: "SET" as const, time: r.set };
+    const future = isAbove
+      ? { label: "Set", type: "SET" as const, time: r.set }
+      : { label: "Rise", type: "RISE" as const, time: r.rise };
+
+    merged.push({
+      name,
+      altitude: p.altitude,
+      azimuth: p.azimuth,
+      isAboveHorizon: isAbove,
+      magnitude: p.magnitude,
+      state: state,
+      pastLabel: isAbove ? "Risen" : "Set",
+      pastType: past.type,
+      pastTimestamp: past.time,
+      futureLabel: isAbove ? "Will set" : "Will rise",
+      futureType: future.type,
+      futureTimestamp: future.time,
+      elongation: p.elongation,
+      visibilityNote: p.visibilityNote,
+    });
+  }
+
+  return merged;
 }
 
 /* ── Component ── */
 
 interface CelestialTableProps {
-  data: AstronomyData;
-  celestial: CelestialStatus[];
+  astro: AstronomyData;
+  celestial: CelestialStatus | null;
   timezone?: string | undefined;
 }
 
 export default function CelestialTable({
-  data,
+  astro,
   celestial,
   timezone,
 }: CelestialTableProps) {
-  const merged = mergePlanetData(data, celestial);
+  const merged = mergePlanetData(astro, celestial);
+
+  if (!merged.length) {
+    return (
+      <div className="bg-base-200/50 py-8 text-center text-sm text-base-content/40">
+        Loading celestial positions...
+      </div>
+    );
+  }
 
   return (
-    <>
-      {/* ── Desktop: Table (hidden on mobile) ── */}
+    <div className="flex flex-col gap-5">
+      {/* ── Desktop: Full table (hidden on mobile) ── */}
       <div className="bg-base-200/40 hidden overflow-x-auto rounded-xl border border-teal-500/10 md:block">
         <table className="table-sm table w-full">
           <thead>
@@ -166,16 +202,36 @@ export default function CelestialTable({
               <th className="font-medium">Last Event</th>
               <th className="font-medium">Next Event</th>
               <th className="font-medium">
-                <span className="inline-flex items-center gap-1">
-                  <ArrowUp size={12} />
-                  Elev
-                </span>
+                <div
+                  className="tooltip tooltip-bottom z-[100]"
+                  data-tip={ELEV_TOOLTIP}
+                >
+                  <button
+                    type="button"
+                    className="inline-flex cursor-help items-center gap-1"
+                    aria-label="What is elevation?"
+                  >
+                    <ArrowUp size={12} />
+                    Elev
+                    <Info className="text-base-content/30 h-3 w-3" />
+                  </button>
+                </div>
               </th>
               <th className="font-medium">
-                <span className="inline-flex items-center gap-1">
-                  <Compass size={12} />
-                  Azimuth
-                </span>
+                <div
+                  className="tooltip tooltip-bottom z-[100]"
+                  data-tip={AZIMUTH_TOOLTIP}
+                >
+                  <button
+                    type="button"
+                    className="inline-flex cursor-help items-center gap-1"
+                    aria-label="What is azimuth?"
+                  >
+                    <Compass size={12} />
+                    Azimuth
+                    <Info className="text-base-content/30 h-3 w-3" />
+                  </button>
+                </div>
               </th>
               <th className="font-medium">
                 <div
@@ -194,10 +250,20 @@ export default function CelestialTable({
                 </div>
               </th>
               <th className="pr-5 font-medium">
-                <span className="inline-flex items-center gap-1">
-                  <Eye size={12} />
-                  Visibility
-                </span>
+                <div
+                  className="tooltip tooltip-bottom z-[100] tooltip-left"
+                  data-tip={VISIBILITY_TOOLTIP}
+                >
+                  <button
+                    type="button"
+                    className="inline-flex cursor-help items-center gap-1"
+                    aria-label="What is visibility?"
+                  >
+                    <Eye size={12} />
+                    Visibility
+                    <Info className="text-base-content/30 h-3 w-3" />
+                  </button>
+                </div>
               </th>
             </tr>
           </thead>
@@ -442,7 +508,7 @@ export default function CelestialTable({
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 

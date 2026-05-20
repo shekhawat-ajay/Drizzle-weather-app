@@ -204,13 +204,13 @@ export default function ISSPage() {
         <div className="absolute top-4 left-4 z-[1000]">
           <button
             onClick={() => setShowPicker((v) => !v)}
-            className="flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-lg backdrop-blur-md border border-white/10 transition-colors hover:bg-black/80 uppercase tracking-tighter"
+            className="flex items-center gap-1.5 rounded-lg bg-base-300/90 px-2.5 py-1.5 text-[10px] font-bold text-base-content shadow-lg backdrop-blur-md border border-base-content/15 transition-colors hover:bg-base-300 uppercase tracking-tighter cursor-pointer"
           >
             <Layers className="size-3.5" />
             {activeTile}
           </button>
           {showPicker ? (
-            <div className="mt-1 overflow-hidden rounded-lg bg-black/70 shadow-xl backdrop-blur-sm border border-white/10">
+            <div className="mt-1 overflow-hidden rounded-lg bg-base-300/95 shadow-xl backdrop-blur-sm border border-base-content/15">
               {(Object.keys(TILE_LAYERS) as TileKey[]).map((key) => (
                 <button
                   key={key}
@@ -218,10 +218,10 @@ export default function ISSPage() {
                     setActiveTile(key);
                     setShowPicker(false);
                   }}
-                  className={`block w-full px-3 py-1.5 text-left text-[10px] font-bold uppercase tracking-tighter transition-colors ${
+                  className={`block w-full px-3 py-1.5 text-left text-[10px] font-bold uppercase tracking-tighter transition-colors cursor-pointer ${
                     key === activeTile
-                      ? "bg-white/20 text-white"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                      ? "bg-base-content/20 text-base-content"
+                      : "text-base-content/70 hover:bg-base-content/10 hover:text-base-content"
                   }`}
                 >
                   {key}

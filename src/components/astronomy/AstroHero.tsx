@@ -33,30 +33,30 @@ export function StarField() {
 
 // rendering-hoist-jsx: static decorative blur elements
 const topBlur = (
-  <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-violet-600/15 blur-3xl" />
+  <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-amber-500/5 blur-3xl" />
 );
 const bottomBlur = (
-  <div className="pointer-events-none absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-indigo-500/10 blur-3xl" />
+  <div className="pointer-events-none absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-amber-600/5 blur-3xl" />
 );
 
 export default function AstroHero() {
   return (
-    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-violet-950 via-indigo-950 to-slate-950 px-6 py-10">
+    <div className="relative overflow-hidden rounded-xl bg-base-200 border border-base-content/10 px-6 py-10 shadow-sm">
       <StarField />
       {topBlur}
       {bottomBlur}
 
       <div className="relative z-10 flex flex-col items-center text-center">
-        <div className="animate-float flex h-20 w-20 items-center justify-center rounded-full bg-violet-500/10 ring-1 ring-violet-400/20">
-          <Telescope className="h-10 w-10 text-violet-300" />
+        <div className="animate-float flex h-20 w-20 items-center justify-center rounded-full bg-amber-500/10 ring-1 ring-amber-400/20">
+          <Telescope className="h-10 w-10 text-amber-400" />
         </div>
         <h2
-          className="mt-5 bg-gradient-to-r from-violet-300 via-purple-200 to-fuchsia-300 bg-clip-text text-3xl font-bold tracking-tight text-transparent"
+          className="mt-5 text-3xl font-bold tracking-tight text-amber-400"
           style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           Astronomy
         </h2>
-        <p className="mt-2 max-w-md text-sm text-violet-200/60">
+        <p className="mt-2 max-w-md text-sm text-base-content/60">
           Celestial data calculated for your location using astronomical
           algorithms.
         </p>

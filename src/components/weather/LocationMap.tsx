@@ -113,13 +113,13 @@ export default function LocationMap() {
           <div className="absolute top-2 left-2 z-[1000]">
             <button
               onClick={() => setShowPicker((v) => !v)}
-              className="flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/80"
+              className="flex items-center gap-1.5 rounded-lg bg-base-300/90 px-2.5 py-1.5 text-xs font-medium text-base-content shadow-lg backdrop-blur-sm transition-colors hover:bg-base-300 border border-base-content/15 cursor-pointer"
             >
               <Layers className="size-3.5" />
               {activeTile}
             </button>
             {showPicker && (
-              <div className="mt-1 overflow-hidden rounded-lg bg-black/70 shadow-xl backdrop-blur-sm">
+              <div className="mt-1 overflow-hidden rounded-lg bg-base-300/95 shadow-xl backdrop-blur-sm border border-base-content/15">
                 {(Object.keys(TILE_LAYERS) as TileKey[]).map((key) => (
                   <button
                     key={key}
@@ -127,10 +127,10 @@ export default function LocationMap() {
                       setActiveTile(key);
                       setShowPicker(false);
                     }}
-                    className={`block w-full px-3 py-1.5 text-left text-xs transition-colors ${
+                    className={`block w-full px-3 py-1.5 text-left text-xs transition-colors cursor-pointer ${
                       key === activeTile
-                        ? "bg-white/20 font-semibold text-white"
-                        : "text-white/70 hover:bg-white/10 hover:text-white"
+                        ? "bg-base-content/20 font-semibold text-base-content"
+                        : "text-base-content/70 hover:bg-base-content/10 hover:text-base-content"
                     }`}
                   >
                     {key}

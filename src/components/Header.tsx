@@ -10,10 +10,8 @@ export default function Header() {
     <header className="border-base-content/10 border-b pb-6">
       <div className="flex flex-col items-center gap-3">
         <h1
-          className={`bg-clip-text text-6xl font-bold tracking-tight text-transparent transition-all duration-500 ${
-            isAstronomy
-              ? "bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400"
-              : "bg-gradient-to-r from-sky-400 to-blue-500"
+          className={`text-6xl font-bold tracking-tight transition-all duration-500 ${
+            isAstronomy ? "text-amber-400" : "text-sky-400"
           }`}
           style={{ fontFamily: "'Outfit', sans-serif" }}
         >
@@ -44,7 +42,7 @@ export default function Header() {
             className={({ isActive }) =>
               `flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? "bg-violet-500/15 text-violet-400 shadow-sm"
+                  ? "bg-amber-400/15 text-amber-400 shadow-sm"
                   : "text-base-content/50 hover:text-base-content/80"
               }`
             }
