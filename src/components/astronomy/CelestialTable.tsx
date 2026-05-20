@@ -17,6 +17,15 @@ import CelestialIcon from "@/components/astronomy/CelestialIcon";
 const MAG_TOOLTIP =
   "Visual magnitude measures brightness as seen from Earth. Lower = brighter. Negative values are very bright (e.g. Venus at −4). Above +6 needs a telescope.";
 
+const ELEV_TOOLTIP =
+  "Elevation angle: the height of the object in degrees relative to your horizon. 90° is directly overhead, 0° is on the horizon, and negative values are below the horizon.";
+
+const AZIMUTH_TOOLTIP =
+  "Compass direction of the object in degrees. 0° is North (0°), 90° is East (90°), 180° is South (180°), and 270° is West (270°).";
+
+const VISIBILITY_TOOLTIP =
+  "Observational conditions based on angular separation (elongation) from the Sun, altitude, and twilight phases.";
+
 /** Merged data for a single row */
 interface MergedPlanet {
   name: string;
@@ -157,16 +166,36 @@ export default function CelestialTable({
               <th className="font-medium">Last Event</th>
               <th className="font-medium">Next Event</th>
               <th className="font-medium">
-                <span className="inline-flex items-center gap-1">
-                  <ArrowUp size={12} />
-                  Elev
-                </span>
+                <div
+                  className="tooltip tooltip-bottom z-[100]"
+                  data-tip={ELEV_TOOLTIP}
+                >
+                  <button
+                    type="button"
+                    className="inline-flex cursor-help items-center gap-1"
+                    aria-label="What is elevation?"
+                  >
+                    <ArrowUp size={12} />
+                    Elev
+                    <Info className="text-base-content/30 h-3 w-3" />
+                  </button>
+                </div>
               </th>
               <th className="font-medium">
-                <span className="inline-flex items-center gap-1">
-                  <Compass size={12} />
-                  Azimuth
-                </span>
+                <div
+                  className="tooltip tooltip-bottom z-[100]"
+                  data-tip={AZIMUTH_TOOLTIP}
+                >
+                  <button
+                    type="button"
+                    className="inline-flex cursor-help items-center gap-1"
+                    aria-label="What is azimuth?"
+                  >
+                    <Compass size={12} />
+                    Azimuth
+                    <Info className="text-base-content/30 h-3 w-3" />
+                  </button>
+                </div>
               </th>
               <th className="font-medium">
                 <div
@@ -185,10 +214,20 @@ export default function CelestialTable({
                 </div>
               </th>
               <th className="pr-5 font-medium">
-                <span className="inline-flex items-center gap-1">
-                  <Eye size={12} />
-                  Visibility
-                </span>
+                <div
+                  className="tooltip tooltip-bottom z-[100] tooltip-left"
+                  data-tip={VISIBILITY_TOOLTIP}
+                >
+                  <button
+                    type="button"
+                    className="inline-flex cursor-help items-center gap-1"
+                    aria-label="What is visibility?"
+                  >
+                    <Eye size={12} />
+                    Visibility
+                    <Info className="text-base-content/30 h-3 w-3" />
+                  </button>
+                </div>
               </th>
             </tr>
           </thead>
