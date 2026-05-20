@@ -1,7 +1,7 @@
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
 import useDailyForecast from "@/hooks/weather/useDailyForecast";
 import { useContext } from "react";
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import { uvIndexImageMap } from "@/utils/maps/uvIndexImageMap";
 import { getWindDirection } from "@/utils/maps/getWindDirection";
 import { ResultType } from "@/schema/location";

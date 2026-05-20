@@ -1,5 +1,5 @@
 import { use, useMemo } from "react";
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import { ResultType } from "@/schema/location";
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
 import useDailyForecast from "@/hooks/weather/useDailyForecast";

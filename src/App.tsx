@@ -1,4 +1,4 @@
-import { createContext, use, useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router";
 import { ThemeProvider, useAppTheme } from "@/context/ThemeContext";
 import { UnitsProvider, useUnits } from "@/context/UnitsContext";
@@ -13,10 +13,7 @@ import MoonPage from "@/pages/MoonPage.tsx";
 import PlanetPage from "@/pages/PlanetPage.tsx";
 import ISSPage from "@/pages/ISSPage.tsx";
 import { ResultType } from "@/schema/location";
-
-import type { LocationContextType } from "@/types/context";
-
-const LocationContext = createContext<LocationContextType | null>(null);
+import { LocationContext } from "@/context/LocationContext";
 
 function UnitsToggle() {
   const { units, setUnits } = useUnits();
@@ -134,4 +131,3 @@ function App() {
 }
 
 export default App;
-export { LocationContext };

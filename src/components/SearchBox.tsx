@@ -7,7 +7,7 @@ import {
   FormEvent,
   ChangeEvent,
 } from "react";
-import { LocationContext } from "../App";
+import { LocationContext } from "@/context/LocationContext";
 import useLocation from "@/hooks/useLocation";
 import { MapPin, MapPinOff } from "lucide-react";
 import { cn } from "@/utils/cn";
