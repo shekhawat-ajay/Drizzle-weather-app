@@ -17,13 +17,9 @@ export default function useCelestial(
   latitude: number,
   longitude: number,
 ): CelestialStatus[] {
-  // Initial compute
-  const initial = useMemo(
-    () => getAllCelestialStatus(latitude, longitude),
-    [latitude, longitude],
+  const [statuses, setStatuses] = useState<CelestialStatus[]>(() =>
+    getAllCelestialStatus(latitude, longitude),
   );
-
-  const [statuses, setStatuses] = useState<CelestialStatus[]>(initial);
   const boundaryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {

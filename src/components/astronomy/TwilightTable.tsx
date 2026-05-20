@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Info } from "lucide-react";
 import type { SunData, SunPositionData, NextRiseSetData } from "@/types/astronomy";
 import { fmtTime } from "@/utils/formatters";
@@ -29,102 +30,105 @@ export default function TwilightTable({
   nextRiseSet,
   timezone,
 }: TwilightTableProps) {
-  // Compute Durations
-  const civilMs = safeDiff(sun.sunrise, sun.civilDawn);
-  const nauticalMs = safeDiff(sun.civilDawn, sun.nauticalDawn);
-  const astroMs = safeDiff(sun.nauticalDawn, sun.astronomicalDawn);
-  const dayMs = safeDiff(sun.sunset, sun.sunrise);
+  const rows = useMemo(() => {
+    // Compute Durations
+    const civilMs = safeDiff(sun.sunrise, sun.civilDawn);
+    const nauticalMs = safeDiff(sun.civilDawn, sun.nauticalDawn);
+    const astroMs = safeDiff(sun.nauticalDawn, sun.astronomicalDawn);
+    const dayMs = safeDiff(sun.sunset, sun.sunrise);
 
-  // True Night: From today's astronomical dusk to tomorrow's astronomical dawn
-  let nightMs: number | null = null;
-  if (sun.astronomicalDusk && nextRiseSet.nextAstronomicalDawn) {
-    nightMs = nextRiseSet.nextAstronomicalDawn.getTime() - sun.astronomicalDusk.getTime();
-    if (nightMs < 0) nightMs = null; // Failsafe
-  }
+    // True Night: From today's astronomical dusk to tomorrow's astronomical dawn
+    let nightMs: number | null = null;
+    if (sun.astronomicalDusk && nextRiseSet.nextAstronomicalDawn) {
+      nightMs = nextRiseSet.nextAstronomicalDawn.getTime() - sun.astronomicalDusk.getTime();
+      if (nightMs < 0) nightMs = null; // Failsafe
+    }
 
-  // Current altitude to highlight the active row
-  const alt = sunPosition.altitude;
+    // Current altitude to highlight the active row
+    const alt = sunPosition.altitude;
 
-  // Row data
-  const rows = [
-    {
-      id: "day",
-      name: "Daytime",
-      tooltip: "The sun is completely above the horizon. Full daylight conditions.",
-      elevation: "> 0°",
-      isActive: alt > 0,
-      morning: sun.sunrise ? fmtTime(sun.sunrise, timezone) : "--",
-      evening: sun.sunset ? fmtTime(sun.sunset, timezone) : "--",
-      duration: formatDur(dayMs),
-    },
-    {
-      id: "civil",
-      name: "Civil Twilight",
-      tooltip:
-        "Enough light for most outdoor activities without artificial lighting. Only the brightest stars/planets are visible.",
-      elevation: "0° to -6°",
-      isActive: alt <= 0 && alt > -6,
-      morning:
-        sun.civilDawn && sun.sunrise
-          ? `${fmtTime(sun.civilDawn, timezone)} – ${fmtTime(sun.sunrise, timezone)}`
-          : "--",
-      evening:
-        sun.sunset && sun.civilDusk
-          ? `${fmtTime(sun.sunset, timezone)} – ${fmtTime(sun.civilDusk, timezone)}`
-          : "--",
-      duration: formatDur(civilMs),
-    },
-    {
-      id: "nautical",
-      name: "Nautical Twilight",
-      tooltip:
-        "Horizon remains visible. General outlines of shapes are visible, but outdoor activities require artificial light.",
-      elevation: "-6° to -12°",
-      isActive: alt <= -6 && alt > -12,
-      morning:
-        sun.nauticalDawn && sun.civilDawn
-          ? `${fmtTime(sun.nauticalDawn, timezone)} – ${fmtTime(sun.civilDawn, timezone)}`
-          : "--",
-      evening:
-        sun.civilDusk && sun.nauticalDusk
-          ? `${fmtTime(sun.civilDusk, timezone)} – ${fmtTime(sun.nauticalDusk, timezone)}`
-          : "--",
-      duration: formatDur(nauticalMs),
-    },
-    {
-      id: "astronomical",
-      name: "Astronomical Twilight",
-      tooltip:
-        "The sky starts to look truly dark. Excellent for stargazing, except for faint deep-sky objects depending on light pollution.",
-      elevation: "-12° to -18°",
-      isActive: alt <= -12 && alt > -18,
-      morning:
-        sun.astronomicalDawn && sun.nauticalDawn
-          ? `${fmtTime(sun.astronomicalDawn, timezone)} – ${fmtTime(sun.nauticalDawn, timezone)}`
-          : "--",
-      evening:
-        sun.nauticalDusk && sun.astronomicalDusk
-          ? `${fmtTime(sun.nauticalDusk, timezone)} – ${fmtTime(sun.astronomicalDusk, timezone)}`
-          : "--",
-      duration: formatDur(astroMs),
-    },
-    {
-      id: "night",
-      name: "True Night",
-      tooltip: "The sun does not contribute any light to the sky. Optimal conditions for astronomical observations.",
-      elevation: "< -18°",
-      isActive: alt <= -18,
-      morning: sun.astronomicalDawn ? `Ends ${fmtTime(sun.astronomicalDawn, timezone)}` : "--",
-      evening: sun.astronomicalDusk ? `Starts ${fmtTime(sun.astronomicalDusk, timezone)}` : "--",
-      duration: formatDur(nightMs),
-    },
-  ];
+    // Row data
+    return [
+      {
+        id: "day",
+        name: "Daytime",
+        tooltip: "The sun is completely above the horizon. Full daylight conditions.",
+        elevation: "> 0°",
+        isActive: alt > 0,
+        morning: sun.sunrise ? fmtTime(sun.sunrise, timezone) : "--",
+        evening: sun.sunset ? fmtTime(sun.sunset, timezone) : "--",
+        duration: formatDur(dayMs),
+      },
+      {
+        id: "civil",
+        name: "Civil Twilight",
+        tooltip:
+          "Enough light for most outdoor activities without artificial lighting. Only the brightest stars/planets are visible.",
+        elevation: "0° to -6°",
+        isActive: alt <= 0 && alt > -6,
+        morning:
+          sun.civilDawn && sun.sunrise
+            ? `${fmtTime(sun.civilDawn, timezone)} – ${fmtTime(sun.sunrise, timezone)}`
+            : "--",
+        evening:
+          sun.sunset && sun.civilDusk
+            ? `${fmtTime(sun.sunset, timezone)} – ${fmtTime(sun.civilDusk, timezone)}`
+            : "--",
+        duration: formatDur(civilMs),
+      },
+      {
+        id: "nautical",
+        name: "Nautical Twilight",
+        tooltip:
+          "Horizon remains visible. General outlines of shapes are visible, but outdoor activities require artificial light.",
+        elevation: "-6° to -12°",
+        isActive: alt <= -6 && alt > -12,
+        morning:
+          sun.nauticalDawn && sun.civilDawn
+            ? `${fmtTime(sun.nauticalDawn, timezone)} – ${fmtTime(sun.civilDawn, timezone)}`
+            : "--",
+        evening:
+          sun.civilDusk && sun.nauticalDusk
+            ? `${fmtTime(sun.civilDusk, timezone)} – ${fmtTime(sun.nauticalDusk, timezone)}`
+            : "--",
+        duration: formatDur(nauticalMs),
+      },
+      {
+        id: "astronomical",
+        name: "Astronomical Twilight",
+        tooltip:
+          "The sky starts to look truly dark. Excellent for stargazing, except for faint deep-sky objects depending on light pollution.",
+        elevation: "-12° to -18°",
+        isActive: alt <= -12 && alt > -18,
+        morning:
+          sun.astronomicalDawn && sun.nauticalDawn
+            ? `${fmtTime(sun.astronomicalDawn, timezone)} – ${fmtTime(sun.nauticalDawn, timezone)}`
+            : "--",
+        evening:
+          sun.nauticalDusk && sun.astronomicalDusk
+            ? `${fmtTime(sun.nauticalDusk, timezone)} – ${fmtTime(sun.astronomicalDusk, timezone)}`
+            : "--",
+        duration: formatDur(astroMs),
+      },
+      {
+        id: "night",
+        name: "True Night",
+        tooltip: "The sun does not contribute any light to the sky. Optimal conditions for astronomical observations.",
+        elevation: "< -18°",
+        isActive: alt <= -18,
+        morning: sun.astronomicalDawn ? `Ends ${fmtTime(sun.astronomicalDawn, timezone)}` : "--",
+        evening: sun.astronomicalDusk ? `Starts ${fmtTime(sun.astronomicalDusk, timezone)}` : "--",
+        duration: formatDur(nightMs),
+      },
+    ];
+  }, [sun, sunPosition.altitude, nextRiseSet, timezone]);
+
 
   return (
     <div className="card rounded-2xl bg-base-200/50 shadow-sm border border-base-content/5 mt-6">
       <div className="card-body p-0">
         <div className="px-6 py-4 border-b border-base-content/10 bg-base-300/30 rounded-t-2xl">
-          <h2 className="text-sm font-bold text-base-content tracking-wide uppercase">
+          <h2 className="text-sm font-semibold text-base-content tracking-wide uppercase">
             Twilight Phases
           </h2>
         </div>

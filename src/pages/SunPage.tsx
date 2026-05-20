@@ -74,12 +74,12 @@ export default function SunPage() {
         </div>
       </div>
 
-      {astronomyData.upcomingEclipses.filter(e => e.kind === "solar").length > 0 && (
+      {astronomyData.upcomingEclipses.filter(e => e.kind === "solar").length > 0 ? (
         <div className="mt-6">
           <SectionHeader icon={Eclipse} label="Upcoming Solar Eclipses" color="text-amber-500" />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mt-3">
             {astronomyData.upcomingEclipses.filter(e => e.kind === "solar").slice(0, 2).map((eclipse, i) => (
-              <div key={i} className="card card-border border-amber-500/10 bg-base-200/40 group hover:bg-base-200/60 transition-colors">
+              <div key={eclipse.peak.getTime()} className="card card-border border-amber-500/10 bg-base-200/40 group hover:bg-base-200/60 transition-colors">
                 <div className="card-body p-5 gap-1">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
@@ -90,9 +90,9 @@ export default function SunPage() {
                         {i === 0 ? "Next Eclipse" : "Later Eclipse"}
                       </p>
                     </div>
-                    {eclipse.isLocal && (
+                    {eclipse.isLocal ? (
                       <div className="badge badge-warning badge-sm opacity-80">Visible Locally</div>
-                    )}
+                    ) : null}
                   </div>
                   <p className="text-base-content text-xl font-semibold capitalize flex items-center gap-2">
                     {eclipse.type}
@@ -108,7 +108,7 @@ export default function SunPage() {
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
     </div>
   );

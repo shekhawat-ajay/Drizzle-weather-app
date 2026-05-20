@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/utils/api/apiDataFetcher";
 import { apiRoutes } from "@/utils/api/apiRoutes";
@@ -10,16 +11,16 @@ export default function useCurrentWeather(latitude: number, longitude: number) {
     fetcher,
   );
 
-  let parsedData: CurrentWeatherType | undefined = undefined;
-
-  if (data) {
+  const parsedData = useMemo(() => {
+    if (!data) return undefined;
     try {
       const camelCaseData = toCamelCase(data);
-      parsedData = CurrentWeatherSchema.parse(camelCaseData);
+      return CurrentWeatherSchema.parse(camelCaseData);
     } catch (e) {
       console.error("CurrentWeather Schema Validation Failed:", e);
+      return undefined;
     }
-  }
+  }, [data]);
 
   return { data: parsedData, isLoading, error };
 }

@@ -83,7 +83,7 @@ export default function AstroCard({
             <p className="text-base-content/50 text-xs font-medium tracking-wider uppercase">
               {title}
             </p>
-            {info && (
+            {info ? (
               <div className="tooltip tooltip-top z-[100]" data-tip={info}>
                 <button
                   type="button"
@@ -93,7 +93,7 @@ export default function AstroCard({
                   <Info className="text-base-content/40 hover:text-base-content/80 h-3.5 w-3.5 transition-colors" />
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
           <p className="text-base-content mt-1 text-xl font-semibold">
             {value}

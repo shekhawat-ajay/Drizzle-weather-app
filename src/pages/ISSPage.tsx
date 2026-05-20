@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   Satellite, 
   Map as MapIcon, 
@@ -66,6 +66,7 @@ const DEFAULT_CENTER: [number, number] = [0, 0];
 const MAP_ZOOM = 3;
 
 /* ── MapRecenter: smoothly follows the ISS ── */
+// @ts-ignore
 function MapRecenter({ center }: { center: [number, number] }) {
   const map = useMap();
   map.setView(center, map.getZoom());
@@ -91,7 +92,7 @@ function LoadingOverlay() {
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-base-300/80 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-3">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-teal-500 border-t-transparent" />
-        <p className="text-xs font-medium text-teal-400 uppercase tracking-widest">Acquiring Signal...</p>
+        <p className="text-xs font-medium text-teal-400 uppercase tracking-widest">Acquiring Signal…</p>
       </div>
     </div>
   );
@@ -122,6 +123,27 @@ export default function ISSPage() {
   const [activeTile, setActiveTile] = useState<TileKey>("Street");
   const [showPicker, setShowPicker] = useState(false);
 
+  // Split trajectory into segments if it crosses the Date Line
+  const pathSegments = useMemo(() => {
+    const segments: [number, number][][] = [];
+    if (!data || points.length === 0) return segments;
+
+    let currentSegment: [number, number][] = [[data.latitude, data.longitude]];
+    for (let i = 0; i < points.length; i++) {
+      const prev = i === 0 ? data : points[i - 1];
+      const curr = points[i]!;
+
+      // If longitude jump is > 180, we crossed the date line
+      if (Math.abs(curr.longitude - prev!.longitude) > 180) {
+        segments.push(currentSegment);
+        currentSegment = [];
+      }
+      currentSegment.push([curr.latitude, curr.longitude]);
+    }
+    segments.push(currentSegment);
+    return segments;
+  }, [data, points]);
+
   if (error) return <ISSError />;
 
   const tile = TILE_LAYERS[activeTile];
@@ -129,26 +151,6 @@ export default function ISSPage() {
   const issPos: [number, number] = data
     ? [data.latitude, data.longitude]
     : DEFAULT_CENTER;
-
-  // Split trajectory into segments if it crosses the Date Line
-  const pathSegments: [number, number][][] = [];
-  if (data && points.length > 0) {
-    let currentSegment: [number, number][] = [[data.latitude, data.longitude]];
-    const allPoints = points;
-
-    for (let i = 0; i < allPoints.length; i++) {
-      const prev = i === 0 ? data : allPoints[i - 1];
-      const curr = allPoints[i]!;
-
-      // If longitude jump is > 180, we crossed the date line
-      if (Math.abs(curr.longitude - prev!.longitude) > 180) {
-        pathSegments.push(currentSegment);
-        currentSegment = [];
-      }
-      currentSegment.push([curr.latitude, curr.longitude]);
-    }
-    pathSegments.push(currentSegment);
-  }
 
   return (
     <div className="space-y-4">
@@ -175,7 +177,7 @@ export default function ISSPage() {
           />
           {pathSegments.map((seg, idx) => (
             <Polyline
-              key={idx}
+              key={seg[0] ? `${seg[0][0]}-${seg[0][1]}` : idx}
               positions={seg}
               pathOptions={{
                 color: "#0d9488", // Darker teal (teal-600)

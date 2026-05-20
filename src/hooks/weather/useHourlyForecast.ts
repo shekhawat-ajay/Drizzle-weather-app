@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/utils/api/apiDataFetcher";
 import { apiRoutes } from "@/utils/api/apiRoutes";
@@ -10,16 +11,16 @@ export default function useHourlyForecast(latitude: number, longitude: number) {
     fetcher,
   );
 
-  let parsedData: HourlyForecastType | undefined = undefined;
-
-  if (data) {
+  const parsedData = useMemo(() => {
+    if (!data) return undefined;
     try {
       const camelCaseData = toCamelCase(data);
-      parsedData = HourlyForecastSchema.parse(camelCaseData);
+      return HourlyForecastSchema.parse(camelCaseData);
     } catch (e) {
       console.error("HourlyWeather Schema Validation Failed:", e);
+      return undefined;
     }
-  }
+  }, [data]);
 
   return { data: parsedData, isLoading, error };
 }

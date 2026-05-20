@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { AstronomyData } from "@/types/astronomy";
 import type { CelestialStatus } from "@/types/celestial";
 import { fmtTime, fmtAzimuth, fmtDurationMs } from "@/utils/formatters";
@@ -11,32 +12,10 @@ import {
   Eye,
 } from "lucide-react";
 
-/* ── Helpers ── */
-
-/** Planet emoji lookup */
-const PLANET_EMOJI: Record<string, string> = {
-  Sun: "☀️",
-  Moon: "🌙",
-  Mercury: "☿",
-  Venus: "♀",
-  Mars: "♂",
-  Jupiter: "♃",
-  Saturn: "♄",
-  Uranus: "⛢",
-  Neptune: "♆",
-};
+import CelestialIcon from "@/components/astronomy/CelestialIcon";
 
 const MAG_TOOLTIP =
   "Visual magnitude measures brightness as seen from Earth. Lower = brighter. Negative values are very bright (e.g. Venus at −4). Above +6 needs a telescope.";
-
-const ELEV_TOOLTIP =
-  "Elevation angle: the height of the object in degrees relative to your horizon. 90° is directly overhead, 0° is on the horizon, and negative values are below the horizon.";
-
-const AZIMUTH_TOOLTIP =
-  "Compass direction of the object in degrees. 0° is North (0°), 90° is East (90°), 180° is South (180°), and 270° is West (270°).";
-
-const VISIBILITY_TOOLTIP =
-  "Observational conditions based on altitude, angular separation (elongation) from the Sun, and current skylight phases.";
 
 /** Merged data for a single row */
 interface MergedPlanet {
@@ -45,154 +24,130 @@ interface MergedPlanet {
   azimuth: number;
   isAboveHorizon: boolean;
   magnitude: number;
-  state: "ABOVE" | "BELOW";
+  state: "ABOVE" | "BELOW" | null;
   pastLabel: string;
-  pastType: "RISE" | "SET";
-  pastTimestamp: Date | null;
   futureLabel: string;
-  futureType: "RISE" | "SET";
-  futureTimestamp: Date | null;
   elongation: number | null;
   visibilityNote: string;
+  pastType: "RISE" | "SET" | null;
+  futureType: "RISE" | "SET" | null;
+  pastTimestamp: Date | null;
+  futureTimestamp: Date | null;
 }
 
 function mergePlanetData(
-  astro: AstronomyData,
-  celestial: CelestialStatus | null
+  data: AstronomyData,
+  celestial: CelestialStatus[],
 ): MergedPlanet[] {
-  if (!celestial) return [];
+  const nowMs = Date.now();
 
-  const { sun, moon, planets } = celestial;
-  const { sunRiseSet, moonRiseSet, planetsRiseSet } = astro;
+  // 1. Synthesize Sun
+  const { sun, sunPosition } = data;
+  const sunEvents = [
+    { type: "RISE" as const, ts: sun.sunrise },
+    { type: "SET" as const, ts: sun.sunset },
+    { type: "RISE" as const, ts: data.nextRiseSet.nextSunrise },
+    { type: "SET" as const, ts: data.nextRiseSet.prevSunset },
+  ].filter((e) => e.ts !== null) as { type: "RISE" | "SET"; ts: Date }[];
 
-  const merged: MergedPlanet[] = [];
+  const pastSunEvents = sunEvents.filter((e) => e.ts.getTime() <= nowMs).sort((a, b) => b.ts.getTime() - a.ts.getTime());
+  const futureSunEvents = sunEvents.filter((e) => e.ts.getTime() > nowMs).sort((a, b) => a.ts.getTime() - b.ts.getTime());
+  
+  const pastSun = pastSunEvents[0] || null;
+  const futureSun = futureSunEvents[0] || null;
 
-  // 1. Sun
-  const sunRise = sunRiseSet.sunrise;
-  const sunSet = sunRiseSet.sunset;
-  const sunIsAbove = sun.altitude > 0;
-  const sunState = sunIsAbove ? "ABOVE" : "BELOW";
-  const sunPast = sunIsAbove
-    ? { label: "Sunrise", type: "RISE" as const, time: sunRise }
-    : { label: "Sunset", type: "SET" as const, time: sunSet };
-  const sunFuture = sunIsAbove
-    ? { label: "Sunset", type: "SET" as const, time: sunSet }
-    : { label: "Sunrise", type: "RISE" as const, time: sunRise };
-
-  merged.push({
+  const sunRow: MergedPlanet = {
     name: "Sun",
-    altitude: sun.altitude,
-    azimuth: sun.azimuth,
-    isAboveHorizon: sunIsAbove,
-    magnitude: -26.74,
-    state: sunState,
-    pastLabel: sunPast.label,
-    pastType: sunPast.type,
-    pastTimestamp: sunPast.time,
-    futureLabel: sunFuture.label,
-    futureType: sunFuture.type,
-    futureTimestamp: sunFuture.time,
+    altitude: sunPosition.altitude,
+    azimuth: sunPosition.azimuth,
+    isAboveHorizon: sunPosition.isAboveHorizon,
+    magnitude: -26.74, 
+    state: sunPosition.isAboveHorizon ? "ABOVE" : "BELOW",
+    pastType: pastSun?.type || null,
+    pastTimestamp: pastSun?.ts || null,
+    pastLabel: pastSun ? `${fmtDurationMs(nowMs - pastSun.ts.getTime())} ago` : "--",
+    futureType: futureSun?.type || null,
+    futureTimestamp: futureSun?.ts || null,
+    futureLabel: futureSun ? `in ${fmtDurationMs(futureSun.ts.getTime() - nowMs)}` : "--",
     elongation: null,
-    visibilityNote: sunIsAbove
-      ? "Daylight: floods sky with bright light."
-      : "Below horizon: creates twilight/night conditions.",
-  });
+    visibilityNote: "Our closest star. NEVER look directly without a solar filter.",
+  };
 
-  // 2. Moon
-  const moonRise = moonRiseSet.moonrise;
-  const moonSet = moonRiseSet.moonset;
-  const moonIsAbove = moon.altitude > 0;
-  const moonState = moonIsAbove ? "ABOVE" : "BELOW";
-  const moonPast = moonIsAbove
-    ? { label: "Moonrise", type: "RISE" as const, time: moonRise }
-    : { label: "Moonset", type: "SET" as const, time: moonSet };
-  const moonFuture = moonIsAbove
-    ? { label: "Moonset", type: "SET" as const, time: moonSet }
-    : { label: "Moonrise", type: "RISE" as const, time: moonRise };
+  // 2. Synthesize Moon
+  const { moonPosition } = data;
+  let pastMoonLabel = "--";
+  let futureMoonLabel = "--";
+  const prevMoon = moonPosition.previousEvent;
+  const nextMoon = moonPosition.nextEvent;
 
-  const moonPhaseDesc = `${(moon.phase.fraction * 100).toFixed(0)}% ${moon.phase.name}`;
+  if (prevMoon) pastMoonLabel = `${fmtDurationMs(nowMs - prevMoon.getTime())} ago`;
+  if (nextMoon) futureMoonLabel = `in ${fmtDurationMs(nextMoon.getTime() - nowMs)}`;
 
-  merged.push({
+  const moonRow: MergedPlanet = {
     name: "Moon",
-    altitude: moon.altitude,
-    azimuth: moon.azimuth,
-    isAboveHorizon: moonIsAbove,
-    magnitude: moon.phase.fraction > 0 ? -12.7 * moon.phase.fraction : -3.0,
-    state: moonState,
-    pastLabel: moonPast.label,
-    pastType: moonPast.type,
-    pastTimestamp: moonPast.time,
-    futureLabel: moonFuture.label,
-    futureType: moonFuture.type,
-    futureTimestamp: moonFuture.time,
+    altitude: moonPosition.altitude,
+    azimuth: moonPosition.azimuth,
+    isAboveHorizon: moonPosition.isAboveHorizon,
+    magnitude: -12.7, 
+    state: moonPosition.isAboveHorizon ? "ABOVE" : "BELOW",
+    pastType: moonPosition.isAboveHorizon ? "RISE" : "SET",
+    pastTimestamp: prevMoon,
+    pastLabel: pastMoonLabel,
+    futureType: moonPosition.isAboveHorizon ? "SET" : "RISE",
+    futureTimestamp: nextMoon,
+    futureLabel: futureMoonLabel,
     elongation: null,
-    visibilityNote: moonIsAbove
-      ? `Visible (${moonPhaseDesc}). Light wash: moderate.`
-      : `Hidden (${moonPhaseDesc}). Sky background: dark.`,
-  });
+    visibilityNote: "Visible consistently except during New Moon phases.",
+  };
 
-  // 3. Planets
-  for (const name of Object.keys(planets) as Array<keyof typeof planets>) {
-    const p = planets[name];
-    const r = planetsRiseSet[name];
-    if (!r) continue;
+  // 3. Process Planets
+  const celestialMap = new Map<string, CelestialStatus>();
+  for (const c of celestial) celestialMap.set(c.body, c);
 
-    const isAbove = p.altitude > 0;
-    const state = isAbove ? "ABOVE" : "BELOW";
-    const past = isAbove
-      ? { label: "Rise", type: "RISE" as const, time: r.rise }
-      : { label: "Set", type: "SET" as const, time: r.set };
-    const future = isAbove
-      ? { label: "Set", type: "SET" as const, time: r.set }
-      : { label: "Rise", type: "RISE" as const, time: r.rise };
-
-    merged.push({
-      name,
+  const planetRows: MergedPlanet[] = data.planets.map((p) => {
+    const c = celestialMap.get(p.name);
+    return {
+      name: p.name,
       altitude: p.altitude,
       azimuth: p.azimuth,
-      isAboveHorizon: isAbove,
+      isAboveHorizon: p.isAboveHorizon,
       magnitude: p.magnitude,
-      state: state,
-      pastLabel: isAbove ? "Risen" : "Set",
-      pastType: past.type,
-      pastTimestamp: past.time,
-      futureLabel: isAbove ? "Will set" : "Will rise",
-      futureType: future.type,
-      futureTimestamp: future.time,
-      elongation: p.elongation,
-      visibilityNote: p.visibilityNote,
-    });
-  }
+      state: c?.state ?? null,
+      pastLabel: c?.pastLabel ?? "",
+      futureLabel: c?.futureLabel ?? "",
+      elongation: c?.elongation ?? null,
+      visibilityNote: c?.visibilityNote ?? "",
+      pastType: c?.pastEvent?.type ?? null,
+      futureType: c?.futureEvent?.type ?? null,
+      pastTimestamp: c?.pastEvent?.timestamp ?? null,
+      futureTimestamp: c?.futureEvent?.timestamp ?? null,
+    };
+  });
 
-  return merged;
+  return [sunRow, moonRow, ...planetRows];
 }
 
 /* ── Component ── */
 
 interface CelestialTableProps {
-  astro: AstronomyData;
-  celestial: CelestialStatus | null;
+  data: AstronomyData;
+  celestial: CelestialStatus[];
   timezone?: string | undefined;
 }
 
 export default function CelestialTable({
-  astro,
+  data,
   celestial,
   timezone,
 }: CelestialTableProps) {
-  const merged = mergePlanetData(astro, celestial);
-
-  if (!merged.length) {
-    return (
-      <div className="bg-base-200/50 py-8 text-center text-sm text-base-content/40">
-        Loading celestial positions...
-      </div>
-    );
-  }
+  const merged = useMemo(
+    () => mergePlanetData(data, celestial),
+    [data, celestial],
+  );
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* ── Desktop: Full table (hidden on mobile) ── */}
+    <>
+      {/* ── Desktop: Table (hidden on mobile) ── */}
       <div className="bg-base-200/40 hidden overflow-x-auto rounded-xl border border-teal-500/10 md:block">
         <table className="table-sm table w-full">
           <thead>
@@ -202,36 +157,16 @@ export default function CelestialTable({
               <th className="font-medium">Last Event</th>
               <th className="font-medium">Next Event</th>
               <th className="font-medium">
-                <div
-                  className="tooltip tooltip-bottom z-[100]"
-                  data-tip={ELEV_TOOLTIP}
-                >
-                  <button
-                    type="button"
-                    className="inline-flex cursor-help items-center gap-1"
-                    aria-label="What is elevation?"
-                  >
-                    <ArrowUp size={12} />
-                    Elev
-                    <Info className="text-base-content/30 h-3 w-3" />
-                  </button>
-                </div>
+                <span className="inline-flex items-center gap-1">
+                  <ArrowUp size={12} />
+                  Elev
+                </span>
               </th>
               <th className="font-medium">
-                <div
-                  className="tooltip tooltip-bottom z-[100]"
-                  data-tip={AZIMUTH_TOOLTIP}
-                >
-                  <button
-                    type="button"
-                    className="inline-flex cursor-help items-center gap-1"
-                    aria-label="What is azimuth?"
-                  >
-                    <Compass size={12} />
-                    Azimuth
-                    <Info className="text-base-content/30 h-3 w-3" />
-                  </button>
-                </div>
+                <span className="inline-flex items-center gap-1">
+                  <Compass size={12} />
+                  Azimuth
+                </span>
               </th>
               <th className="font-medium">
                 <div
@@ -250,20 +185,10 @@ export default function CelestialTable({
                 </div>
               </th>
               <th className="pr-5 font-medium">
-                <div
-                  className="tooltip tooltip-bottom z-[100] tooltip-left"
-                  data-tip={VISIBILITY_TOOLTIP}
-                >
-                  <button
-                    type="button"
-                    className="inline-flex cursor-help items-center gap-1"
-                    aria-label="What is visibility?"
-                  >
-                    <Eye size={12} />
-                    Visibility
-                    <Info className="text-base-content/30 h-3 w-3" />
-                  </button>
-                </div>
+                <span className="inline-flex items-center gap-1">
+                  <Eye size={12} />
+                  Visibility
+                </span>
               </th>
             </tr>
           </thead>
@@ -277,9 +202,7 @@ export default function CelestialTable({
                 {/* Body name */}
                 <td className="pl-5">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg leading-none">
-                      {PLANET_EMOJI[p.name] ?? "🪐"}
-                    </span>
+                    <CelestialIcon name={p.name} className="text-teal-400/80" size={16} />
                     <span className="text-base-content font-medium">
                       {p.name}
                     </span>
@@ -294,12 +217,12 @@ export default function CelestialTable({
                 {/* Past event */}
                 <td>
                   <div className="flex flex-col items-start gap-0.5">
-                    {p.pastTimestamp && (
+                    {p.pastTimestamp ? (
                       <span className="text-base-content/70 text-xs">
                         {p.pastType === "RISE" ? "↑" : "↓"}{" "}
                         {fmtTime(p.pastTimestamp, timezone)}
                       </span>
-                    )}
+                    ) : null}
                     <span className="text-base-content/40 text-[10px]">
                       {p.pastLabel}
                     </span>
@@ -309,12 +232,12 @@ export default function CelestialTable({
                 {/* Future event */}
                 <td>
                   <div className="flex flex-col items-start gap-0.5">
-                    {p.futureTimestamp && (
+                    {p.futureTimestamp ? (
                       <span className="text-base-content text-xs font-medium">
                         {p.futureType === "RISE" ? "↑" : "↓"}{" "}
                         {fmtTime(p.futureTimestamp, timezone)}
                       </span>
-                    )}
+                    ) : null}
                     <span className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-400">
                       <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-teal-400" />
                       {p.futureLabel}
@@ -395,9 +318,7 @@ export default function CelestialTable({
             {/* Header: name + state */}
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xl leading-none">
-                  {PLANET_EMOJI[p.name] ?? "🪐"}
-                </span>
+                <CelestialIcon name={p.name} className="text-teal-400/80" size={18} />
                 <span className="text-base-content text-base font-semibold">
                   {p.name}
                 </span>
@@ -411,22 +332,22 @@ export default function CelestialTable({
                 <span className="text-base-content/40 text-[10px]">
                   {p.pastLabel}
                 </span>
-                {p.pastTimestamp && (
+                {p.pastTimestamp ? (
                   <span className="text-base-content/30 text-[10px]">
                     ({fmtTime(p.pastTimestamp, timezone)})
                   </span>
-                )}
+                ) : null}
               </div>
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-400">
                   <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-teal-400" />
                   {p.futureLabel}
                 </span>
-                {p.futureTimestamp && (
+                {p.futureTimestamp ? (
                   <span className="text-base-content/30 text-[10px]">
                     ({fmtTime(p.futureTimestamp, timezone)})
                   </span>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -484,7 +405,7 @@ export default function CelestialTable({
               </div>
 
               {/* Elongation */}
-              {p.elongation !== null && (
+              {p.elongation !== null ? (
                 <div>
                   <p className="text-base-content/40 mb-0.5 text-[10px] font-medium tracking-wider uppercase">
                     Elongation
@@ -496,19 +417,19 @@ export default function CelestialTable({
                     </span>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Visibility note */}
-            {p.visibilityNote && (
+            {p.visibilityNote ? (
               <p className="text-base-content/40 mt-3 border-t border-teal-500/5 pt-2 text-[10px] leading-relaxed">
                 {p.visibilityNote}
               </p>
-            )}
+            ) : null}
           </div>
         ))}
       </div>
-    </div>
+    </>
   );
 }
 

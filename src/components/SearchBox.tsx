@@ -1,5 +1,5 @@
 import {
-  useContext,
+  use,
   useEffect,
   useRef,
   useState,
@@ -20,7 +20,7 @@ export default function SearchBox() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [results, setResults] = useState<ResultType[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const { setLocation } = useContext(LocationContext)!;
+  const { setLocation } = use(LocationContext)!;
   const inputRef = useRef<HTMLDivElement>(null);
   const debounceTimeoutRef = useRef<number | null>(null);
 
@@ -190,7 +190,7 @@ export default function SearchBox() {
           />
         </label>
       </form>
-      {showDropdown && results.length > 0 && (
+      {showDropdown && results.length > 0 ? (
         <div
           className={cn(
             "border-base-content/10 bg-base-300 absolute top-full z-50 mt-2 max-h-60 w-full max-w-lg overflow-hidden rounded-lg border",
@@ -219,27 +219,27 @@ export default function SearchBox() {
             ))}
           </ul>
         </div>
-      )}
-      {error && (
+      ) : null}
+      {error ? (
         <div className="absolute top-full z-50 mt-2 text-center">
           <p className="text-error text-sm">Something went wrong!</p>
         </div>
-      )}
+      ) : null}
       {showDropdown &&
-        !isLoading &&
-        !error &&
-        debouncedQuery.length >= 2 &&
-        data &&
-        results.length === 0 && (
-          <div className="border-base-content/10 bg-base-300 absolute top-full z-50 mt-2 w-full max-w-lg rounded-lg border">
-            <div className="flex items-center gap-3 px-4 py-4">
-              <MapPinOff className="text-base-content/40 size-4 shrink-0" />
-              <p className="text-base-content/50 text-sm">
-                No cities found for &ldquo;{debouncedQuery}&rdquo;
-              </p>
-            </div>
+      !isLoading &&
+      !error &&
+      debouncedQuery.length >= 2 &&
+      data &&
+      results.length === 0 ? (
+        <div className="border-base-content/10 bg-base-300 absolute top-full z-50 mt-2 w-full max-w-lg rounded-lg border">
+          <div className="flex items-center gap-3 p-4">
+            <MapPinOff className="text-base-content/40 size-4 shrink-0" />
+            <p className="text-base-content/50 text-sm">
+              No cities found for &ldquo;{debouncedQuery}&rdquo;
+            </p>
           </div>
-        )}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/utils/api/apiDataFetcher";
 import { apiRoutes } from "@/utils/api/apiRoutes";
@@ -29,8 +30,11 @@ export default function useISS() {
 
 export function useISSTrajectory() {
   // Generate 10 timestamps for the next 100 minutes (10 min apart)
-  const now = Math.floor(Date.now() / 1000);
-  const timestamps = Array.from({ length: 10 }, (_, i) => now + (i + 1) * 600);
+  // Round to the nearest minute (60s) to keep SWR cache key stable across re-renders
+  const roundedNow = Math.floor(Date.now() / 60000) * 60;
+  const timestamps = useMemo(() => {
+    return Array.from({ length: 10 }, (_, i) => roundedNow + (i + 1) * 600);
+  }, [roundedNow]);
   
   const { data, isLoading, error } = useSWR<ISSData[]>(
     apiRoutes.issPositions(timestamps),

@@ -1,4 +1,4 @@
-import { useContext, useMemo } from "react";
+import { use, useMemo } from "react";
 import {
   AreaChart,
   Area,
@@ -116,7 +116,7 @@ function CloudTooltip({
 // ── Main Component ─────────────────────────────────────────────
 
 export default function NightSky() {
-  const { location } = useContext(LocationContext) as unknown as {
+  const { location } = use(LocationContext) as unknown as {
     location: ResultType;
   };
   const { astronomyData } = useOutletContext<AstronomyOutletContext>();
@@ -263,7 +263,7 @@ export default function NightSky() {
               />
             </div>
             <p className="text-xs text-base-content/50 mt-0.5">
-              {currentResult?.label} — {currentResult?.description}
+              {currentResult?.label}: {currentResult?.description}
             </p>
           </div>
 
@@ -301,7 +301,7 @@ export default function NightSky() {
                   {fmtTimeFromISO(bestWindow.time)}
                 </p>
                 <p className="text-xs text-base-content/50">
-                  Best score: {bestWindow.score}/100 — {bestWindow.label}
+                  Best score: {bestWindow.score}/100 ({bestWindow.label})
                 </p>
               </>
             ) : (
@@ -311,7 +311,7 @@ export default function NightSky() {
         </div>
 
         {/* ── Contributing Factors ── */}
-        {currentResult && currentResult.factors.length > 0 && (
+        {currentResult && currentResult.factors.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {currentResult.factors.map((f) => (
               <span
@@ -323,7 +323,7 @@ export default function NightSky() {
               </span>
             ))}
           </div>
-        )}
+        ) : null}
 
         {/* ── 24h Cloud Cover Chart ── */}
         <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
