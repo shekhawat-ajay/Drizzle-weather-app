@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { use } from "react";
 import { Outlet } from "react-router";
 import { LocationContext } from "@/App";
 import { ResultType } from "@/schema/location";
@@ -21,7 +21,7 @@ export interface AstronomyOutletContext {
 }
 
 export default function AstronomyPage() {
-  const { location } = useContext(LocationContext) as unknown as {
+  const { location } = use(LocationContext) as unknown as {
     location: ResultType;
   };
 

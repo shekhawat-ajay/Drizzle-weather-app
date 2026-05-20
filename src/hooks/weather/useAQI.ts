@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/utils/api/apiDataFetcher";
 import { apiRoutes } from "@/utils/api/apiRoutes";
@@ -13,20 +14,21 @@ export default function useAQI(latitude: number, longitude: number) {
     fetcher,
   );
 
-  let naqiResult: NAQIResult | undefined = undefined;
-  let calcError: string | undefined = undefined;
-
-  if (data) {
+  const { naqiResult, calcError } = useMemo(() => {
+    if (!data) return { naqiResult: undefined, calcError: undefined };
     try {
       const camelCaseData = toCamelCase(data);
       const parsedData: AirQualityType = AirQualitySchema.parse(camelCaseData);
-      naqiResult = calculateNAQI(parsedData as unknown as AirQualityHourlyData);
+      const result = calculateNAQI(parsedData as unknown as AirQualityHourlyData);
+      return { naqiResult: result, calcError: undefined };
     } catch (e) {
       console.error("NAQI Calculation Failed:", e);
-      calcError =
-        e instanceof Error ? e.message : "Unknown error computing NAQI";
+      return {
+        naqiResult: undefined,
+        calcError: e instanceof Error ? e.message : "Unknown error computing NAQI",
+      };
     }
-  }
+  }, [data]);
 
   return {
     data: naqiResult,

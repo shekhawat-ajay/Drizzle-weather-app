@@ -11,7 +11,7 @@ export default function Footer() {
           Ajay Shekhawat
         </a>
       </p>
-      <p className="text-base-content/30 mt-2 text-xs">
+      <p className="text-base-content/30 mt-2 text-xs" suppressHydrationWarning>
         © {new Date().getFullYear()} Drizzle. All rights reserved.
       </p>
     </footer>

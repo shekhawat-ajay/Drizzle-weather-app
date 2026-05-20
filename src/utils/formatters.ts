@@ -133,6 +133,8 @@ export function parseAsUTC(isoStr: string): Date {
   return new Date(isoStr + "Z");
 }
 
+const formatterCache = new Map<string, Intl.DateTimeFormat>();
+
 /**
  * Get "now" in a target timezone, returned as a UTC-ms value that
  * lives in the same pretend-UTC space as parseAsUTC timestamps.
@@ -144,17 +146,23 @@ export function parseAsUTC(isoStr: string): Date {
  */
 export function getNowAsUTC(tz: string): number {
   const now = new Date();
-  // Build a naive ISO string for the target timezone
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(now);
+  
+  let formatter = formatterCache.get(tz);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    formatterCache.set(tz, formatter);
+  }
+
+  const parts = formatter.formatToParts(now);
 
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((p) => p.type === type)?.value ?? "00";

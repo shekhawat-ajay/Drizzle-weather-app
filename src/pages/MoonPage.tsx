@@ -130,11 +130,11 @@ export default function MoonPage() {
               </div>
               <p className="text-base-content text-xl font-semibold">{(distanceExtremes.nextPerigee.distanceKm / 1000).toFixed(0)}k <span className="text-sm font-normal text-base-content/50">km</span></p>
               <p className="text-base-content/40 text-xs">{fmtShortDate(distanceExtremes.nextPerigee.time)}</p>
-              {distanceExtremes.nextPerigee.isClosest && (
+              {distanceExtremes.nextPerigee.isClosest ? (
                 <div className="mt-1">
                   <div className="badge badge-error badge-sm">Year's Closest</div>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -159,7 +159,7 @@ export default function MoonPage() {
           </div>
 
           {astronomyData.upcomingEclipses.filter(e => e.kind === "lunar").slice(0, 2).map((eclipse, i) => (
-            <div key={i} className="card card-border border-red-500/10 bg-base-200/40 group hover:bg-base-200/60 transition-colors md:col-span-1 lg:col-span-1">
+            <div key={eclipse.peak.getTime()} className="card card-border border-red-500/10 bg-base-200/40 group hover:bg-base-200/60 transition-colors md:col-span-1 lg:col-span-1">
               <div className="card-body p-5 gap-1">
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
@@ -170,9 +170,9 @@ export default function MoonPage() {
                       {i === 0 ? "Next Eclipse" : "Later Eclipse"}
                     </p>
                   </div>
-                  {eclipse.isLocal && (
+                  {eclipse.isLocal ? (
                     <div className="badge badge-error badge-sm opacity-80 text-xs">Visible</div>
-                  )}
+                  ) : null}
                 </div>
                 <p className="text-base-content text-xl font-semibold capitalize flex items-center gap-2">
                   {eclipse.type}
@@ -187,7 +187,7 @@ export default function MoonPage() {
             </div>
           ))}
 
-          {supermoonInfo.nextSupermoon && (
+          {supermoonInfo.nextSupermoon ? (
             <div className="card card-border border-warning/10 bg-base-200/40 group hover:bg-base-200/60 transition-colors md:col-span-1 lg:col-span-1">
               <div className="card-body p-5 gap-1">
                  <div className="flex items-center gap-2 mb-1">
@@ -205,7 +205,7 @@ export default function MoonPage() {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

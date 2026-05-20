@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { AstronomyData } from "@/types/astronomy";
 import type { CelestialStatus } from "@/types/celestial";
 import { fmtTime, fmtAzimuth, fmtDurationMs } from "@/utils/formatters";
@@ -11,20 +12,7 @@ import {
   Eye,
 } from "lucide-react";
 
-/* ── Helpers ── */
-
-/** Planet emoji lookup */
-const PLANET_EMOJI: Record<string, string> = {
-  Sun: "☀️",
-  Moon: "🌙",
-  Mercury: "☿",
-  Venus: "♀",
-  Mars: "♂",
-  Jupiter: "♃",
-  Saturn: "♄",
-  Uranus: "⛢",
-  Neptune: "♆",
-};
+import CelestialIcon from "@/components/astronomy/CelestialIcon";
 
 const MAG_TOOLTIP =
   "Visual magnitude measures brightness as seen from Earth. Lower = brighter. Negative values are very bright (e.g. Venus at −4). Above +6 needs a telescope.";
@@ -152,7 +140,10 @@ export default function CelestialTable({
   celestial,
   timezone,
 }: CelestialTableProps) {
-  const merged = mergePlanetData(data, celestial);
+  const merged = useMemo(
+    () => mergePlanetData(data, celestial),
+    [data, celestial],
+  );
 
   return (
     <>
@@ -211,9 +202,7 @@ export default function CelestialTable({
                 {/* Body name */}
                 <td className="pl-5">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg leading-none">
-                      {PLANET_EMOJI[p.name] ?? "🪐"}
-                    </span>
+                    <CelestialIcon name={p.name} className="text-teal-400/80" size={16} />
                     <span className="text-base-content font-medium">
                       {p.name}
                     </span>
@@ -228,12 +217,12 @@ export default function CelestialTable({
                 {/* Past event */}
                 <td>
                   <div className="flex flex-col items-start gap-0.5">
-                    {p.pastTimestamp && (
+                    {p.pastTimestamp ? (
                       <span className="text-base-content/70 text-xs">
                         {p.pastType === "RISE" ? "↑" : "↓"}{" "}
                         {fmtTime(p.pastTimestamp, timezone)}
                       </span>
-                    )}
+                    ) : null}
                     <span className="text-base-content/40 text-[10px]">
                       {p.pastLabel}
                     </span>
@@ -243,12 +232,12 @@ export default function CelestialTable({
                 {/* Future event */}
                 <td>
                   <div className="flex flex-col items-start gap-0.5">
-                    {p.futureTimestamp && (
+                    {p.futureTimestamp ? (
                       <span className="text-base-content text-xs font-medium">
                         {p.futureType === "RISE" ? "↑" : "↓"}{" "}
                         {fmtTime(p.futureTimestamp, timezone)}
                       </span>
-                    )}
+                    ) : null}
                     <span className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-400">
                       <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-teal-400" />
                       {p.futureLabel}
@@ -329,9 +318,7 @@ export default function CelestialTable({
             {/* Header: name + state */}
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xl leading-none">
-                  {PLANET_EMOJI[p.name] ?? "🪐"}
-                </span>
+                <CelestialIcon name={p.name} className="text-teal-400/80" size={18} />
                 <span className="text-base-content text-base font-semibold">
                   {p.name}
                 </span>
@@ -345,22 +332,22 @@ export default function CelestialTable({
                 <span className="text-base-content/40 text-[10px]">
                   {p.pastLabel}
                 </span>
-                {p.pastTimestamp && (
+                {p.pastTimestamp ? (
                   <span className="text-base-content/30 text-[10px]">
                     ({fmtTime(p.pastTimestamp, timezone)})
                   </span>
-                )}
+                ) : null}
               </div>
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-400">
                   <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-teal-400" />
                   {p.futureLabel}
                 </span>
-                {p.futureTimestamp && (
+                {p.futureTimestamp ? (
                   <span className="text-base-content/30 text-[10px]">
                     ({fmtTime(p.futureTimestamp, timezone)})
                   </span>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -418,7 +405,7 @@ export default function CelestialTable({
               </div>
 
               {/* Elongation */}
-              {p.elongation !== null && (
+              {p.elongation !== null ? (
                 <div>
                   <p className="text-base-content/40 mb-0.5 text-[10px] font-medium tracking-wider uppercase">
                     Elongation
@@ -430,15 +417,15 @@ export default function CelestialTable({
                     </span>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Visibility note */}
-            {p.visibilityNote && (
+            {p.visibilityNote ? (
               <p className="text-base-content/40 mt-3 border-t border-teal-500/5 pt-2 text-[10px] leading-relaxed">
                 {p.visibilityNote}
               </p>
-            )}
+            ) : null}
           </div>
         ))}
       </div>

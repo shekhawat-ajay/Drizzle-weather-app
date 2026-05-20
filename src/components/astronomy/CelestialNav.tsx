@@ -1,17 +1,18 @@
 import { NavLink } from "react-router";
+import CelestialIcon from "@/components/astronomy/CelestialIcon";
 
 const TABS = [
-  { name: "Overview", path: "/astronomy/overview", icon: "🌌" },
-  { name: "Sun", path: "/astronomy/sun", icon: "☀️" },
-  { name: "Moon", path: "/astronomy/moon", icon: "🌙" },
-  { name: "Mercury", path: "/astronomy/mercury", icon: "☿" },
-  { name: "Venus", path: "/astronomy/venus", icon: "♀" },
-  { name: "Mars", path: "/astronomy/mars", icon: "♂" },
-  { name: "Jupiter", path: "/astronomy/jupiter", icon: "♃" },
-  { name: "Saturn", path: "/astronomy/saturn", icon: "♄" },
-  { name: "Uranus", path: "/astronomy/uranus", icon: "⛢" },
-  { name: "Neptune", path: "/astronomy/neptune", icon: "♆" },
-  { name: "ISS", path: "/astronomy/iss", icon: "🛰️" },
+  { name: "Overview", path: "/astronomy/overview" },
+  { name: "Sun", path: "/astronomy/sun" },
+  { name: "Moon", path: "/astronomy/moon" },
+  { name: "Mercury", path: "/astronomy/mercury" },
+  { name: "Venus", path: "/astronomy/venus" },
+  { name: "Mars", path: "/astronomy/mars" },
+  { name: "Jupiter", path: "/astronomy/jupiter" },
+  { name: "Saturn", path: "/astronomy/saturn" },
+  { name: "Uranus", path: "/astronomy/uranus" },
+  { name: "Neptune", path: "/astronomy/neptune" },
+  { name: "ISS", path: "/astronomy/iss" },
 ];
 
 export default function CelestialNav() {
@@ -30,7 +31,7 @@ export default function CelestialNav() {
               }`
             }
           >
-            <span className="text-base">{tab.icon}</span>
+            <CelestialIcon name={tab.name} size={15} />
             {tab.name}
           </NavLink>
         ))}

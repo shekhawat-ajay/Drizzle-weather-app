@@ -1,19 +1,28 @@
 import { useParams, Navigate, useOutletContext } from "react-router";
-import { ArrowUp, ArrowDown, Star, Sun, Globe, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { ArrowUp, ArrowDown, Star, Sun, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import SectionHeader from "@/components/astronomy/SectionHeader";
 import AstroCard from "@/components/astronomy/AstroCard";
 import CountdownBadge from "@/components/astronomy/CountdownBadge";
+import CelestialIcon from "@/components/astronomy/CelestialIcon";
 import { fmtTime, fmtAzimuth } from "@/utils/formatters";
 import type { AstronomyOutletContext } from "@/pages/AstronomyPage";
 
-const PLANET_EMOJI: Record<string, string> = {
-  Mercury: "☿",
-  Venus: "♀",
-  Mars: "♂",
-  Jupiter: "♃",
-  Saturn: "♄",
-  Uranus: "⛢",
-  Neptune: "♆",
+const VALID_PLANETS = new Set([
+  "Mercury",
+  "Venus",
+  "Mars",
+  "Jupiter",
+  "Saturn",
+  "Uranus",
+  "Neptune",
+]);
+
+const PlanetIcon = (props: { className?: string; size?: number }) => {
+  const { planet } = useParams<{ planet: string }>();
+  const planetName = planet
+    ? planet.charAt(0).toUpperCase() + planet.slice(1).toLowerCase()
+    : "";
+  return <CelestialIcon name={planetName} {...props} />;
 };
 
 export default function PlanetPage() {
@@ -26,7 +35,7 @@ export default function PlanetPage() {
     : "";
 
   // Validate it's a known planet (excluding Earth/Moon)
-  if (!PLANET_EMOJI[planetName as keyof typeof PLANET_EMOJI]) {
+  if (!VALID_PLANETS.has(planetName)) {
     return <Navigate to="/astronomy/sun" replace />;
   }
 
@@ -46,8 +55,8 @@ export default function PlanetPage() {
   return (
     <div className="space-y-4">
       <SectionHeader
-        icon={Globe}
-        label={`${PLANET_EMOJI[planetName]} ${planetName} Overview`}
+        icon={PlanetIcon}
+        label={`${planetName} Overview`}
         color="text-teal-400"
       />
 

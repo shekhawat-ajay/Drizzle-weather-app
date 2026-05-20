@@ -85,9 +85,9 @@ export default function OverviewPage() {
             {upcomingEclipses
               .filter((e) => e.isLocal)
               .slice(0, 2)
-              .map((eclipse, i) => (
+              .map((eclipse) => (
                 <AstroCard
-                  key={i}
+                  key={`${eclipse.type}-${eclipse.kind}-${eclipse.peak.getTime()}`}
                   icon={Eclipse}
                   title={`${eclipse.type} ${eclipse.kind} Eclipse`}
                   value={eclipse.peak.toLocaleDateString("en-US", {
@@ -103,11 +103,11 @@ export default function OverviewPage() {
                   accent="rose"
                 />
               ))}
-            {upcomingEclipses.filter((e) => e.isLocal).length === 0 && (
+            {upcomingEclipses.filter((e) => e.isLocal).length === 0 ? (
               <p className="text-base-content/50 text-sm">
                 No visible eclipses expected soon.
               </p>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

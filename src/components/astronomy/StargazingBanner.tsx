@@ -35,22 +35,22 @@ export default function StargazingBanner({ stargazing, isDaytime }: StargazingBa
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-xl font-bold text-base-content">{stargazing.label}</h3>
-            {!isDaytime && (
+            <h3 className="text-xl font-semibold text-base-content">{stargazing.label}</h3>
+            {!isDaytime ? (
               <span className={`text-sm font-semibold px-2 py-0.5 rounded-full ${bgMainColor} ${mainColor}`}>
                 {stargazing.score}/100
               </span>
-            )}
+            ) : null}
           </div>
           <p className="text-base-content/70 text-sm mt-0.5">{stargazing.description}</p>
         </div>
       </div>
 
-      {!isDaytime && stargazing.factors.length > 0 && (
+      {!isDaytime && stargazing.factors.length > 0 ? (
         <div className="flex flex-wrap gap-2 md:max-w-[40%] justify-start md:justify-end">
-          {stargazing.factors.slice(0, 3).map((factor, i) => (
+          {stargazing.factors.slice(0, 3).map((factor) => (
             <div
-              key={i}
+              key={factor.param}
               className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium ${impactColor(factor.impact)}`}
             >
               {impactIcon(factor.impact)}
@@ -58,7 +58,7 @@ export default function StargazingBanner({ stargazing, isDaytime }: StargazingBa
             </div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

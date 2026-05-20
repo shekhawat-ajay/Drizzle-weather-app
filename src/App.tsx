@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, use, useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router";
 import { ThemeProvider, useAppTheme } from "@/context/ThemeContext";
 import { UnitsProvider, useUnits } from "@/context/UnitsContext";
@@ -79,7 +79,7 @@ function formatClock(tz: string): string {
 
 function SearchRow() {
   const { theme } = useAppTheme();
-  const { location } = useContext(LocationContext)!;
+  const { location } = use(LocationContext)!;
   const isWeather = theme === "weather";
 
   return (

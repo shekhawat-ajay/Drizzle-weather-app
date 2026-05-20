@@ -51,7 +51,7 @@ export default function AstroHero() {
           <Telescope className="h-10 w-10 text-violet-300" />
         </div>
         <h2
-          className="mt-5 bg-gradient-to-r from-violet-300 via-purple-200 to-fuchsia-300 bg-clip-text text-3xl font-bold tracking-tight text-transparent"
+          className="mt-5 text-3xl font-semibold tracking-tight text-violet-100"
           style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           Astronomy

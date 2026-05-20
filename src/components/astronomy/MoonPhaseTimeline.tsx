@@ -16,8 +16,8 @@ export default function MoonPhaseTimeline({
           Upcoming Moon Phases
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {phases.map((p, i) => (
-            <div key={i} className="card bg-base-300/40 shadow-sm border border-violet-500/5">
+          {phases.map((p) => (
+            <div key={`${p.phaseName}-${p.time}`} className="card bg-base-300/40 shadow-sm border border-violet-500/5">
               <figure className="pt-5">
                 <img
                   src={p.icon}
@@ -35,8 +35,8 @@ export default function MoonPhaseTimeline({
                 </p>
                 {p.isSupermoon || p.lunarEclipse ? (
                   <div className="flex flex-wrap gap-2 justify-center mt-1">
-                     {p.isSupermoon && <div className="badge badge-warning badge-xs">Supermoon</div>}
-                     {p.lunarEclipse && <div className="badge badge-error badge-xs capitalize">{p.lunarEclipse} Eclipse</div>}
+                     {p.isSupermoon ? <div className="badge badge-warning badge-xs">Supermoon</div> : null}
+                     {p.lunarEclipse ? <div className="badge badge-error badge-xs capitalize">{p.lunarEclipse} Eclipse</div> : null}
                   </div>
                 ) : null}
                 <div className="card-actions mt-2">

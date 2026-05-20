@@ -1,4 +1,4 @@
-import { useContext, useMemo } from "react";
+import { use, useMemo } from "react";
 import { LocationContext } from "@/App";
 import { ResultType } from "@/schema/location";
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
@@ -57,10 +57,11 @@ function SunLabel({
 // ── Component ───────────────────────────────────────────────────
 
 export default function HourlyForecast() {
-  const { location } = useContext(LocationContext) as unknown as {
+  const { location } = use(LocationContext) as unknown as {
     location: ResultType;
   };
   const { units } = useUnits();
+  const tz = location.timezone ?? "UTC";
   const { data, isLoading, error } = useHourlyForecast(
     location.latitude,
     location.longitude,
@@ -87,7 +88,7 @@ export default function HourlyForecast() {
 
   const { chartData, chartStartMs, chartEndMs } = useMemo(() => {
     if (!minutely15) return { chartData: [], chartStartMs: 0, chartEndMs: 0 };
-    const nowMs = getNowAsUTC(location.timezone ?? "UTC");
+    const nowMs = getNowAsUTC(tz);
     const startMs = nowMs - (nowMs % (15 * 60 * 1000));
     const endMs = nowMs + 24 * 60 * 60 * 1000;
 
@@ -131,7 +132,7 @@ export default function HourlyForecast() {
     }
 
     return { chartData: points, chartStartMs: startMs, chartEndMs: endMs };
-  }, [minutely15, location.timezone]);
+  }, [minutely15, tz]);
 
   // ── Sunrise/sunset events within range ──────────────────────
 
@@ -157,7 +158,7 @@ export default function HourlyForecast() {
 
   const cards: WeatherCard[] = useMemo(() => {
     if (!minutely15) return [];
-    const nowMs = getNowAsUTC(location.timezone ?? "UTC");
+    const nowMs = getNowAsUTC(tz);
     const cardEndMs = nowMs + 24 * 60 * 60 * 1000;
     const result: WeatherCard[] = [];
     for (let i = 0; i < minutely15.time.length; i++) {
@@ -176,7 +177,7 @@ export default function HourlyForecast() {
       });
     }
     return result;
-  }, [minutely15, location.timezone]);
+  }, [minutely15, tz]);
 
   // ── Display chart data with converted temp ─────────────────
 
