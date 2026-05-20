@@ -1,6 +1,6 @@
 import useDailyForecast from "@/hooks/weather/useDailyForecast";
 import { useContext } from "react";
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import { weatherImageMap } from "@/utils/maps/weatherImageMap";
 import { ResultType } from "@/schema/location";
 import { useUnits } from "@/context/UnitsContext";

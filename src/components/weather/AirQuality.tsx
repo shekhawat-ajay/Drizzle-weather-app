@@ -1,4 +1,4 @@
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import useAQI from "@/hooks/weather/useAQI";
 import { useContext } from "react";
 import {

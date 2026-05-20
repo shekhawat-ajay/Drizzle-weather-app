@@ -9,7 +9,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Star, Cloud, Clock } from "lucide-react";
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import { ResultType } from "@/schema/location";
 import { useOutletContext } from "react-router";
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";

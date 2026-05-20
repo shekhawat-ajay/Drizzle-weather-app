@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import useCurrentWeather from "@/hooks/weather/useCurrentWeather";
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
 import { weatherImageMap } from "@/utils/maps/weatherImageMap";
