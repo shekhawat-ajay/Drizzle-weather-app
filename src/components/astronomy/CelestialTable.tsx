@@ -17,6 +17,15 @@ import CelestialIcon from "@/components/astronomy/CelestialIcon";
 const MAG_TOOLTIP =
   "Visual magnitude measures brightness as seen from Earth. Lower = brighter. Negative values are very bright (e.g. Venus at −4). Above +6 needs a telescope.";
 
+const ELEV_TOOLTIP =
+  "Elevation angle: the height of the object in degrees relative to your horizon. 90° is directly overhead, 0° is on the horizon, and negative values are below the horizon.";
+
+const AZIMUTH_TOOLTIP =
+  "Compass direction of the object in degrees. 0° is North (0°), 90° is East (90°), 180° is South (180°), and 270° is West (270°).";
+
+const VISIBILITY_TOOLTIP =
+  "Observational conditions based on angular separation (elongation) from the Sun, altitude, and twilight phases.";
+
 /** Merged data for a single row */
 interface MergedPlanet {
   name: string;
@@ -148,25 +157,45 @@ export default function CelestialTable({
   return (
     <>
       {/* ── Desktop: Table (hidden on mobile) ── */}
-      <div className="bg-base-200/40 hidden overflow-x-auto rounded-xl border border-teal-500/10 md:block">
+      <div className="bg-base-300 hidden overflow-x-auto rounded-xl border border-primary/10 md:block">
         <table className="table-sm table w-full">
           <thead>
-            <tr className="text-base-content/50 border-b border-teal-500/10 text-xs tracking-wider uppercase">
+            <tr className="text-base-content/50 border-b border-primary/10 text-xs tracking-wider uppercase">
               <th className="pl-5 font-medium">Body</th>
               <th className="font-medium">Status</th>
               <th className="font-medium">Last Event</th>
               <th className="font-medium">Next Event</th>
               <th className="font-medium">
-                <span className="inline-flex items-center gap-1">
-                  <ArrowUp size={12} />
-                  Elev
-                </span>
+                <div
+                  className="tooltip tooltip-bottom z-[100]"
+                  data-tip={ELEV_TOOLTIP}
+                >
+                  <button
+                    type="button"
+                    className="inline-flex cursor-help items-center gap-1"
+                    aria-label="What is elevation?"
+                  >
+                    <ArrowUp size={12} />
+                    Elev
+                    <Info className="text-base-content/30 h-3 w-3" />
+                  </button>
+                </div>
               </th>
               <th className="font-medium">
-                <span className="inline-flex items-center gap-1">
-                  <Compass size={12} />
-                  Azimuth
-                </span>
+                <div
+                  className="tooltip tooltip-bottom z-[100]"
+                  data-tip={AZIMUTH_TOOLTIP}
+                >
+                  <button
+                    type="button"
+                    className="inline-flex cursor-help items-center gap-1"
+                    aria-label="What is azimuth?"
+                  >
+                    <Compass size={12} />
+                    Azimuth
+                    <Info className="text-base-content/30 h-3 w-3" />
+                  </button>
+                </div>
               </th>
               <th className="font-medium">
                 <div
@@ -185,10 +214,20 @@ export default function CelestialTable({
                 </div>
               </th>
               <th className="pr-5 font-medium">
-                <span className="inline-flex items-center gap-1">
-                  <Eye size={12} />
-                  Visibility
-                </span>
+                <div
+                  className="tooltip tooltip-bottom z-[100] tooltip-left"
+                  data-tip={VISIBILITY_TOOLTIP}
+                >
+                  <button
+                    type="button"
+                    className="inline-flex cursor-help items-center gap-1"
+                    aria-label="What is visibility?"
+                  >
+                    <Eye size={12} />
+                    Visibility
+                    <Info className="text-base-content/30 h-3 w-3" />
+                  </button>
+                </div>
               </th>
             </tr>
           </thead>
@@ -197,12 +236,12 @@ export default function CelestialTable({
             {merged.map((p) => (
               <tr
                 key={p.name}
-                className="hover:bg-base-200/60 border-b border-teal-500/5 transition-colors"
+                className="hover:bg-base-200/60 border-b border-primary/5 transition-colors"
               >
                 {/* Body name */}
                 <td className="pl-5">
                   <div className="flex items-center gap-2">
-                    <CelestialIcon name={p.name} className="text-teal-400/80" size={16} />
+                    <CelestialIcon name={p.name} className="text-primary/80" size={16} />
                     <span className="text-base-content font-medium">
                       {p.name}
                     </span>
@@ -238,8 +277,8 @@ export default function CelestialTable({
                         {fmtTime(p.futureTimestamp, timezone)}
                       </span>
                     ) : null}
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-400">
-                      <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-teal-400" />
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-primary">
+                      <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-primary" />
                       {p.futureLabel}
                     </span>
                   </div>
@@ -249,14 +288,14 @@ export default function CelestialTable({
                 <td>
                   <div className="flex items-center gap-1">
                     {p.isAboveHorizon ? (
-                       <ArrowUp size={14} className="text-emerald-400" />
+                       <ArrowUp size={14} className="text-primary" />
                     ) : (
-                       <ArrowDown size={14} className="text-rose-400" />
+                       <ArrowDown size={14} className="text-base-content/40" />
                     )}
                     <span
                       className={`text-sm font-medium ${
                         p.isAboveHorizon
-                          ? "text-emerald-400"
+                          ? "text-primary"
                           : "text-base-content/50"
                       }`}
                     >
@@ -289,7 +328,7 @@ export default function CelestialTable({
                   {p.elongation !== null ? (
                     <div className="flex flex-col items-start gap-0.5">
                       <span className="text-base-content/60 inline-flex items-center gap-1 text-xs">
-                        <SunIcon size={10} className="text-amber-400" />
+                        <SunIcon size={10} className="text-accent" />
                         {p.elongation.toFixed(0)}° from Sun
                       </span>
                       <span className="text-base-content/40 max-w-[180px] text-[10px] leading-tight">
@@ -313,12 +352,12 @@ export default function CelestialTable({
         {merged.map((p) => (
           <div
             key={p.name}
-            className="bg-base-200/40 rounded-xl border border-teal-500/10 p-4"
+            className="bg-base-300 rounded-xl border border-primary/10 p-4"
           >
             {/* Header: name + state */}
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CelestialIcon name={p.name} className="text-teal-400/80" size={18} />
+                <CelestialIcon name={p.name} className="text-primary/80" size={18} />
                 <span className="text-base-content text-base font-semibold">
                   {p.name}
                 </span>
@@ -327,7 +366,7 @@ export default function CelestialTable({
             </div>
 
             {/* Past + Future event labels */}
-            <div className="bg-base-300/30 mb-3 space-y-1 rounded-lg border border-teal-500/5 px-3 py-2">
+            <div className="bg-base-300/30 mb-3 space-y-1 rounded-lg border border-primary/5 px-3 py-2">
               <div className="flex items-center gap-2">
                 <span className="text-base-content/40 text-[10px]">
                   {p.pastLabel}
@@ -339,8 +378,8 @@ export default function CelestialTable({
                 ) : null}
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-400">
-                  <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-teal-400" />
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-primary">
+                  <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-primary" />
                   {p.futureLabel}
                 </span>
                 {p.futureTimestamp ? (
@@ -360,14 +399,14 @@ export default function CelestialTable({
                 </p>
                 <div className="flex items-center gap-1.5">
                   {p.isAboveHorizon ? (
-                    <ArrowUp size={14} className="text-emerald-400" />
+                    <ArrowUp size={14} className="text-primary" />
                   ) : (
-                    <ArrowDown size={14} className="text-rose-400" />
+                    <ArrowDown size={14} className="text-base-content/40" />
                   )}
                   <span
                     className={`text-sm font-medium ${
                       p.isAboveHorizon
-                        ? "text-emerald-400"
+                        ? "text-primary"
                         : "text-base-content/50"
                     }`}
                   >
@@ -397,7 +436,7 @@ export default function CelestialTable({
                   Magnitude
                 </p>
                 <div className="flex items-center gap-1.5">
-                  <Star size={14} className="text-amber-400" />
+                  <Star size={14} className="text-accent" />
                   <span className="text-base-content text-sm font-medium">
                     {p.magnitude.toFixed(1)}
                   </span>
@@ -411,7 +450,7 @@ export default function CelestialTable({
                     Elongation
                   </p>
                   <div className="flex items-center gap-1.5">
-                    <SunIcon size={14} className="text-amber-400" />
+                    <SunIcon size={14} className="text-accent" />
                     <span className="text-base-content text-sm font-medium">
                       {p.elongation.toFixed(0)}°
                     </span>
@@ -422,7 +461,7 @@ export default function CelestialTable({
 
             {/* Visibility note */}
             {p.visibilityNote ? (
-              <p className="text-base-content/40 mt-3 border-t border-teal-500/5 pt-2 text-[10px] leading-relaxed">
+              <p className="text-base-content/40 mt-3 border-t border-primary/5 pt-2 text-[10px] leading-relaxed">
                 {p.visibilityNote}
               </p>
             ) : null}
@@ -438,8 +477,8 @@ export default function CelestialTable({
 function StateBadge({ state }: { state: "ABOVE" | "BELOW" | null }) {
   if (state === "ABOVE") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-400">
-        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+      <span className="inline-flex items-center gap-1 rounded-full bg-primary/12 px-2.5 py-1 text-[10px] font-medium text-primary">
+        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
         Above
       </span>
     );
@@ -452,7 +491,7 @@ function StateBadge({ state }: { state: "ABOVE" | "BELOW" | null }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-amber-400">
+    <span className="inline-flex items-center gap-1 rounded-full bg-accent/12 px-2.5 py-1 text-[10px] font-medium text-accent">
       Unknown
     </span>
   );

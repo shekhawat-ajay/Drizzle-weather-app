@@ -1,5 +1,5 @@
 import { use, useMemo } from "react";
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import { ResultType } from "@/schema/location";
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
 import useDailyForecast from "@/hooks/weather/useDailyForecast";
@@ -7,6 +7,7 @@ import { weatherImageMap } from "@/utils/maps/weatherImageMap";
 import { useUnits } from "@/context/UnitsContext";
 import { convertTemp, tempUnit } from "@/utils/unitConversions";
 import { fmtTimeFromISO, getNowAsUTC, parseAsUTC } from "@/utils/formatters";
+import ErrorRetry from "@/components/ErrorRetry";
 import {
   AreaChart,
   Area,
@@ -36,18 +37,18 @@ function SunLabel({
 
   return (
     <g>
-      <image href={iconHref} x={x - 10} y={4} width={20} height={20} />
+      <image href={iconHref} x={x - 10} y={2} width={16} height={16} />
       <text
         x={x}
-        y={30}
+        y={26}
         textAnchor="middle"
-        fontSize={10}
+        fontSize={9}
         fontFamily="monospace"
         fill="#fbbf24"
       >
         {timeLabel}
       </text>
-      <text x={x} y={42} textAnchor="middle" fontSize={9} fill="#9ca3af">
+      <text x={x} y={36} textAnchor="middle" fontSize={8} fill="#9ca3af">
         {label}
       </text>
     </g>
@@ -62,7 +63,7 @@ export default function HourlyForecast() {
   };
   const { units } = useUnits();
   const tz = location.timezone ?? "UTC";
-  const { data, isLoading, error } = useHourlyForecast(
+  const { data, isLoading, error, mutate } = useHourlyForecast(
     location.latitude,
     location.longitude,
   );
@@ -154,29 +155,60 @@ export default function HourlyForecast() {
     return events;
   }, [daily, chartStartMs, chartEndMs]);
 
-  // ── Weather cards (next :30 from now, for 24h) ──────────────
+  // ── Weather cards — one per hour for next 24h (robust, not fragiley :30) ──────
 
   const cards: WeatherCard[] = useMemo(() => {
     if (!minutely15) return [];
     const nowMs = getNowAsUTC(tz);
     const cardEndMs = nowMs + 24 * 60 * 60 * 1000;
-    const result: WeatherCard[] = [];
+    // Find first index >= nowMs
+    let startIdx = -1;
     for (let i = 0; i < minutely15.time.length; i++) {
-      const t = minutely15.time[i]!;
-      const d = parseAsUTC(t);
-      const ms = d.getTime();
-      if (ms < nowMs || ms > cardEndMs) continue;
-      if (d.getUTCMinutes() !== 30) continue;
-
-      result.push({
-        time: t,
-        temp: minutely15.temperature2M[i]!,
-        weatherCode: minutely15.weatherCode[i]!,
-        isDay: minutely15.isDay[i]!,
-        precipitationProbability: minutely15.precipitationProbability[i]!,
-      });
+      if (parseAsUTC(minutely15.time[i]!).getTime() >= nowMs) {
+        startIdx = i;
+        break;
+      }
     }
-    return result;
+    if (startIdx === -1) return [];
+    // Align to hour boundary: snap to next :00 within that hour if needed
+    // Then step by 4 (15min *4 = 60min) for hourly cards
+    const result: WeatherCard[] = [];
+    // Try to prefer :30 within each hour if available, otherwise nearest to hour
+    const seenHours = new Set<string>();
+    for (let i = startIdx; i < minutely15.time.length; i++) {
+      const t = minutely15.time[i]!;
+      const ms = parseAsUTC(t).getTime();
+      if (ms > cardEndMs) break;
+      const hourKey = t.slice(0, 13); // YYYY-MM-DDTHH
+      if (seenHours.has(hourKey)) continue;
+      // Look ahead within this hour for :30 preference
+      let bestIdx = i;
+      for (let j = i; j < Math.min(i + 4, minutely15.time.length); j++) {
+        const tj = minutely15.time[j]!;
+        if (!tj.startsWith(hourKey)) break;
+        if (parseAsUTC(tj).getUTCMinutes() === 30) {
+          bestIdx = j;
+          break;
+        }
+      }
+      const bt = minutely15.time[bestIdx]!;
+      const bms = parseAsUTC(bt).getTime();
+      if (bms < nowMs || bms > cardEndMs) {
+        seenHours.add(hourKey);
+        continue;
+      }
+      result.push({
+        time: bt,
+        temp: minutely15.temperature2M[bestIdx]!,
+        weatherCode: minutely15.weatherCode[bestIdx]!,
+        isDay: minutely15.isDay[bestIdx]!,
+        precipitationProbability: minutely15.precipitationProbability[bestIdx]!,
+      });
+      seenHours.add(hourKey);
+      // Skip remaining slots of this hour
+      while (i + 1 < minutely15.time.length && minutely15.time[i + 1]!.startsWith(hourKey)) i++;
+    }
+    return result.slice(0, 24);
   }, [minutely15, tz]);
 
   // ── Display chart data with converted temp ─────────────────
@@ -206,9 +238,7 @@ export default function HourlyForecast() {
   return (
     <div className="border-base-content/5 bg-base-200 relative rounded-xl border p-5">
       {error && (
-        <div className="flex h-full items-center justify-center py-8">
-          <p className="text-error text-sm">Something went wrong!</p>
-        </div>
+        <ErrorRetry message={(error as Error).message || "Failed to load hourly forecast."} onRetry={() => mutate?.()} />
       )}
 
       {isLoading && (
@@ -228,14 +258,14 @@ export default function HourlyForecast() {
 
           {/* ── Temperature chart with sunrise/sunset ───── */}
           {displayChartData.length > 0 && (
-            <div className="mb-4 h-[120px] w-full">
+            <div className="mb-4 h-[140px] w-full overflow-visible" role="img" aria-label={`Temperature chart for next 24 hours, low ${tempMin} to high ${tempMax} ${tempUnit(units)}`}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={displayChartData}
                   margin={{
-                    top: 48,
-                    right: 10,
-                    left: 10,
+                    top: 28,
+                    right: 12,
+                    left: 12,
                     bottom: 0,
                   }}
                 >

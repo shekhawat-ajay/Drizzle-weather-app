@@ -16,29 +16,32 @@ export default function OverviewPage() {
   const isDaytime = sunPosition.isAboveHorizon;
 
   return (
-    <div className="space-y-6">
-      {/* ── Top Status Banner ── */}
-      <StargazingBanner stargazing={stargazing} isDaytime={isDaytime} />
-
-      {/* ── All Bodies Table ── */}
-      <div>
-        <SectionHeader icon={Globe} label="Celestial Overview" color="text-teal-400" />
-        <CelestialTable data={astronomyData} celestial={celestialData} timezone={tz} />
+    <div className="grid grid-cols-12 gap-4">
+      {/* Stargazing banner — full width, like weather hero */}
+      <div className="col-span-12">
+        <StargazingBanner stargazing={stargazing} isDaytime={isDaytime} />
       </div>
 
-      {/* ── Night Sky Section ── */}
-      <div className="mt-4">
+      {/* Celestial table — full width card */}
+      <div className="col-span-12">
+        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+          <SectionHeader icon={Globe} label="Celestial Overview" color="text-primary" />
+          <CelestialTable data={astronomyData} celestial={celestialData} timezone={tz} />
+        </div>
+      </div>
+
+      {/* Night Sky — full width */}
+      <div className="col-span-12">
         <NightSky />
       </div>
 
-
-      {/* ── Upcoming Event ── */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
-        <div className="flex flex-col">
+      {/* Upcoming — two equal cards, weather-style grid */}
+      <div className="col-span-12 md:col-span-6">
+        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5 h-full">
           <SectionHeader
             icon={CalendarDays}
             label="Upcoming"
-            color="text-cyan-400"
+            color="text-primary"
           />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <AstroCard
@@ -53,11 +56,11 @@ export default function OverviewPage() {
               badge={
                 <CountdownBadge
                   target={nextSeason.date}
-                  className="bg-cyan-500/10 text-cyan-400"
+                  className="bg-primary/12 text-primary"
                 />
               }
               info="Equinoxes mark when day and night are roughly equal. Solstices mark the longest and shortest days of the year."
-              accent="cyan"
+              accent="primary"
             />
             <AstroCard
               icon={Clock}
@@ -67,19 +70,22 @@ export default function OverviewPage() {
               badge={
                 <CountdownBadge
                   target={sun.nauticalDusk}
-                  className="bg-violet-500/10 text-violet-400"
+                  className="bg-primary/12 text-primary"
                 />
               }
               info="Nautical twilight is when the horizon becomes difficult to distinguish. Astronomical twilight is when it's dark enough to see faint stars."
-              accent="violet"
+              accent="primary"
             />
           </div>
         </div>
-        <div className="flex flex-col">
+      </div>
+
+      <div className="col-span-12 md:col-span-6">
+        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5 h-full">
           <SectionHeader
             icon={Eclipse}
             label="Visible Eclipses"
-            color="text-rose-400"
+            color="text-primary"
           />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {upcomingEclipses
@@ -97,10 +103,10 @@ export default function OverviewPage() {
                   badge={
                     <CountdownBadge
                       target={eclipse.peak}
-                      className="bg-rose-500/10 text-rose-400"
+                      className="bg-accent/12 text-accent"
                     />
                   }
-                  accent="rose"
+                  accent="accent"
                 />
               ))}
             {upcomingEclipses.filter((e) => e.isLocal).length === 0 ? (

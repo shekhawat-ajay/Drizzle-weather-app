@@ -31,17 +31,18 @@ export default function useAstronomy(
 
   const todayStart = useMemo(() => {
     const now = new Date();
-    const targetDateStr = now.toLocaleString("en-US", {
+    const fmt = new Intl.DateTimeFormat("en-CA", {
       timeZone: tz,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
     });
-
-    const [monthStr, dayStr, yearStr] = targetDateStr.split("/");
-    const month = parseInt(monthStr ?? (now.getMonth() + 1).toString());
-    const day = parseInt(dayStr ?? now.getDate().toString());
-    const year = parseInt(yearStr ?? now.getFullYear().toString());
+    const parts = fmt.formatToParts(now);
+    const get = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((p) => p.type === type)?.value ?? "01";
+    const year = parseInt(get("year"), 10);
+    const month = parseInt(get("month"), 10);
+    const day = parseInt(get("day"), 10);
 
     const localMidnight = new Date(year, month - 1, day, 0, 0, 0, 0);
     const localMidnightInTargetTz = new Date(
@@ -51,7 +52,7 @@ export default function useAstronomy(
       localMidnightInTargetTz.getTime() - localMidnight.getTime();
 
     return new Date(localMidnight.getTime() - tzDiffMs);
-  }, [latitude, longitude, tz]);
+  }, [tz]);
 
   // ── Tier 0: STATIC data (compute once per location) ──
   const staticData = useMemo(() => {

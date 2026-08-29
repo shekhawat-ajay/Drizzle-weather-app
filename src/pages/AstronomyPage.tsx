@@ -1,6 +1,6 @@
 import { use } from "react";
 import { Outlet } from "react-router";
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import { ResultType } from "@/schema/location";
 import useAstronomy from "@/hooks/astronomy/useAstronomy";
 import useCelestial from "@/hooks/astronomy/useCelestial";

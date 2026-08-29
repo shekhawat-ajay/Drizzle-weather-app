@@ -7,50 +7,69 @@ import {
   FormEvent,
   ChangeEvent,
 } from "react";
-import { LocationContext } from "../App";
+import { LocationContext } from "@/context/LocationContext";
 import useLocation from "@/hooks/useLocation";
 import { MapPin, MapPinOff } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { ResultType } from "@/schema/location";
 
 const DEBOUNCE_DELAY = 375;
+const RECENTS_KEY = "drizzle-recents";
+const MAX_RECENTS = 5;
+
+function getRecents(): ResultType[] {
+  try {
+    const raw = localStorage.getItem(RECENTS_KEY);
+    if (raw) return JSON.parse(raw) as ResultType[];
+  } catch { /* ignore */ }
+  return [];
+}
+function pushRecent(loc: ResultType) {
+  try {
+    const recents = getRecents().filter((r) => r.id !== loc.id);
+    recents.unshift(loc);
+    localStorage.setItem(RECENTS_KEY, JSON.stringify(recents.slice(0, MAX_RECENTS)));
+  } catch { /* ignore */ }
+}
 
 export default function SearchBox() {
   const [inputQuery, setInputQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [results, setResults] = useState<ResultType[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [recents, setRecents] = useState<ResultType[]>(() => {
+    try { return getRecents(); } catch { return []; }
+  });
   const { setLocation } = use(LocationContext)!;
   const inputRef = useRef<HTMLDivElement>(null);
   const debounceTimeoutRef = useRef<number | null>(null);
 
   const { data, isLoading, error } = useLocation(debouncedQuery);
 
-  //handel form submission
+  // Enter selects first result if available, otherwise just triggers search dropdown
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current); // Clear any pending debounce
-    }
-    const trimmedQuery = inputQuery.trimEnd();
-    if (trimmedQuery.length >= 2) {
-      setDebouncedQuery(trimmedQuery); // Trigger search immediately
-      if (results?.[0]) {
-        setLocation(results[0]);
-      }
+    const trimmedQuery = inputQuery.trim();
+    if (trimmedQuery.length < 2) {
       setResults([]);
-      setInputQuery("");
-      setShowDropdown(false);
-    } else {
-      setResults([]); // Clear results if search is submitted with invalid input
       setDebouncedQuery("");
       setShowDropdown(false);
+      return;
     }
+    // If we already have results for this query, select first immediately
+    if (trimmedQuery === debouncedQuery && results?.[0]) {
+      handleSelectLocation(results[0]);
+      return;
+    }
+    // Otherwise trigger search and let dropdown selection handle it — don't clear input yet
+    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+    setDebouncedQuery(trimmedQuery);
+    setShowDropdown(true);
   };
 
   // handle debouncing of input query
   useEffect(() => {
-    const trimmedQuery = inputQuery.trimEnd();
+    const trimmedQuery = inputQuery.trim();
     if (trimmedQuery.length < 2) {
       setDebouncedQuery("");
       setResults([]);
@@ -69,14 +88,18 @@ export default function SearchBox() {
     };
   }, [inputQuery]);
 
-  // handle selected location validation
+  // handle selected location validation — range check, not integer check
   const isLocationValid = (latitude: number, longitude: number): boolean => {
-    const isLatitudeValid =
-      typeof latitude === "number" && !Number.isInteger(latitude);
-    const isLongitudeValid =
-      typeof longitude === "number" && !Number.isInteger(longitude);
-
-    return isLatitudeValid && isLongitudeValid;
+    return (
+      typeof latitude === "number" &&
+      typeof longitude === "number" &&
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180
+    );
   };
 
   //handle location results from api
@@ -108,6 +131,8 @@ export default function SearchBox() {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
+      pushRecent(selectedLocation);
+      setRecents(getRecents());
       setLocation(selectedLocation);
       setInputQuery("");
       setDebouncedQuery("");
@@ -146,10 +171,10 @@ export default function SearchBox() {
 
   // Re-show dropdown when input is focused and there's a valid query
   const handleFocus = useCallback(() => {
-    if (inputQuery.trimEnd().length >= 2) {
+    if (inputQuery.trim().length >= 2 || recents.length > 0) {
       setShowDropdown(true);
     }
-  }, [inputQuery]);
+  }, [inputQuery, recents.length]);
 
   return (
     <div
@@ -186,6 +211,11 @@ export default function SearchBox() {
             placeholder="Search city..."
             onChange={handleInputChange}
             onFocus={handleFocus}
+            aria-label="Search city"
+            aria-expanded={showDropdown && results.length > 0}
+            aria-controls="search-results"
+            aria-autocomplete="list"
+            role="combobox"
             className="placeholder:text-base-content/30 w-full border-none bg-transparent text-sm outline-none"
           />
         </label>
@@ -193,16 +223,24 @@ export default function SearchBox() {
       {showDropdown && results.length > 0 ? (
         <div
           className={cn(
-            "border-base-content/10 bg-base-300 absolute top-full z-50 mt-2 max-h-60 w-full max-w-lg overflow-hidden rounded-lg border",
+            "border-base-content/10 bg-base-300 absolute top-full z-[1001] mt-2 max-h-60 w-full max-w-lg overflow-hidden rounded-lg border shadow-xl",
             results.length >= 4 && "scrollbar-thin overflow-y-auto",
           )}
         >
-          <ul className="divide-base-content/5 divide-y">
+          <ul id="search-results" role="listbox" className="divide-base-content/5 divide-y">
             {results.map((location) => (
               <li
                 key={location.id}
+                role="option"
+                tabIndex={0}
                 onClick={() => handleSelectLocation(location)}
-                className="hover:bg-base-200 cursor-pointer transition-colors duration-150"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleSelectLocation(location);
+                  }
+                }}
+                className="hover:bg-base-200 focus:bg-base-200 focus:outline-none cursor-pointer transition-colors duration-150"
               >
                 <div className="flex items-center gap-3 px-4 py-3">
                   <MapPin className="text-base-content/40 size-4" />
@@ -221,7 +259,7 @@ export default function SearchBox() {
         </div>
       ) : null}
       {error ? (
-        <div className="absolute top-full z-50 mt-2 text-center">
+        <div className="absolute top-full z-[1001] mt-2 text-center">
           <p className="text-error text-sm">Something went wrong!</p>
         </div>
       ) : null}
@@ -231,12 +269,40 @@ export default function SearchBox() {
       debouncedQuery.length >= 2 &&
       data &&
       results.length === 0 ? (
-        <div className="border-base-content/10 bg-base-300 absolute top-full z-50 mt-2 w-full max-w-lg rounded-lg border">
+        <div className="border-base-content/10 bg-base-300 absolute top-full z-[1001] mt-2 w-full max-w-lg rounded-lg border shadow-xl">
           <div className="flex items-center gap-3 p-4">
             <MapPinOff className="text-base-content/40 size-4 shrink-0" />
             <p className="text-base-content/50 text-sm">
               No cities found for &ldquo;{debouncedQuery}&rdquo;
             </p>
+          </div>
+        </div>
+      ) : null}
+      {showDropdown && inputQuery.trim().length < 2 && !isLoading && results.length === 0 && recents.length > 0 ? (
+        <div className="border-base-content/10 bg-base-300 absolute top-full z-[1001] mt-2 w-full max-w-lg rounded-lg border shadow-xl p-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-base-content/40 text-xs font-medium uppercase tracking-wider">Recent</p>
+            <button
+              onClick={() => {
+                try { localStorage.removeItem(RECENTS_KEY); } catch { /* ignore */ }
+                setRecents([]);
+              }}
+              className="text-base-content/30 hover:text-base-content/60 text-xs"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {recents.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => handleSelectLocation(r)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-base-200 hover:bg-base-100 border border-base-content/5 px-3 py-1 text-xs text-base-content/70 transition-colors"
+              >
+                <MapPin className="size-3 opacity-60" />
+                {r.name}{r.admin1 ? `, ${r.admin1}` : ""}
+              </button>
+            ))}
           </div>
         </div>
       ) : null}

@@ -1,32 +1,48 @@
 import { Info, type LucideIcon } from "lucide-react";
 import { type ReactNode } from "react";
 
-// Accent map moved out of render cycle for better performance
+// Palette-only: primary (violet) / accent (amber) / muted
 const accentMap = {
+  primary: {
+    iconBg: "bg-primary/12",
+    iconText: "text-primary",
+    border: "border-primary/15",
+  },
+  accent: {
+    iconBg: "bg-accent/12",
+    iconText: "text-accent",
+    border: "border-accent/15",
+  },
+  muted: {
+    iconBg: "bg-base-content/5",
+    iconText: "text-base-content/60",
+    border: "border-base-content/5",
+  },
+  // legacy aliases — remapped to palette
   violet: {
-    iconBg: "bg-violet-500/10",
-    iconText: "text-violet-400",
-    border: "border-violet-500/10",
+    iconBg: "bg-primary/12",
+    iconText: "text-primary",
+    border: "border-primary/15",
   },
   amber: {
-    iconBg: "bg-amber-500/10",
-    iconText: "text-amber-400",
-    border: "border-amber-500/10",
+    iconBg: "bg-accent/12",
+    iconText: "text-accent",
+    border: "border-accent/15",
   },
   rose: {
-    iconBg: "bg-rose-500/10",
-    iconText: "text-rose-400",
-    border: "border-rose-500/10",
+    iconBg: "bg-primary/12",
+    iconText: "text-primary",
+    border: "border-primary/15",
   },
   cyan: {
-    iconBg: "bg-cyan-500/10",
-    iconText: "text-cyan-400",
-    border: "border-cyan-500/10",
+    iconBg: "bg-primary/12",
+    iconText: "text-primary",
+    border: "border-primary/15",
   },
   teal: {
-    iconBg: "bg-teal-500/10",
-    iconText: "text-teal-400",
-    border: "border-teal-500/10",
+    iconBg: "bg-primary/12",
+    iconText: "text-primary",
+    border: "border-primary/15",
   },
 };
 
@@ -60,7 +76,7 @@ export default function AstroCard({
 
   return (
     <div
-      className={`group relative overflow-visible rounded-xl border ${a.border} bg-base-200/40 hover:bg-base-200/60 p-5 transition-all duration-300 hover:shadow-lg`}
+      className={`group relative overflow-visible rounded-xl border ${a.border} bg-base-300 hover:bg-base-200 p-5 transition-colors duration-200`}
     >
       <div className="flex items-start gap-4">
         <div

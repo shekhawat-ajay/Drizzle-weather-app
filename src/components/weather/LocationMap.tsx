@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -9,15 +9,17 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { Layers } from "lucide-react";
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import { ResultType } from "@/schema/location";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-// Fix default marker icons — Leaflet's default icon paths break with bundlers
+// Bundled marker icons — no external CDN, works offline/CSP
 const defaultIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -55,9 +57,9 @@ function ChangeView({
   zoom: number;
 }) {
   const map = useMap();
-  useMemo(() => {
+  useEffect(() => {
     map.flyTo(center, zoom, { duration: 1.5 });
-  }, [center[0], center[1]]);
+  }, [map, center, zoom]);
   return null;
 }
 
@@ -91,6 +93,7 @@ export default function LocationMap() {
             scrollWheelZoom={true}
             zoomControl={false}
             attributionControl={false}
+            aria-label={`Map showing ${name}`}
             style={{ height: "100%", width: "100%" }}
           >
             <ChangeView center={center} zoom={zoom} />
@@ -109,17 +112,17 @@ export default function LocationMap() {
             </Marker>
           </MapContainer>
 
-          {/* Tile Layer Switcher */}
-          <div className="absolute top-2 left-2 z-[1000]">
+          {/* Tile Layer Switcher — below SearchBox dropdown (z-[1001]) */}
+          <div className="absolute top-2 left-2 z-[400]">
             <button
               onClick={() => setShowPicker((v) => !v)}
-              className="flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/80"
+              className="flex items-center gap-1.5 rounded-lg bg-base-300/90 px-2.5 py-1.5 text-xs font-medium text-base-content shadow-lg backdrop-blur-sm transition-colors hover:bg-base-300 border border-base-content/15 cursor-pointer"
             >
               <Layers className="size-3.5" />
               {activeTile}
             </button>
             {showPicker && (
-              <div className="mt-1 overflow-hidden rounded-lg bg-black/70 shadow-xl backdrop-blur-sm">
+              <div className="mt-1 overflow-hidden rounded-lg bg-base-300/95 shadow-xl backdrop-blur-sm border border-base-content/15">
                 {(Object.keys(TILE_LAYERS) as TileKey[]).map((key) => (
                   <button
                     key={key}
@@ -127,10 +130,10 @@ export default function LocationMap() {
                       setActiveTile(key);
                       setShowPicker(false);
                     }}
-                    className={`block w-full px-3 py-1.5 text-left text-xs transition-colors ${
+                    className={`block w-full px-3 py-1.5 text-left text-xs transition-colors cursor-pointer ${
                       key === activeTile
-                        ? "bg-white/20 font-semibold text-white"
-                        : "text-white/70 hover:bg-white/10 hover:text-white"
+                        ? "bg-base-content/20 font-semibold text-base-content"
+                        : "text-base-content/70 hover:bg-base-content/10 hover:text-base-content"
                     }`}
                   >
                     {key}

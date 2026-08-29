@@ -1,4 +1,4 @@
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import useAQI from "@/hooks/weather/useAQI";
 import { useContext } from "react";
 import {
@@ -8,12 +8,13 @@ import {
 } from "@/utils/maps/aqiMap";
 import { cn } from "@/utils/cn";
 import { ResultType } from "@/schema/location";
+import ErrorRetry from "@/components/ErrorRetry";
 
 export default function AirQuality() {
   const { location } = useContext(LocationContext) as unknown as {
     location: ResultType;
   };
-  const { data, isLoading, error } = useAQI(
+  const { data, isLoading, error, mutate } = useAQI(
     location.latitude,
     location.longitude,
   );
@@ -32,9 +33,7 @@ export default function AirQuality() {
   return (
     <div className="border-base-content/5 bg-base-200 relative h-full rounded-xl border p-5">
       {error && (
-        <div className="flex h-full items-center justify-center">
-          <p className="text-error text-sm">Something went wrong!</p>
-        </div>
+        <ErrorRetry message={(error as Error).message || "Failed to load air quality."} onRetry={() => mutate?.()} />
       )}
 
       {isLoading && (
@@ -58,7 +57,7 @@ export default function AirQuality() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="flex flex-col gap-4">
               {/* AQI Indices — 3-column row */}
               <div className="grid grid-cols-3 gap-2">
@@ -171,14 +170,14 @@ export default function AirQuality() {
             </div>
 
             {/* Pollutant Table */}
-            <div className="overflow-x-auto rounded-lg">
-              <table className="table-zebra table-sm table w-full">
+            <div className="overflow-x-auto rounded-lg -mx-2 px-2 sm:mx-0 sm:px-0">
+              <table className="table-zebra table-sm table w-full min-w-[340px]" aria-label="Air quality pollutants">
                 <thead>
                   <tr className="text-base-content/50 text-xs">
-                    <th className="font-medium">Pollutant</th>
-                    <th className="text-center font-medium">Conc.</th>
-                    <th className="text-center font-medium">Sub-Index</th>
-                    <th className="text-right font-medium">Status</th>
+                    <th scope="col" className="font-medium">Pollutant</th>
+                    <th scope="col" className="text-center font-medium">Conc.</th>
+                    <th scope="col" className="text-center font-medium">Sub-Index</th>
+                    <th scope="col" className="text-right font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>

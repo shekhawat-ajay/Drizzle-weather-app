@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   Satellite, 
   Map as MapIcon, 
@@ -47,12 +47,16 @@ const TILE_LAYERS = {
 type TileKey = keyof typeof TILE_LAYERS;
 
 /* ── Leaflet Icon Fix (React strips defaults) ── */
-// @ts-ignore
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+// @ts-expect-error - _getIconUrl is private but needs deletion for bundlers
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
 });
 
 const satelliteIcon = new L.Icon({
@@ -66,20 +70,21 @@ const DEFAULT_CENTER: [number, number] = [0, 0];
 const MAP_ZOOM = 3;
 
 /* ── MapRecenter: smoothly follows the ISS ── */
-// @ts-ignore
 function MapRecenter({ center }: { center: [number, number] }) {
   const map = useMap();
-  map.setView(center, map.getZoom());
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [map, center]);
   return null;
 }
 
 /* ── Error State ── */
 function ISSError() {
   return (
-    <div className="flex h-64 flex-col items-center justify-center gap-4 rounded-xl border border-rose-500/20 bg-rose-500/5 p-8 text-center">
-      <Satellite className="h-12 w-12 text-rose-500" />
+    <div className="flex h-64 flex-col items-center justify-center gap-4 rounded-xl border border-primary/10 bg-base-300 p-8 text-center">
+      <Satellite className="h-12 w-12 text-primary" />
       <div>
-        <h3 className="text-lg font-semibold text-rose-400">Connection Failed</h3>
+        <h3 className="text-lg font-semibold text-primary">Connection Failed</h3>
         <p className="text-base-content/60 text-sm">Unable to track the ISS right now. Please try again later.</p>
       </div>
     </div>
@@ -91,8 +96,8 @@ function LoadingOverlay() {
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-base-300/80 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-teal-500 border-t-transparent" />
-        <p className="text-xs font-medium text-teal-400 uppercase tracking-widest">Acquiring Signal…</p>
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-xs font-medium text-primary uppercase tracking-widest">Acquiring Signal…</p>
       </div>
     </div>
   );
@@ -103,8 +108,8 @@ function LiveBadge() {
   return (
     <div className="absolute top-4 right-4 z-10 flex items-center gap-2 rounded-full bg-base-100/80 px-3 py-1.5 backdrop-blur-md border border-white/10">
       <span className="relative flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500" />
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
       </span>
       <span className="text-[10px] font-bold text-base-content/70 uppercase tracking-tighter">Live Telemetry</span>
     </div>
@@ -157,7 +162,7 @@ export default function ISSPage() {
       <SectionHeader icon={Satellite} label="ISS Live Tracking" color="text-sky-400" />
 
       {/* ── Live Map ── */}
-      <div className="relative h-[400px] w-full overflow-hidden rounded-2xl border border-teal-500/20 bg-base-300 sm:h-[500px]">
+      <div className="relative h-[400px] w-full overflow-hidden rounded-2xl border border-primary/10 bg-base-300 sm:h-[500px]">
         {isLoading && !data ? <LoadingOverlay /> : null}
 
         <MapContainer
@@ -180,7 +185,7 @@ export default function ISSPage() {
               key={seg[0] ? `${seg[0][0]}-${seg[0][1]}` : idx}
               positions={seg}
               pathOptions={{
-                color: "#0d9488", // Darker teal (teal-600)
+                color: "#7c3aed", // Darker teal (teal-600)
                 weight: 3,
                 opacity: 0.8,
               }}
@@ -191,7 +196,7 @@ export default function ISSPage() {
               <Marker position={issPos} icon={satelliteIcon}>
                 <Popup>
                   <div className="text-xs font-medium">
-                    <p className="font-bold text-teal-600">ISS (Zarya)</p>
+                    <p className="font-bold text-primary">ISS (Zarya)</p>
                     <p>Lat: {data.latitude.toFixed(4)}</p>
                     <p>Lon: {data.longitude.toFixed(4)}</p>
                   </div>
@@ -206,13 +211,13 @@ export default function ISSPage() {
         <div className="absolute top-4 left-4 z-[1000]">
           <button
             onClick={() => setShowPicker((v) => !v)}
-            className="flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-lg backdrop-blur-md border border-white/10 transition-colors hover:bg-black/80 uppercase tracking-tighter"
+            className="flex items-center gap-1.5 rounded-lg bg-base-300/90 px-2.5 py-1.5 text-[10px] font-bold text-base-content shadow-lg backdrop-blur-md border border-base-content/15 transition-colors hover:bg-base-300 uppercase tracking-tighter cursor-pointer"
           >
             <Layers className="size-3.5" />
             {activeTile}
           </button>
           {showPicker ? (
-            <div className="mt-1 overflow-hidden rounded-lg bg-black/70 shadow-xl backdrop-blur-sm border border-white/10">
+            <div className="mt-1 overflow-hidden rounded-lg bg-base-300/95 shadow-xl backdrop-blur-sm border border-base-content/15">
               {(Object.keys(TILE_LAYERS) as TileKey[]).map((key) => (
                 <button
                   key={key}
@@ -220,10 +225,10 @@ export default function ISSPage() {
                     setActiveTile(key);
                     setShowPicker(false);
                   }}
-                  className={`block w-full px-3 py-1.5 text-left text-[10px] font-bold uppercase tracking-tighter transition-colors ${
+                  className={`block w-full px-3 py-1.5 text-left text-[10px] font-bold uppercase tracking-tighter transition-colors cursor-pointer ${
                     key === activeTile
-                      ? "bg-white/20 text-white"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                      ? "bg-base-content/20 text-base-content"
+                      : "text-base-content/70 hover:bg-base-content/10 hover:text-base-content"
                   }`}
                 >
                   {key}
@@ -269,9 +274,9 @@ export default function ISSPage() {
       </div>
 
       {/* ── Mission Details ── */}
-      <div className="bg-base-200/40 rounded-xl border border-teal-500/10 p-4">
+      <div className="bg-base-300 rounded-xl border border-primary/10 p-4">
         <div className="flex items-center gap-2 mb-3">
-           <MapIcon className="h-4 w-4 text-teal-400" />
+           <MapIcon className="h-4 w-4 text-primary" />
            <h4 className="text-sm font-semibold text-base-content">Mission Details</h4>
         </div>
         <p className="text-xs text-base-content/60 leading-relaxed">

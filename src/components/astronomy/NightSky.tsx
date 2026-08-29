@@ -9,7 +9,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Star, Cloud, Clock } from "lucide-react";
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import { ResultType } from "@/schema/location";
 import { useOutletContext } from "react-router";
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
@@ -41,27 +41,27 @@ function getCloudLabel(cover: number): string {
 // ── Factor color helper ────────────────────────────────────────
 
 const FACTOR_STYLES = {
-  positive: "bg-teal-500/10 text-teal-400 border-teal-500/20",
-  negative: "bg-rose-500/10 text-rose-400 border-rose-500/20",
-  neutral: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  positive: "bg-primary/12 text-primary border-primary/15",
+  negative: "bg-accent/12 text-accent border-accent/15",
+  neutral: "bg-accent/12 text-accent border-accent/15",
 } as const;
 
 // ── Score color ────────────────────────────────────────────────
 
 function getScoreColor(score: number): string {
-  if (score >= 80) return "text-teal-400";
-  if (score >= 60) return "text-emerald-400";
-  if (score >= 40) return "text-amber-400";
-  if (score >= 20) return "text-orange-400";
-  return "text-rose-400";
+  if (score >= 80) return "text-primary";
+  if (score >= 60) return "text-primary";
+  if (score >= 40) return "text-accent";
+  if (score >= 20) return "text-accent";
+  return "text-base-content/40";
 }
 
 function getBarColor(score: number): string {
-  if (score >= 80) return "bg-teal-500";
-  if (score >= 60) return "bg-emerald-500";
-  if (score >= 40) return "bg-amber-500";
-  if (score >= 20) return "bg-orange-500";
-  return "bg-rose-500";
+  if (score >= 80) return "bg-primary";
+  if (score >= 60) return "bg-primary";
+  if (score >= 40) return "bg-accent";
+  if (score >= 20) return "bg-accent";
+  return "bg-base-content/20";
 }
 
 // ── Types ──────────────────────────────────────────────────────
@@ -245,7 +245,7 @@ export default function NightSky() {
         {/* ── Summary Cards ── */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {/* Stargazing Index */}
-          <div className="bg-base-200 rounded-xl p-4 flex flex-col gap-1 border border-violet-500/10">
+          <div className="bg-base-200 rounded-xl p-4 flex flex-col gap-1 border border-primary/10">
             <div className="flex items-center gap-2 text-violet-400">
               <Star className="h-4 w-4 shrink-0" />
               <span className="text-xs font-semibold uppercase tracking-widest">
@@ -277,8 +277,8 @@ export default function NightSky() {
           />
 
           {/* Best Viewing Window / Sunset Info */}
-          <div className="bg-base-200 rounded-xl p-4 flex flex-col gap-1 border border-teal-500/10">
-            <div className="flex items-center gap-2 text-teal-400">
+          <div className="bg-base-200 rounded-xl p-4 flex flex-col gap-1 border border-primary/10">
+            <div className="flex items-center gap-2 text-primary">
               <Clock className="h-4 w-4 shrink-0" />
               <span className="text-xs font-semibold uppercase tracking-widest">
                 {isDaytime ? "Starts At" : "Best Window"}
@@ -348,8 +348,8 @@ export default function NightSky() {
                     x2="0"
                     y2="1"
                   >
-                    <stop offset="5%" stopColor="#818cf8" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -373,7 +373,7 @@ export default function NightSky() {
                     />
                   )}
                   cursor={{
-                    stroke: "#818cf8",
+                    stroke: "#a78bfa",
                     strokeWidth: 1,
                     strokeDasharray: "4 4",
                   }}
@@ -381,14 +381,14 @@ export default function NightSky() {
                 <Area
                   type="monotone"
                   dataKey="cloudCover"
-                  stroke="#818cf8"
+                  stroke="#a78bfa"
                   strokeWidth={2}
                   fill="url(#cloudGrad)"
                   dot={false}
                   activeDot={{
                     r: 4,
-                    fill: "#818cf8",
-                    stroke: "#1e1b4b",
+                    fill: "#a78bfa",
+                    stroke: "#2e1065",
                     strokeWidth: 2,
                   }}
                   isAnimationActive={false}

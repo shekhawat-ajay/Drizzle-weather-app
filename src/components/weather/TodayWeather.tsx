@@ -1,20 +1,21 @@
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
 import useDailyForecast from "@/hooks/weather/useDailyForecast";
 import { useContext } from "react";
-import { LocationContext } from "@/App";
+import { LocationContext } from "@/context/LocationContext";
 import { uvIndexImageMap } from "@/utils/maps/uvIndexImageMap";
 import { getWindDirection } from "@/utils/maps/getWindDirection";
 import { ResultType } from "@/schema/location";
 import { useUnits } from "@/context/UnitsContext";
 import { convertTemp, convertPrecipitation, precipUnit, tempUnit } from "@/utils/unitConversions";
 import { fmtTimeFromISO } from "@/utils/formatters";
+import ErrorRetry from "@/components/ErrorRetry";
 
 export default function TodaysForecast() {
   const { location } = useContext(LocationContext) as unknown as {
     location: ResultType;
   };
   const { units } = useUnits();
-  const { data, isLoading, error } = useDailyForecast(
+  const { data, isLoading, error, mutate } = useDailyForecast(
     location.latitude,
     location.longitude,
   );
@@ -35,14 +36,27 @@ export default function TodaysForecast() {
     sunshineDuration,
   } = data?.daily || {};
 
+  // Resolve today index in location timezone (not hardcoded [1])
+  const tz = location.timezone ?? "UTC";
+  const todayStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const todayIdx = (() => {
+    if (!data?.daily?.time) return 1;
+    const idx = data.daily.time.indexOf(todayStr);
+    return idx >= 0 ? idx : 1;
+  })();
+
   // Find min/max cloud cover for today
   const hourly = hourlyData?.hourly;
   let cloudCoverMin = 0;
   let cloudCoverMax = 0;
   let hasCloudCover = false;
 
-  if (hourly?.time && hourly?.cloudCover && data?.daily?.time) {
-    const todayStr = data.daily.time[1]; // format "YYYY-MM-DD"
+  if (hourly?.time && hourly?.cloudCover) {
     if (todayStr) {
       let min = 100;
       let max = 0;
@@ -65,8 +79,8 @@ export default function TodaysForecast() {
   const cloudCoverDisplay = hasCloudCover ? `${cloudCoverMin}% - ${cloudCoverMax}%` : "--%";
 
   let sunshineFormatted = "--";
-  if (sunshineDuration && sunshineDuration[1] != null) {
-    const secs = sunshineDuration[1];
+  if (sunshineDuration && sunshineDuration[todayIdx] != null) {
+    const secs = sunshineDuration[todayIdx]!;
     const hrs = Math.floor(secs / 3600);
     const mins = Math.floor((secs % 3600) / 60);
     sunshineFormatted = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
@@ -95,20 +109,18 @@ export default function TodaysForecast() {
     return { label: "Extreme", colorClass: "text-fuchsia-400" };
   };
 
-  const sunriseTime = fmtTimeFromISO(sunrise?.[1] ?? "");
-  const sunsetTime = fmtTimeFromISO(sunset?.[1] ?? "");
+  const sunriseTime = fmtTimeFromISO(sunrise?.[todayIdx] ?? "");
+  const sunsetTime = fmtTimeFromISO(sunset?.[todayIdx] ?? "");
   const { imageSrc: uvIndexImage, description: uvImageDescription } =
-    setUvIndexImage(uvIndex?.[1] ?? 0) || {};
-  const uvLevel = getUvLevel(uvIndex?.[1] ?? 0);
+    setUvIndexImage(uvIndex?.[todayIdx] ?? 0) || {};
+  const uvLevel = getUvLevel(uvIndex?.[todayIdx] ?? 0);
 
-  const windDirection = getWindDirection(windDirectionDegree?.[1] ?? 0);
+  const windDirection = getWindDirection(windDirectionDegree?.[todayIdx] ?? 0);
 
   return (
     <div className="border-base-content/5 bg-base-200 relative h-full rounded-xl border p-5">
       {error && (
-        <div className="flex h-full items-center justify-center">
-          <p className="text-error text-sm">Something went wrong!</p>
-        </div>
+        <ErrorRetry message={(error as Error).message || "Failed to load today's forecast."} onRetry={() => mutate?.()} />
       )}
 
       {isLoading && (
@@ -124,7 +136,7 @@ export default function TodaysForecast() {
               Today's Forecast
             </h3>
             <span className="text-base-content/70 font-mono text-sm font-semibold">
-              {Math.round(convertTemp(maxTemperature?.[1], units) ?? 0)}{tempUnit(units)} / {Math.round(convertTemp(minTemperature?.[1], units) ?? 0)}{tempUnit(units)}
+              {Math.round(convertTemp(maxTemperature?.[todayIdx], units) ?? 0)}{tempUnit(units)} / {Math.round(convertTemp(minTemperature?.[todayIdx], units) ?? 0)}{tempUnit(units)}
             </span>
           </div>
 
@@ -138,7 +150,7 @@ export default function TodaysForecast() {
               />
               <div className="flex flex-1 flex-col items-center justify-center">
                 <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
-                  {convertPrecipitation(precipitationSum?.[1], units)} {precipUnit(units)}
+                  {convertPrecipitation(precipitationSum?.[todayIdx], units)} {precipUnit(units)}
                 </p>
               </div>
               <p className="text-base-content/50 mt-2 text-xs">Precipitation</p>
@@ -153,7 +165,7 @@ export default function TodaysForecast() {
               />
               <div className="flex flex-1 flex-col items-center justify-center">
                 <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
-                  {precipitationProbability?.[1]}%
+                  {precipitationProbability?.[todayIdx]}%
                 </p>
               </div>
               <p className="text-base-content/50 mt-2 text-xs">Rain chance</p>
@@ -168,7 +180,7 @@ export default function TodaysForecast() {
               />
               <div className="flex flex-1 flex-col items-center justify-center">
                 <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
-                  <span className={uvLevel.colorClass}>{uvIndex?.[1]?.toFixed(1)}</span>
+                  <span className={uvLevel.colorClass}>{uvIndex?.[todayIdx]?.toFixed(1)}</span>
                   <span className="text-base-content/40 ml-1">/ 11</span>
                 </p>
               </div>
@@ -210,7 +222,7 @@ export default function TodaysForecast() {
               />
               <div className="flex flex-1 flex-col items-center justify-center">
                 <p className="mt-2 font-mono text-sm font-semibold whitespace-nowrap">
-                  {windDirection} {windDirectionDegree?.[1]}°
+                  {windDirection} {windDirectionDegree?.[todayIdx]}°
                 </p>
               </div>
               <p className="text-base-content/50 mt-2 text-xs">Wind Dir.</p>
