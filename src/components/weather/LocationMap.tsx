@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -11,13 +11,15 @@ import L from "leaflet";
 import { Layers } from "lucide-react";
 import { LocationContext } from "@/context/LocationContext";
 import { ResultType } from "@/schema/location";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-// Fix default marker icons — Leaflet's default icon paths break with bundlers
+// Bundled marker icons — no external CDN, works offline/CSP
 const defaultIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -55,9 +57,9 @@ function ChangeView({
   zoom: number;
 }) {
   const map = useMap();
-  useMemo(() => {
+  useEffect(() => {
     map.flyTo(center, zoom, { duration: 1.5 });
-  }, [center[0], center[1]]);
+  }, [map, center, zoom]);
   return null;
 }
 
@@ -91,6 +93,7 @@ export default function LocationMap() {
             scrollWheelZoom={true}
             zoomControl={false}
             attributionControl={false}
+            aria-label={`Map showing ${name}`}
             style={{ height: "100%", width: "100%" }}
           >
             <ChangeView center={center} zoom={zoom} />
@@ -109,8 +112,8 @@ export default function LocationMap() {
             </Marker>
           </MapContainer>
 
-          {/* Tile Layer Switcher */}
-          <div className="absolute top-2 left-2 z-[1000]">
+          {/* Tile Layer Switcher — below SearchBox dropdown (z-[1001]) */}
+          <div className="absolute top-2 left-2 z-[400]">
             <button
               onClick={() => setShowPicker((v) => !v)}
               className="flex items-center gap-1.5 rounded-lg bg-base-300/90 px-2.5 py-1.5 text-xs font-medium text-base-content shadow-lg backdrop-blur-sm transition-colors hover:bg-base-300 border border-base-content/15 cursor-pointer"

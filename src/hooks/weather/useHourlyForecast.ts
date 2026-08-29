@@ -1,26 +1,25 @@
 import { useMemo } from "react";
-import useSWR from "swr";
-import { fetcher } from "@/utils/api/apiDataFetcher";
-import { apiRoutes } from "@/utils/api/apiRoutes";
-import { toCamelCase } from "@/utils/api/transformer";
-import { HourlyForecastSchema, HourlyForecastType } from "@/schema/weather";
+import useCombinedForecast from "@/hooks/weather/useCombinedForecast";
 
 export default function useHourlyForecast(latitude: number, longitude: number) {
-  const { data, isLoading, error } = useSWR(
-    apiRoutes.hourlyForecast(latitude, longitude),
-    fetcher,
-  );
+  const { data, isLoading, error, mutate } = useCombinedForecast(latitude, longitude);
 
   const parsedData = useMemo(() => {
-    if (!data) return undefined;
-    try {
-      const camelCaseData = toCamelCase(data);
-      return HourlyForecastSchema.parse(camelCaseData);
-    } catch (e) {
-      console.error("HourlyWeather Schema Validation Failed:", e);
-      return undefined;
-    }
+    if (!data?.minutely15 || !data?.minutely15Units) return undefined;
+    return {
+      latitude: data.latitude,
+      longitude: data.longitude,
+      generationtimeMs: data.generationtimeMs,
+      utcOffsetSeconds: data.utcOffsetSeconds,
+      timezone: data.timezone,
+      timezoneAbbreviation: data.timezoneAbbreviation,
+      elevation: data.elevation,
+      minutely15Units: data.minutely15Units,
+      minutely15: data.minutely15,
+      hourlyUnits: data.hourlyUnits,
+      hourly: data.hourly,
+    };
   }, [data]);
 
-  return { data: parsedData, isLoading, error };
+  return { data: parsedData, isLoading, error, mutate };
 }

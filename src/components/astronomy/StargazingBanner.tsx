@@ -10,8 +10,8 @@ export default function StargazingBanner({ stargazing, isDaytime }: StargazingBa
   // Map index impacts to colors
   const impactColor = (impact: string) => {
     switch (impact) {
-      case "positive": return "text-emerald-400 bg-emerald-400/10";
-      case "negative": return "text-red-400 bg-red-400/10";
+      case "positive": return "text-primary bg-primary/12";
+      case "negative": return "text-accent bg-accent/12";
       default: return "text-base-content/60 bg-base-300/50";
     }
   };
@@ -24,13 +24,13 @@ export default function StargazingBanner({ stargazing, isDaytime }: StargazingBa
     }
   };
 
-  const mainColor = isDaytime ? "text-amber-400" : (stargazing.score >= 60 ? "text-emerald-400" : stargazing.score >= 40 ? "text-amber-400" : "text-red-400");
-  const bgMainColor = isDaytime ? "bg-amber-400/10 border-amber-400/20" : (stargazing.score >= 60 ? "bg-emerald-400/10 border-emerald-400/20" : stargazing.score >= 40 ? "bg-amber-400/10 border-amber-400/20" : "bg-red-400/10 border-red-400/20");
+  const mainColor = isDaytime ? "text-accent" : (stargazing.score >= 60 ? "text-primary" : stargazing.score >= 40 ? "text-accent" : "text-base-content/40");
+  const bgMainColor = isDaytime ? "bg-accent/12 border-accent/20" : (stargazing.score >= 60 ? "bg-primary/12 border-primary/20" : stargazing.score >= 40 ? "bg-accent/12 border-accent/20" : "bg-base-content/5 border-base-content/10");
 
   return (
-    <div className={`card shadow-sm border ${bgMainColor} rounded-2xl p-4 md:p-5 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center`}>
+    <div className={`rounded-xl border ${bgMainColor} p-4 md:p-5 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center`}>
       <div className="flex items-center gap-4">
-        <div className={`rounded-full p-3 ${isDaytime ? "bg-amber-400/20 text-amber-500" : "bg-base-200 shadow-inner"}`}>
+        <div className={`rounded-full p-3 ${isDaytime ? "bg-accent/15 text-accent" : "bg-base-300"}`}>
           {isDaytime ? <Sun size={28} /> : <Sparkles size={28} className={mainColor} />}
         </div>
         <div>

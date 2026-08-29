@@ -1,26 +1,23 @@
 import { useMemo } from "react";
-import useSWR from "swr";
-import { fetcher } from "@/utils/api/apiDataFetcher";
-import { apiRoutes } from "@/utils/api/apiRoutes";
-import { toCamelCase } from "@/utils/api/transformer";
-import { CurrentWeatherSchema, CurrentWeatherType } from "@/schema/weather";
+import useCombinedForecast from "@/hooks/weather/useCombinedForecast";
 
 export default function useCurrentWeather(latitude: number, longitude: number) {
-  const { data, isLoading, error } = useSWR(
-    apiRoutes.currentWeather(latitude, longitude),
-    fetcher,
-  );
+  const { data, isLoading, error, mutate } = useCombinedForecast(latitude, longitude);
 
   const parsedData = useMemo(() => {
-    if (!data) return undefined;
-    try {
-      const camelCaseData = toCamelCase(data);
-      return CurrentWeatherSchema.parse(camelCaseData);
-    } catch (e) {
-      console.error("CurrentWeather Schema Validation Failed:", e);
-      return undefined;
-    }
+    if (!data?.current || !data?.currentUnits) return undefined;
+    return {
+      latitude: data.latitude,
+      longitude: data.longitude,
+      generationtimeMs: data.generationtimeMs,
+      utcOffsetSeconds: data.utcOffsetSeconds,
+      timezone: data.timezone,
+      timezoneAbbreviation: data.timezoneAbbreviation,
+      elevation: data.elevation,
+      currentUnits: data.currentUnits,
+      current: data.current,
+    };
   }, [data]);
 
-  return { data: parsedData, isLoading, error };
+  return { data: parsedData, isLoading, error, mutate };
 }

@@ -9,7 +9,7 @@ import type { NAQIResult } from "@/types/naqi";
 import type { AirQualityHourlyData } from "@/types/naqi";
 
 export default function useAQI(latitude: number, longitude: number) {
-  const { data, isLoading, error } = useSWR(
+  const { data, isLoading, error, mutate } = useSWR(
     apiRoutes.aqi(latitude, longitude),
     fetcher,
   );
@@ -33,6 +33,7 @@ export default function useAQI(latitude: number, longitude: number) {
   return {
     data: naqiResult,
     isLoading,
-    error: error || calcError,
+    error: (error as Error | undefined) || (calcError ? new Error(calcError) : undefined),
+    mutate,
   };
 }

@@ -11,13 +11,14 @@ import { useUnits } from "@/context/UnitsContext";
 import { Eye } from "lucide-react";
 import { convertTemp, convertWindSpeed, speedUnit, tempUnit } from "@/utils/unitConversions";
 import { fmtDateLong, fmtTimeFromISO, getNowAsUTC, parseAsUTC } from "@/utils/formatters";
+import ErrorRetry from "@/components/ErrorRetry";
 
 export default function CurrentWeather() {
   const { location } = useContext(LocationContext) as unknown as {
     location: ResultType;
   };
   const { units } = useUnits();
-  const { data, isLoading, error } = useCurrentWeather(
+  const { data, isLoading, error, mutate } = useCurrentWeather(
     location.latitude,
     location.longitude,
   );
@@ -53,7 +54,7 @@ export default function CurrentWeather() {
     return uvIndexImageMap[floorUvIndex];
   };
 
-  // Extract visibility from the nearest minutely15 forecast
+  // Extract visibility from the nearest minutely15 forecast (full scan, no early break)
   let visibilityVal: number | null = null;
   if (hourlyData?.minutely15) {
     const nowMs = getNowAsUTC(location.timezone ?? "UTC");
@@ -61,14 +62,12 @@ export default function CurrentWeather() {
     let closestIdx = 0;
     let minDiff = Infinity;
     for (let i = 0; i < times.length; i++) {
-        const ms = parseAsUTC(times[i]!).getTime();
-        const diff = Math.abs(ms - nowMs);
-        if (diff < minDiff) {
-            minDiff = diff;
-            closestIdx = i;
-        } else if (diff > minDiff) {
-            break;
-        }
+      const ms = parseAsUTC(times[i]!).getTime();
+      const diff = Math.abs(ms - nowMs);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = i;
+      }
     }
     visibilityVal = hourlyData.minutely15.visibility[closestIdx] ?? null;
   }
@@ -94,44 +93,46 @@ export default function CurrentWeather() {
       )}
     >
       {error && (
-        <div className="flex h-full w-full items-center justify-center py-8">
-          <p className="text-error-content text-sm">Something went wrong!</p>
-        </div>
+        <ErrorRetry
+          message={(error as Error).message || "Failed to load current weather."}
+          onRetry={() => mutate?.()}
+          variant="light"
+        />
       )}
       {isLoading ? (
         <div className="absolute inset-0">
           <div className="skeleton h-full w-full"></div>
         </div>
       ) : (
-        <div className="grid items-center gap-4 md:grid-cols-12">
+        <div className="grid items-center gap-6 grid-cols-1 md:grid-cols-12">
           {/* Location Info */}
-          <div className="col-span-4">
-            <p className="text-xs text-white/60">{date}</p>
+          <div className="col-span-1 md:col-span-4 text-center md:text-left">
+            <p className="text-xs text-white/70">{date}</p>
             <h3 className="mt-1 text-2xl font-bold text-white">{name}</h3>
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-white/80">
               {state}, {country}
             </p>
-            <p className="mt-2 text-xs text-white/50">
+            <p className="mt-2 text-xs text-white/60">
               Updated at {lastUpdatedTime}
             </p>
           </div>
 
           {/* Weather Icon & Temp */}
-          <div className="col-span-4 flex flex-col items-center text-center">
+          <div className="col-span-1 md:col-span-4 flex flex-col items-center text-center">
             <img
-              className="size-32"
+              className="size-28 sm:size-32"
               src={imageSrc}
               alt={`${imageDescription}`}
             />
-            <p className="mb-2 text-sm text-white/70">{imageDescription}</p>
-            <h2 className="text-5xl font-bold text-white">{Math.round(convertTemp(temperature, units) ?? 0)}
+            <p className="mb-2 text-sm text-white/80">{imageDescription}</p>
+            <h2 className="text-4xl sm:text-5xl font-bold text-white">{Math.round(convertTemp(temperature, units) ?? 0)}
             {tempUnit(units)}</h2>
           </div>
 
-          {/* Stats */}
-          <div className="col-span-4">
+          {/* Stats — increased contrast: bg-white/15 text-white/90 */}
+          <div className="col-span-1 md:col-span-4">
             <div className="grid grid-cols-3 gap-3">
-              <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
+              <div className="flex flex-col items-center rounded-lg bg-white/15 px-2 py-3 backdrop-blur-sm">
                 <img
                   className="size-8"
                   src="/thermometer-celsius.svg"
@@ -140,23 +141,23 @@ export default function CurrentWeather() {
                 <p className="mt-1 text-sm font-semibold text-white">
                   {Math.round(convertTemp(apparentTemperature, units) ?? 0)}{tempUnit(units)}
                 </p>
-                <p className="text-xs text-white/60">Feels like</p>
+                <p className="text-xs text-white/80">Feels like</p>
               </div>
-              <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
+              <div className="flex flex-col items-center rounded-lg bg-white/15 px-2 py-3 backdrop-blur-sm">
                 <img className="size-8" src="/humidity.svg" alt="humidity" />
                 <p className="mt-1 text-sm font-semibold text-white">
                   {relativeHumidity}%
                 </p>
-                <p className="text-xs text-white/60">Humidity</p>
+                <p className="text-xs text-white/80">Humidity</p>
               </div>
-              <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
+              <div className="flex flex-col items-center rounded-lg bg-white/15 px-2 py-3 backdrop-blur-sm">
                 <img className="size-8" src="/wind.svg" alt="wind speed" />
                 <p className="mt-1 text-sm font-semibold text-white">
                   {convertWindSpeed(windSpeed, units)}
                 </p>
-                <p className="text-xs text-white/60">{speedUnit(units)}</p>
+                <p className="text-xs text-white/80">{speedUnit(units)}</p>
               </div>
-              <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
+              <div className="flex flex-col items-center rounded-lg bg-white/15 px-2 py-3 backdrop-blur-sm">
                 <img
                   className="size-8"
                   src="/compass.svg"
@@ -165,20 +166,20 @@ export default function CurrentWeather() {
                 <p className="mt-1 text-sm font-semibold text-white">
                   {getWindDirection(windDirDegrees ?? 0)} {windDirDegrees}°
                 </p>
-                <p className="text-xs text-white/60">Wind Dir.</p>
+                <p className="text-xs text-white/80">Wind Dir.</p>
               </div>
-              <div className="flex flex-col items-center justify-between rounded-lg bg-white/10 px-2 py-3">
+              <div className="flex flex-col items-center justify-between rounded-lg bg-white/15 px-2 py-3 backdrop-blur-sm">
                 <div className="flex h-8 items-center">
-                  <Eye className="size-7 text-white/90" strokeWidth={1.5} />
+                  <Eye className="size-7 text-white" strokeWidth={1.5} />
                 </div>
                 <div className="text-center mt-1">
                   <p className="text-sm font-semibold text-white">
                     {visibilityText}
                   </p>
-                  <p className="text-xs text-white/60">Visibility</p>
+                  <p className="text-xs text-white/80">Visibility</p>
                 </div>
               </div>
-              <div className="flex flex-col items-center rounded-lg bg-white/10 px-2 py-3">
+              <div className="flex flex-col items-center rounded-lg bg-white/15 px-2 py-3 backdrop-blur-sm">
                 <img
                   className="size-8"
                   src={setUvIndexImage(uvIndex ?? 0)?.imageSrc}
@@ -187,7 +188,7 @@ export default function CurrentWeather() {
                 <p className="mt-1 text-sm font-semibold text-white">
                   {uvIndex?.toFixed(1) ?? "--"}
                 </p>
-                <p className="text-xs text-white/60">UV Index</p>
+                <p className="text-xs text-white/80">UV Index</p>
               </div>
             </div>
           </div>

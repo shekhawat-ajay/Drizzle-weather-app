@@ -10,26 +10,26 @@ export default function Header() {
     <header className="border-base-content/10 border-b pb-6">
       <div className="flex flex-col items-center gap-3">
         <h1
-          className={`text-6xl font-bold tracking-tight transition-all duration-500 ${
-            isAstronomy ? "text-amber-400" : "text-sky-400"
+          className={`text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight transition-all duration-500 ${
+            isAstronomy ? "text-accent" : "text-primary"
           }`}
           style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           Drizzle
         </h1>
-        <p className="text-base-content/50 text-sm transition-colors duration-300">
+        <p className="text-base-content/60 text-xs sm:text-sm text-center px-2 transition-colors duration-300">
           {isAstronomy
             ? "Explore the cosmos & celestial events"
             : "Real-time weather updates and forecasts"}
         </p>
-        <nav className="bg-base-200/50 mt-2 flex gap-1 rounded-lg p-1 transition-colors duration-300">
+        <nav aria-label="Primary" className="bg-base-200/50 mt-2 flex gap-1 rounded-lg p-1 transition-colors duration-300">
           <NavLink
             to="/"
             end
             className={({ isActive }) =>
               `flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? "bg-sky-500/15 text-sky-400 shadow-sm"
+                  ? "bg-primary/15 text-primary shadow-sm"
                   : "text-base-content/50 hover:text-base-content/80"
               }`
             }
@@ -42,7 +42,7 @@ export default function Header() {
             className={({ isActive }) =>
               `flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? "bg-amber-400/15 text-amber-400 shadow-sm"
+                  ? "bg-accent/15 text-accent shadow-sm"
                   : "text-base-content/50 hover:text-base-content/80"
               }`
             }
@@ -55,4 +55,3 @@ export default function Header() {
     </header>
   );
 }
-

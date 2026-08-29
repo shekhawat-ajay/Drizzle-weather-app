@@ -3,11 +3,11 @@ import { z } from "zod";
 export const CurrentWeatherSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
-  generationtimeMs: z.number(),
-  utcOffsetSeconds: z.number(),
+  generationtimeMs: z.number().optional(),
+  utcOffsetSeconds: z.number().optional(),
   timezone: z.string(),
-  timezoneAbbreviation: z.string(),
-  elevation: z.number(),
+  timezoneAbbreviation: z.string().optional(),
+  elevation: z.number().optional(),
   currentUnits: z.object({
     time: z.string(),
     interval: z.string(),
@@ -31,19 +31,19 @@ export const CurrentWeatherSchema = z.object({
     windSpeed10M: z.number(),
     windDirection10M: z.number(),
     uvIndex: z.number(),
-  }),
-});
+  }).passthrough(),
+}).passthrough();
 
 export type CurrentWeatherType = z.infer<typeof CurrentWeatherSchema>;
 
 export const DailyForecastSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
-  generationtimeMs: z.number(),
-  utcOffsetSeconds: z.number(),
+  generationtimeMs: z.number().optional(),
+  utcOffsetSeconds: z.number().optional(),
   timezone: z.string(),
-  timezoneAbbreviation: z.string(),
-  elevation: z.number(),
+  timezoneAbbreviation: z.string().optional(),
+  elevation: z.number().optional(),
   dailyUnits: z.object({
     time: z.string(),
     weatherCode: z.string(),
@@ -71,19 +71,19 @@ export const DailyForecastSchema = z.object({
     windDirection10mDominant: z.array(z.number()),
     windSpeed10mMax: z.array(z.number()),
     sunshineDuration: z.array(z.number()),
-  }),
-});
+  }).passthrough(),
+}).passthrough();
 
 export type DailyForecastType = z.infer<typeof DailyForecastSchema>;
 
 export const AirQualitySchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
-  generationtimeMs: z.number(),
-  utcOffsetSeconds: z.number(),
+  generationtimeMs: z.number().optional(),
+  utcOffsetSeconds: z.number().optional(),
   timezone: z.string(),
-  timezoneAbbreviation: z.string(),
-  elevation: z.number(),
+  timezoneAbbreviation: z.string().optional(),
+  elevation: z.number().optional(),
   hourlyUnits: z.object({
     time: z.string(),
     pm10: z.string(),
@@ -107,19 +107,19 @@ export const AirQualitySchema = z.object({
     ozone: z.array(z.number().nullable()),
     europeanAqi: z.array(z.number().nullable()),
     usAqi: z.array(z.number().nullable()),
-  }),
-});
+  }).passthrough(),
+}).passthrough();
 
 export type AirQualityType = z.infer<typeof AirQualitySchema>;
 
 export const HourlyForecastSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
-  generationtimeMs: z.number(),
-  utcOffsetSeconds: z.number(),
+  generationtimeMs: z.number().optional(),
+  utcOffsetSeconds: z.number().optional(),
   timezone: z.string(),
-  timezoneAbbreviation: z.string(),
-  elevation: z.number(),
+  timezoneAbbreviation: z.string().optional(),
+  elevation: z.number().optional(),
   minutely15Units: z.object({
     time: z.string(),
     temperature2M: z.string(),
@@ -161,7 +161,53 @@ export const HourlyForecastSchema = z.object({
     surfacePressure: z.array(z.number()),
     windSpeed10M: z.array(z.number()),
     temperature2M: z.array(z.number()),
-  }).optional(),
-});
+  }).passthrough().optional(),
+}).passthrough();
 
 export type HourlyForecastType = z.infer<typeof HourlyForecastSchema>;
+
+export const CombinedForecastSchema = z.object({
+  latitude: z.number(),
+  longitude: z.number(),
+  generationtimeMs: z.number().optional(),
+  utcOffsetSeconds: z.number().optional(),
+  timezone: z.string(),
+  timezoneAbbreviation: z.string().optional(),
+  elevation: z.number().optional(),
+  currentUnits: z
+    .object({
+      time: z.string(),
+      interval: z.string(),
+      temperature2M: z.string(),
+      relativeHumidity2M: z.string(),
+      apparentTemperature: z.string(),
+      isDay: z.string(),
+      weatherCode: z.string(),
+      windSpeed10M: z.string(),
+      windDirection10M: z.string(),
+      uvIndex: z.string(),
+    })
+    .optional(),
+  current: z
+    .object({
+      time: z.string(),
+      interval: z.number(),
+      temperature2M: z.number(),
+      relativeHumidity2M: z.number(),
+      apparentTemperature: z.number(),
+      isDay: z.number(),
+      weatherCode: z.number(),
+      windSpeed10M: z.number(),
+      windDirection10M: z.number(),
+      uvIndex: z.number(),
+    })
+    .optional(),
+  dailyUnits: DailyForecastSchema.shape.dailyUnits.optional(),
+  daily: DailyForecastSchema.shape.daily.optional(),
+  minutely15Units: HourlyForecastSchema.shape.minutely15Units.optional(),
+  minutely15: HourlyForecastSchema.shape.minutely15.optional(),
+  hourlyUnits: HourlyForecastSchema.shape.hourlyUnits.optional(),
+  hourly: HourlyForecastSchema.shape.hourly.optional(),
+}).passthrough();
+
+export type CombinedForecastType = z.infer<typeof CombinedForecastSchema>;

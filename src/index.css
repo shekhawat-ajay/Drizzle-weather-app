@@ -107,22 +107,27 @@
   --noise: 0;
 }
 
-/* ─── Astronomy Theme ─── */
+/* ─── Astronomy Theme — distinct from Weather (violet + warm amber) ───
+   Weather: sky-blue 260°, cool slate
+   Astronomy: deep plum 285° + amber accent 75° — used exclusively via
+   primary (violet) / accent (amber). No teal/cyan/rose here. */
 [data-app-theme="astronomy"] {
-  --color-base-100: oklch(10% 0.035 290);
-  --color-base-200: oklch(15% 0.032 290);
-  --color-base-300: oklch(20% 0.028 290);
-  --color-base-content: oklch(92% 0.01 280);
-  --color-primary: oklch(70% 0.18 300);
-  --color-primary-content: oklch(97% 0.01 300);
-  --color-secondary: oklch(55% 0.06 290);
-  --color-secondary-content: oklch(95% 0.01 290);
-  --color-accent: oklch(75% 0.15 60);
-  --color-accent-content: oklch(20% 0.02 60);
-  --color-neutral: oklch(20% 0.028 290);
-  --color-neutral-content: oklch(85% 0.01 280);
-  --color-info: oklch(65% 0.14 280);
-  --color-info-content: oklch(97% 0.015 280);
+  --color-base-100: oklch(11% 0.04 285);
+  --color-base-200: oklch(16% 0.038 285);
+  --color-base-300: oklch(22% 0.032 285);
+  --color-base-content: oklch(93% 0.01 285);
+  --color-primary: oklch(66% 0.19 285);
+  --color-primary-content: oklch(98% 0.01 285);
+  --color-secondary: oklch(58% 0.08 285);
+  --color-secondary-content: oklch(96% 0.01 285);
+  --color-accent: oklch(77% 0.16 75);
+  --color-accent-content: oklch(18% 0.02 75);
+  --color-neutral: oklch(22% 0.032 285);
+  --color-neutral-content: oklch(88% 0.01 285);
+  --color-info: oklch(66% 0.14 285);
+  --color-info-content: oklch(97% 0.015 285);
+  --color-warning: oklch(77% 0.16 75);
+  --color-warning-content: oklch(18% 0.02 75);
 }
 
 /* ─── Theme transition ─── */

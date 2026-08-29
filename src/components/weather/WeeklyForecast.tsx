@@ -18,13 +18,14 @@ import {
   getDateOnlyFromISO,
 } from "@/utils/formatters";
 import { cn } from "@/utils/cn";
+import ErrorRetry from "@/components/ErrorRetry";
 
 export default function WeeklyForecast() {
   const { location } = useContext(LocationContext) as unknown as {
     location: ResultType;
   };
   const { units } = useUnits();
-  const { data, isLoading, error } = useDailyForecast(
+  const { data, isLoading, error, mutate } = useDailyForecast(
     location.latitude,
     location.longitude,
   );
@@ -42,7 +43,13 @@ export default function WeeklyForecast() {
   // ── Helpers ───────────────────────────────────────────────
 
   const getWeekDay = (someDay: string) => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const tz = location.timezone ?? "UTC";
+    const todayStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
     const dateStr = getDateOnlyFromISO(someDay);
 
     const todayDate = new Date(todayStr + "T00:00:00Z");
@@ -68,9 +75,7 @@ export default function WeeklyForecast() {
   return (
     <div className="border-base-content/5 bg-base-200 relative rounded-xl border p-5">
       {error && (
-        <div className="flex h-full items-center justify-center py-8">
-          <p className="text-error text-sm">Something went wrong!</p>
-        </div>
+        <ErrorRetry message={(error as Error).message || "Failed to load weekly forecast."} onRetry={() => mutate?.()} />
       )}
 
       {isLoading && (
@@ -81,30 +86,31 @@ export default function WeeklyForecast() {
 
       {data && (
         <div>
-          <h3 className="text-base-content mb-4 text-lg font-semibold">
-            Weekly Forecast
-          </h3>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-base-content text-lg font-semibold">
+              Weekly Forecast
+            </h3>
+            <span className="text-base-content/30 hidden sm:inline text-xs">← scroll →</span>
+          </div>
 
-          <div className="scrollbar-thin flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 pt-4 px-2">
+          <div className="scrollbar-thin flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 pt-2 px-2 scroll-pb-2"
+               style={{ scrollbarGutter: "stable" as const }}>
+            <span className="sr-only">Scroll horizontally to see full week</span>
             {time?.map((date: string, index: number) => {
               const weather = getWeatherImage(weatherCode?.[index] ?? 0);
               const dayLabel = getWeekDay(date);
 
-              // Focus scale out of 10
+              // Focus: Today is primary, future days secondary, yesterday de-emphasized
               let focusClasses = "";
-              if (dayLabel === "Tomorrow") {
-                // 10/10 Focus
+              if (dayLabel === "Today") {
                 focusClasses =
                   "bg-primary/10 border-primary/40 ring-1 ring-primary/30 shadow-md z-10 opacity-100";
               } else if (dayLabel === "Yesterday") {
-                // 4/10 Focus
                 focusClasses =
                   "bg-transparent border-base-content/10 border-dashed opacity-40 grayscale-[0.8]";
-              } else if (dayLabel === "Today") {
-                // 6/10 Focus
-                focusClasses = "bg-base-300 border-base-content/5 opacity-70";
+              } else if (dayLabel === "Tomorrow") {
+                focusClasses = "bg-base-300 border-base-content/10 opacity-100";
               } else {
-                // 8/10 Focus (Rest of the week)
                 focusClasses = "bg-base-200 border-base-content/10 opacity-100 hover:bg-base-100";
               }
 
@@ -122,7 +128,7 @@ export default function WeeklyForecast() {
                   <p
                     className={cn(
                       "text-sm",
-                      dayLabel === "Tomorrow"
+                      dayLabel === "Today"
                         ? "font-bold text-primary"
                         : "font-medium"
                     )}

@@ -3,6 +3,11 @@ import type { UnitSystem, UnitsContextType } from "@/types/units";
 
 const STORAGE_KEY = "drizzle-units";
 
+/**
+ * Units are coupled: metric → °C + km/h + mm
+ *                  imperial → °F + mph + in
+ * Future: split into independent toggles if needed (temp, wind, precip).
+ */
 function getStoredUnits(): UnitSystem {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);

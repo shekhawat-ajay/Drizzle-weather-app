@@ -7,11 +7,11 @@ export default function SectionHeader({
 }: {
   icon: LucideIcon;
   label: string;
-  color: string;
+  color?: string;
 }) {
   return (
     <h3 className="text-base-content/60 mb-3 flex items-center gap-2 px-1 text-xs font-semibold tracking-wider uppercase">
-      <Icon size={14} className={color} />
+      <Icon size={14} className={color || "text-primary"} />
       {label}
     </h3>
   );
