@@ -92,7 +92,7 @@ export default function PlanetPositionArc({
     const sampleEndMs = windowEndMs + padMs;
     const spanMs = sampleEndMs - sampleStartMs;
 
-    const SAMPLES = 48;
+    const SAMPLES = 32;
     const curve: { timestamp: number; altitude: number }[] = [];
     let peakAltitude = positional.altitude;
     let minAltitude = positional.altitude;

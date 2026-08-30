@@ -1,5 +1,5 @@
 import { Info, type LucideIcon } from "lucide-react";
-import { type ReactNode } from "react";
+import { type ReactNode, memo } from "react";
 
 // Palette-only: primary (violet) / accent (amber) / muted
 const accentMap = {
@@ -60,7 +60,7 @@ interface AstroCardProps {
   accent?: AccentColor;
 }
 
-export default function AstroCard({
+function AstroCardInner({
   icon: Icon,
   imageSrc,
   imageSize = "sm",
@@ -86,6 +86,7 @@ export default function AstroCard({
         >
           {imageSrc ? (
             <img
+              loading="lazy"
               src={imageSrc}
               alt={title}
               className={isLg ? "size-14 rounded-full object-cover" : "h-7 w-7"}
@@ -123,3 +124,5 @@ export default function AstroCard({
     </div>
   );
 }
+
+export default memo(AstroCardInner);

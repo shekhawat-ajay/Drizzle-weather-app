@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, lazy, Suspense } from "react";
 import { LocationContext } from "@/context/LocationContext";
 import type { ResultType } from "@/schema/location";
 import useCombinedForecast from "@/hooks/weather/useCombinedForecast";
@@ -7,7 +7,8 @@ import HourlyForecast from "@/components/weather/HourlyForecast";
 import TodaysForecast from "@/components/weather/TodayWeather";
 import AirQuality from "@/components/weather/AirQuality";
 import WeeklyForecast from "@/components/weather/WeeklyForecast";
-import LocationMap from "@/components/weather/LocationMap";
+
+const LocationMap = lazy(() => import("@/components/weather/LocationMap"));
 
 function WeatherSkeleton() {
   return (
@@ -48,7 +49,9 @@ export default function WeatherPage() {
         <WeeklyForecast />
       </div>
       <div className="col-span-12">
-        <LocationMap />
+        <Suspense fallback={<div className="h-[350px] rounded-xl skeleton" />}>
+          <LocationMap />
+        </Suspense>
       </div>
     </div>
   );

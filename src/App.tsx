@@ -1,4 +1,4 @@
-import { use, useEffect, useState, lazy, Suspense } from "react";
+import { use, useEffect, useState, lazy, Suspense, useMemo } from "react";
 import { Routes, Route, Navigate } from "react-router";
 import { ThemeProvider, useAppTheme } from "@/context/ThemeContext";
 import { UnitsProvider, useUnits } from "@/context/UnitsContext";
@@ -20,8 +20,15 @@ const NotFoundPage = lazy(() => import("@/pages/NotFoundPage.tsx"));
 
 function PageFallback() {
   return (
-    <div className="flex items-center justify-center py-16">
-      <span className="loading loading-spinner loading-lg text-base-content/30" />
+    <div className="grid grid-cols-12 gap-4 animate-pulse">
+      {/* Hero */}
+      <div className="col-span-12 h-32 rounded-xl bg-base-200 skeleton opacity-60" />
+      {/* Sub-nav */}
+      <div className="col-span-12 h-10 rounded-lg bg-base-200 skeleton opacity-40" />
+      {/* Content cards */}
+      <div className="col-span-12 h-64 rounded-xl bg-base-200 skeleton opacity-50" />
+      <div className="col-span-12 md:col-span-6 h-48 rounded-xl bg-base-200 skeleton opacity-50" />
+      <div className="col-span-12 md:col-span-6 h-48 rounded-xl bg-base-200 skeleton opacity-50" />
     </div>
   );
 }
@@ -149,8 +156,10 @@ function App() {
     }
   }, [location]);
 
+  const locationValue = useMemo(() => ({ location, setLocation }), [location]);
+
   return (
-    <LocationContext.Provider value={{ location, setLocation }}>
+    <LocationContext.Provider value={locationValue}>
       <ThemeProvider>
         <UnitsProvider>
           <main className="animate-fade-in mx-auto max-w-4xl px-4 py-6">
