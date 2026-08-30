@@ -8,10 +8,11 @@ import { getWindDirection } from "@/utils/maps/getWindDirection";
 import { cn } from "@/utils/cn";
 import { ResultType } from "@/schema/location";
 import { useUnits } from "@/context/UnitsContext";
-import { Eye } from "lucide-react";
+import { Eye, Star } from "lucide-react";
 import { convertTemp, convertWindSpeed, speedUnit, tempUnit } from "@/utils/unitConversions";
 import { fmtDateLong, fmtTimeFromISO, getNowAsUTC, parseAsUTC } from "@/utils/formatters";
 import ErrorRetry from "@/components/ErrorRetry";
+import useFavorites from "@/hooks/useFavorites";
 
 export default function CurrentWeather() {
   const { location } = useContext(LocationContext) as unknown as {
@@ -28,6 +29,8 @@ export default function CurrentWeather() {
   );
 
   const { name, country, admin1: state } = location;
+  const { isFav, toggle } = useFavorites();
+  const fav = isFav(location);
   const weatherInfo = data?.current;
 
   const {
@@ -108,7 +111,17 @@ export default function CurrentWeather() {
           {/* Location Info */}
           <div className="col-span-1 md:col-span-4 text-center md:text-left">
             <p className="text-xs text-white/70">{date}</p>
-            <h3 className="mt-1 text-2xl font-bold text-white">{name}</h3>
+            <div className="flex items-center justify-center md:justify-start gap-2 mt-1">
+              <h3 className="text-2xl font-bold text-white">{name}</h3>
+              <button
+                onClick={() => toggle(location)}
+                aria-label={fav ? "Remove from favorites" : "Add to favorites"}
+                title={fav ? "Remove favorite" : "Add favorite"}
+                className={`rounded-full p-1.5 transition ${fav ? "bg-white/20 text-yellow-300" : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"}`}
+              >
+                <Star size={16} fill={fav ? "currentColor" : "none"} />
+              </button>
+            </div>
             <p className="text-sm text-white/80">
               {state}, {country}
             </p>

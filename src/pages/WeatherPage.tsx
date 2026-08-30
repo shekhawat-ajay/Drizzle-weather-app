@@ -7,6 +7,7 @@ import HourlyForecast from "@/components/weather/HourlyForecast";
 import TodaysForecast from "@/components/weather/TodayWeather";
 import AirQuality from "@/components/weather/AirQuality";
 import WeeklyForecast from "@/components/weather/WeeklyForecast";
+import WeatherAlerts from "@/components/weather/WeatherAlerts";
 
 const LocationMap = lazy(() => import("@/components/weather/LocationMap"));
 
@@ -33,6 +34,9 @@ export default function WeatherPage() {
 
   return (
     <div className="grid grid-cols-12 gap-4">
+      <div className="col-span-12">
+        <WeatherAlerts />
+      </div>
       <div className="col-span-12">
         <CurrentWeather />
       </div>
