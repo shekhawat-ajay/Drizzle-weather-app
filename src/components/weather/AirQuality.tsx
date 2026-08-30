@@ -1,6 +1,6 @@
 import { LocationContext } from "@/context/LocationContext";
 import useAQI from "@/hooks/weather/useAQI";
-import { useContext } from "react";
+import { useContext, useMemo } from "react";
 import {
   getNaqiCategoryStyle,
   getEuAqiCategory,
@@ -9,12 +9,14 @@ import {
 import { cn } from "@/utils/cn";
 import { ResultType } from "@/schema/location";
 import ErrorRetry from "@/components/ErrorRetry";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
+import { fmtTimeFromISO, parseAsUTC, getNowAsUTC } from "@/utils/formatters";
 
 export default function AirQuality() {
   const { location } = useContext(LocationContext) as unknown as {
     location: ResultType;
   };
-  const { data, isLoading, error, mutate } = useAQI(
+  const { data, raw, isLoading, error, mutate } = useAQI(
     location.latitude,
     location.longitude,
   );
@@ -29,6 +31,19 @@ export default function AirQuality() {
   const usAqi = data?.usAqi;
   const euCategory = euAqi != null ? getEuAqiCategory(euAqi) : null;
   const usCategory = usAqi != null ? getUsAqiCategory(usAqi) : null;
+
+  const sparkline = useMemo(() => {
+    if (!raw?.hourly?.time) return [];
+    const nowMs = getNowAsUTC(raw.timezone ?? "UTC");
+    const endMs = nowMs + 24 * 3600000;
+    const pts: { ts: number; time: string; eu: number | null; us: number | null }[] = [];
+    for (let i = 0; i < raw.hourly.time.length; i++) {
+      const ms = parseAsUTC(raw.hourly.time[i]!).getTime();
+      if (ms < nowMs - 3600000 || ms > endMs) continue;
+      pts.push({ ts: ms, time: raw.hourly.time[i]!, eu: raw.hourly.europeanAqi[i] ?? null, us: raw.hourly.usAqi[i] ?? null });
+    }
+    return pts;
+  }, [raw]);
 
   return (
     <div className="border-base-content/5 bg-base-200 relative h-full rounded-xl border p-5">
@@ -221,6 +236,51 @@ export default function AirQuality() {
               </table>
             </div>
           </div>
+
+          {/* AQI trend — 24h EU + US with NAQI reference */}
+          {sparkline.length > 1 ? (
+            <div className="mt-6">
+              <div className="flex items-center gap-3 mb-2">
+                <p className="text-base-content/50 text-xs font-medium uppercase tracking-wider">AQI trend — 24h</p>
+                <span className="flex items-center gap-1 text-[10px]"><span className="h-2 w-2 rounded-full bg-violet-400" /> EU</span>
+                <span className="flex items-center gap-1 text-[10px]"><span className="h-2 w-2 rounded-full bg-amber-400" /> US</span>
+                <span className="flex items-center gap-1 text-[10px] text-base-content/50"><span className="h-0.5 w-3 bg-primary/40" /> NAQI {data.aqi}</span>
+              </div>
+              <div className="h-[90px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={sparkline} margin={{ top: 4, right: 6, left: 6, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="aqiGradEU" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="aqiGradUS" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.30} />
+                        <stop offset="95%" stopColor="#fbbf24" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="ts" type="number" domain={["dataMin","dataMax"]} hide />
+                    <YAxis hide domain={[0, "dataMax + 2"]} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const p = payload[0]!.payload as { time: string; eu: number | null; us: number | null };
+                        return (
+                          <div className="bg-base-300 border border-base-content/10 rounded-lg px-2 py-1 text-xs shadow">
+                            <p className="text-base-content/60">{fmtTimeFromISO(p.time)}</p>
+                            <p className="font-mono font-semibold text-violet-400">EU {p.eu ?? "--"}</p>
+                            <p className="font-mono font-semibold text-amber-400">US {p.us ?? "--"}</p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Area type="monotone" dataKey="eu" stroke="#a78bfa" strokeWidth={1.5} fill="url(#aqiGradEU)" dot={false} isAnimationActive={false} />
+                    <Area type="monotone" dataKey="us" stroke="#fbbf24" strokeWidth={1.2} fill="url(#aqiGradUS)" dot={false} isAnimationActive={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

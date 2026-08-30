@@ -6,8 +6,10 @@ import SearchBox from "@/components/SearchBox";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import FavoritesBar from "@/components/FavoritesBar";
 import { ResultType } from "@/schema/location";
 import { LocationContext } from "@/context/LocationContext";
+import { FavoritesProvider } from "@/context/FavoritesContext";
 
 const WeatherPage = lazy(() => import("@/pages/WeatherPage.tsx"));
 const AstronomyPage = lazy(() => import("@/pages/AstronomyPage.tsx"));
@@ -17,6 +19,7 @@ const MoonPage = lazy(() => import("@/pages/MoonPage.tsx"));
 const PlanetPage = lazy(() => import("@/pages/PlanetPage.tsx"));
 const ISSPage = lazy(() => import("@/pages/ISSPage.tsx"));
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage.tsx"));
+const ComparePage = lazy(() => import("@/pages/ComparePage.tsx"));
 
 function PageFallback() {
   return (
@@ -160,32 +163,36 @@ function App() {
 
   return (
     <LocationContext.Provider value={locationValue}>
-      <ThemeProvider>
-        <UnitsProvider>
-          <main className="animate-fade-in mx-auto max-w-4xl px-4 py-6">
-            <Header />
-            <SearchRow />
-            <ErrorBoundary>
-              <Suspense fallback={<PageFallback />}>
-                <Routes>
-                  <Route path="/" element={<WeatherPage />} />
-                  <Route path="/astronomy" element={<AstronomyPage />}>
-                    <Route index element={<Navigate to="overview" replace />} />
-                    <Route path="overview" element={<OverviewPage />} />
-                    <Route path="sun" element={<SunPage />} />
-                    <Route path="moon" element={<MoonPage />} />
-                    <Route path="iss" element={<ISSPage />} />
-                    <Route path=":planet" element={<PlanetPage />} />
-                  </Route>
-                  <Route path="/404" element={<NotFoundPage />} />
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
-              </Suspense>
-            </ErrorBoundary>
-            <Footer />
-          </main>
-        </UnitsProvider>
-      </ThemeProvider>
+      <FavoritesProvider>
+        <ThemeProvider>
+          <UnitsProvider>
+            <main className="animate-fade-in mx-auto max-w-4xl px-4 py-6">
+              <Header />
+              <SearchRow />
+              <FavoritesBar />
+              <ErrorBoundary>
+                <Suspense fallback={<PageFallback />}>
+                  <Routes>
+                    <Route path="/" element={<WeatherPage />} />
+                    <Route path="/compare" element={<ComparePage />} />
+                    <Route path="/astronomy" element={<AstronomyPage />}>
+                      <Route index element={<Navigate to="overview" replace />} />
+                      <Route path="overview" element={<OverviewPage />} />
+                      <Route path="sun" element={<SunPage />} />
+                      <Route path="moon" element={<MoonPage />} />
+                      <Route path="iss" element={<ISSPage />} />
+                      <Route path=":planet" element={<PlanetPage />} />
+                    </Route>
+                    <Route path="/404" element={<NotFoundPage />} />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
+              <Footer />
+            </main>
+          </UnitsProvider>
+        </ThemeProvider>
+      </FavoritesProvider>
     </LocationContext.Provider>
   );
 }

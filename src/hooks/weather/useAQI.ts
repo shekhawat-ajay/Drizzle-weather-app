@@ -14,24 +14,26 @@ export default function useAQI(latitude: number, longitude: number) {
     fetcher,
   );
 
-  const { naqiResult, calcError } = useMemo(() => {
-    if (!data) return { naqiResult: undefined, calcError: undefined };
+  const { naqiResult, calcError, raw } = useMemo(() => {
+    if (!data) return { naqiResult: undefined, calcError: undefined, raw: undefined as AirQualityType | undefined };
     try {
       const camelCaseData = toCamelCase(data);
       const parsedData: AirQualityType = AirQualitySchema.parse(camelCaseData);
       const result = calculateNAQI(parsedData as unknown as AirQualityHourlyData);
-      return { naqiResult: result, calcError: undefined };
+      return { naqiResult: result, calcError: undefined, raw: parsedData };
     } catch (e) {
       console.error("NAQI Calculation Failed:", e);
       return {
         naqiResult: undefined,
         calcError: e instanceof Error ? e.message : "Unknown error computing NAQI",
+        raw: undefined,
       };
     }
   }, [data]);
 
   return {
     data: naqiResult,
+    raw,
     isLoading,
     error: (error as Error | undefined) || (calcError ? new Error(calcError) : undefined),
     mutate,

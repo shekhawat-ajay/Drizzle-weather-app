@@ -22,7 +22,10 @@ import "leaflet/dist/leaflet.css";
 
 import SectionHeader from "@/components/astronomy/SectionHeader";
 import AstroCard from "@/components/astronomy/AstroCard";
+import ISSPassPrediction from "@/components/astronomy/ISSPassPrediction";
 import useISS, { useISSTrajectory } from "@/hooks/useISS";
+import { useOutletContext } from "react-router";
+import type { AstronomyOutletContext } from "@/pages/AstronomyPage";
 
 const TILE_LAYERS = {
   Street: {
@@ -127,6 +130,13 @@ export default function ISSPage() {
   const { points } = useISSTrajectory();
   const [activeTile, setActiveTile] = useState<TileKey>("Street");
   const [showPicker, setShowPicker] = useState(false);
+  let passLat = 28.6, passLon = 77.2, passTz: string | undefined;
+  try {
+    const ctx = useOutletContext<AstronomyOutletContext>();
+    passLat = ctx.location.latitude;
+    passLon = ctx.location.longitude;
+    passTz = ctx.tz;
+  } catch { /* standalone */ }
 
   // Split trajectory into segments if it crosses the Date Line
   const pathSegments = useMemo(() => {
@@ -159,7 +169,7 @@ export default function ISSPage() {
 
   return (
     <div className="space-y-4">
-      <SectionHeader icon={Satellite} label="ISS Live Tracking" color="text-sky-400" />
+      <SectionHeader icon={Satellite} label="ISS Live Tracking" color="text-primary" />
 
       {/* ── Live Map ── */}
       <div className="relative h-[400px] w-full overflow-hidden rounded-2xl border border-primary/10 bg-base-300 sm:h-[500px]">
@@ -272,6 +282,8 @@ export default function ISSPage() {
           accent={data?.visibility === "eclipsed" ? "violet" : "amber"}
         />
       </div>
+
+      <ISSPassPrediction latitude={passLat} longitude={passLon} timezone={passTz} />
 
       {/* ── Mission Details ── */}
       <div className="bg-base-300 rounded-xl border border-primary/10 p-4">
