@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import FavoritesBar from "@/components/FavoritesBar";
+import PushAlertsToggle from "@/components/PushAlertsToggle";
 import { ResultType } from "@/schema/location";
 import { LocationContext } from "@/context/LocationContext";
 import { FavoritesProvider } from "@/context/FavoritesContext";
@@ -112,9 +113,10 @@ function SearchRow() {
       <div className="w-full max-w-lg">
         <SearchBox />
       </div>
-      <div className="flex items-center gap-2 min-h-[36px]">
+      <div className="flex flex-wrap items-center justify-center gap-2 min-h-[36px]">
         <LocationClock timezone={location.timezone ?? "UTC"} />
         <UnitsToggle hidden={!isWeather} />
+        <PushAlertsToggle />
       </div>
     </div>
   );

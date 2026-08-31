@@ -1,19 +1,22 @@
 import { useOutletContext } from "react-router";
-import { Clock, CalendarDays, Eclipse, Globe } from "lucide-react";
+import { CalendarDays, Eclipse, Globe } from "lucide-react";
 import SectionHeader from "@/components/astronomy/SectionHeader";
 import AstroCard from "@/components/astronomy/AstroCard";
 import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import CelestialTable from "@/components/astronomy/CelestialTable";
 import NightSky from "@/components/astronomy/NightSky";
 import StargazingBanner from "@/components/astronomy/StargazingBanner";
-import { fmtTime } from "@/utils/formatters";
+import PlanetaryEventsTimeline from "@/components/astronomy/PlanetaryEventsTimeline";
+import MeteorShowers from "@/components/astronomy/MeteorShowers";
 import type { AstronomyOutletContext } from "@/pages/AstronomyPage";
 
 export default function OverviewPage() {
   const { tz, astronomyData, celestialData } = useOutletContext<AstronomyOutletContext>();
-  const { sun, nextSeason, upcomingEclipses, stargazing, sunPosition } = astronomyData;
+  const { nextSeason, upcomingEclipses, stargazing, sunPosition } = astronomyData;
 
   const isDaytime = sunPosition.isAboveHorizon;
+  const nextSolar = upcomingEclipses.find((e) => e.kind === "solar") ?? null;
+  const nextLunar = upcomingEclipses.find((e) => e.kind === "lunar") ?? null;
 
   return (
     <div className="grid grid-cols-12 gap-4">
@@ -35,15 +38,15 @@ export default function OverviewPage() {
         <NightSky />
       </div>
 
-      {/* Upcoming — two equal cards, weather-style grid */}
-      <div className="col-span-12 md:col-span-6">
-        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5 h-full">
+      {/* Upcoming — consolidated: Season + Solar & Lunar eclipses */}
+      <div className="col-span-12">
+        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
           <SectionHeader
             icon={CalendarDays}
             label="Upcoming"
             color="text-primary"
           />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <AstroCard
               icon={CalendarDays}
               title="Next Season"
@@ -62,60 +65,64 @@ export default function OverviewPage() {
               info="Equinoxes mark when day and night are roughly equal. Solstices mark the longest and shortest days of the year."
               accent="primary"
             />
-            <AstroCard
-              icon={Clock}
-              title="Twilight"
-              value={`Nautical ${fmtTime(sun.nauticalDusk, tz)}`}
-              sub={`Astronomical ${fmtTime(sun.astronomicalDusk, tz)}`}
-              badge={
-                <CountdownBadge
-                  target={sun.nauticalDusk}
-                  className="bg-primary/12 text-primary"
-                />
-              }
-              info="Nautical twilight is when the horizon becomes difficult to distinguish. Astronomical twilight is when it's dark enough to see faint stars."
-              accent="primary"
-            />
+            {nextSolar ? (
+              <AstroCard
+                icon={Eclipse}
+                title={`Solar — ${nextSolar.type}`}
+                value={nextSolar.peak.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+                sub={nextSolar.isLocal ? "Visible locally" : "Not visible locally"}
+                badge={
+                  <CountdownBadge
+                    target={nextSolar.peak}
+                    className={nextSolar.isLocal ? "bg-accent/12 text-accent" : "bg-base-content/10 text-base-content/50"}
+                  />
+                }
+                accent={nextSolar.isLocal ? "accent" : "muted"}
+              />
+            ) : (
+              <div className="rounded-xl border border-base-content/5 bg-base-300 p-5 flex items-center justify-center">
+                <p className="text-base-content/40 text-sm">No upcoming solar eclipse</p>
+              </div>
+            )}
+            {nextLunar ? (
+              <AstroCard
+                icon={Eclipse}
+                title={`Lunar — ${nextLunar.type}`}
+                value={nextLunar.peak.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+                sub={nextLunar.isLocal ? "Visible locally" : "Not visible locally"}
+                badge={
+                  <CountdownBadge
+                    target={nextLunar.peak}
+                    className={nextLunar.isLocal ? "bg-primary/12 text-primary" : "bg-base-content/10 text-base-content/50"}
+                  />
+                }
+                accent={nextLunar.isLocal ? "primary" : "muted"}
+              />
+            ) : (
+              <div className="rounded-xl border border-base-content/5 bg-base-300 p-5 flex items-center justify-center">
+                <p className="text-base-content/40 text-sm">No upcoming lunar eclipse</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="col-span-12 md:col-span-6">
-        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5 h-full">
-          <SectionHeader
-            icon={Eclipse}
-            label="Visible Eclipses"
-            color="text-primary"
-          />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {upcomingEclipses
-              .filter((e) => e.isLocal)
-              .slice(0, 2)
-              .map((eclipse) => (
-                <AstroCard
-                  key={`${eclipse.type}-${eclipse.kind}-${eclipse.peak.getTime()}`}
-                  icon={Eclipse}
-                  title={`${eclipse.type} ${eclipse.kind} Eclipse`}
-                  value={eclipse.peak.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                  badge={
-                    <CountdownBadge
-                      target={eclipse.peak}
-                      className="bg-accent/12 text-accent"
-                    />
-                  }
-                  accent="accent"
-                />
-              ))}
-            {upcomingEclipses.filter((e) => e.isLocal).length === 0 ? (
-              <p className="text-base-content/50 text-sm">
-                No visible eclipses expected soon.
-              </p>
-            ) : null}
-          </div>
-        </div>
+      {/* Planetary Events Timeline */}
+      <div className="col-span-12">
+        <PlanetaryEventsTimeline />
+      </div>
+
+      {/* Meteor Showers */}
+      <div className="col-span-12">
+        <MeteorShowers />
       </div>
     </div>
   );

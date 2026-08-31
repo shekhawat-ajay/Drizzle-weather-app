@@ -88,14 +88,14 @@ export default function WeeklyForecast() {
         <div>
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-base-content text-lg font-semibold">
-              Weekly Forecast
+              14-Day Forecast
             </h3>
             <span className="text-base-content/30 hidden sm:inline text-xs">← scroll →</span>
           </div>
 
           <div className="scrollbar-thin flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 pt-2 px-2 scroll-pb-2"
                style={{ scrollbarGutter: "stable" as const }}>
-            <span className="sr-only">Scroll horizontally to see full week</span>
+            <span className="sr-only">Scroll horizontally to see 14 days</span>
             {time?.map((date: string, index: number) => {
               const weather = getWeatherImage(weatherCode?.[index] ?? 0);
               const dayLabel = getWeekDay(date);
