@@ -55,6 +55,8 @@ export default function useAstronomy(
   }, [tz]);
 
   // ── Tier 0: STATIC data (compute once per location) ──
+  // NOTE: stargazing is computed in the combined tier below so it can use
+  // live sun/moon altitudes — the old static path disagreed with NightSky.
   const staticData = useMemo(() => {
     const now = new Date();
     const sun = calcSunData(latitude, longitude, todayStart);
@@ -63,12 +65,6 @@ export default function useAstronomy(
     const lunarEclipseInfo = getNextLunarEclipse(todayStart);
     const supermoonInfo = getNextSupermoon(todayStart);
     const nextSeason = calcNextSeason(now);
-    const stargazing = getStargazingQuality(
-      moon.illuminationFraction,
-      sun.sunset,
-      now,
-      cloudCover
-    );
     const upcomingEclipses = calcUpcomingEclipses(latitude, longitude, now);
 
     return {
@@ -78,10 +74,9 @@ export default function useAstronomy(
       lunarEclipseInfo,
       supermoonInfo,
       nextSeason,
-      stargazing,
       upcomingEclipses,
     };
-  }, [latitude, longitude, todayStart, cloudCover]);
+  }, [latitude, longitude, todayStart]);
 
   // ── Tier 2: POSITION data (refreshes every 5 min) ──
   const computePositions = useCallback(() => {
@@ -118,12 +113,21 @@ export default function useAstronomy(
     return () => clearInterval(id);
   }, [computePositions]);
 
-  // ── Combine all tiers ──
-  return useMemo(
-    () => ({
+  // ── Combine all tiers + unified stargazing (uses live altitudes) ──
+  return useMemo(() => {
+    const now = new Date();
+    const stargazing = getStargazingQuality(
+      staticData.moon.illuminationFraction,
+      staticData.sun.sunset,
+      now,
+      cloudCover,
+      positions.moonPosition.altitude,
+      positions.sunPosition.altitude,
+    );
+    return {
       ...staticData,
       ...positions,
-    }),
-    [staticData, positions],
-  );
+      stargazing,
+    };
+  }, [staticData, positions, cloudCover]);
 }

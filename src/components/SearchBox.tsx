@@ -183,7 +183,7 @@ export default function SearchBox() {
       onBlur={handleBlur}
     >
       <form onSubmit={handleSearch} className="flex w-full justify-center">
-        <label className="border-base-content/10 bg-base-200 focus-within:border-primary/40 focus-within:ring-primary/20 flex w-full max-w-lg items-center gap-2 rounded-lg border px-4 py-2.5 transition-all duration-200 focus-within:ring-2">
+        <label className="input w-full max-w-lg">
           {isLoading ? (
             <span className="loading loading-spinner loading-sm text-base-content/40"></span>
           ) : (
@@ -216,7 +216,7 @@ export default function SearchBox() {
             aria-controls="search-results"
             aria-autocomplete="list"
             role="combobox"
-            className="placeholder:text-base-content/30 w-full border-none bg-transparent text-sm outline-none"
+            className="grow bg-transparent text-sm outline-none placeholder:text-base-content/30"
           />
         </label>
       </form>
@@ -287,7 +287,7 @@ export default function SearchBox() {
                 try { localStorage.removeItem(RECENTS_KEY); } catch { /* ignore */ }
                 setRecents([]);
               }}
-              className="text-base-content/30 hover:text-base-content/60 text-xs"
+              className="btn btn-ghost btn-xs"
             >
               Clear
             </button>
@@ -297,7 +297,7 @@ export default function SearchBox() {
               <button
                 key={r.id}
                 onClick={() => handleSelectLocation(r)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-base-200 hover:bg-base-100 border border-base-content/5 px-3 py-1 text-xs text-base-content/70 transition-colors"
+                className="badge badge-outline gap-1.5"
               >
                 <MapPin className="size-3 opacity-60" />
                 {r.name}{r.admin1 ? `, ${r.admin1}` : ""}

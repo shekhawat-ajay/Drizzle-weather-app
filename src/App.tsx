@@ -26,13 +26,13 @@ function PageFallback() {
   return (
     <div className="grid grid-cols-12 gap-4 animate-pulse">
       {/* Hero */}
-      <div className="col-span-12 h-32 rounded-xl bg-base-200 skeleton opacity-60" />
+      <div className="col-span-12 h-32 rounded-xl skeleton opacity-60" />
       {/* Sub-nav */}
-      <div className="col-span-12 h-10 rounded-lg bg-base-200 skeleton opacity-40" />
+      <div className="col-span-12 h-10 rounded-lg skeleton opacity-40" />
       {/* Content cards */}
-      <div className="col-span-12 h-64 rounded-xl bg-base-200 skeleton opacity-50" />
-      <div className="col-span-12 md:col-span-6 h-48 rounded-xl bg-base-200 skeleton opacity-50" />
-      <div className="col-span-12 md:col-span-6 h-48 rounded-xl bg-base-200 skeleton opacity-50" />
+      <div className="col-span-12 h-64 rounded-xl skeleton opacity-50" />
+      <div className="col-span-12 md:col-span-6 h-48 rounded-xl skeleton opacity-50" />
+      <div className="col-span-12 md:col-span-6 h-48 rounded-xl skeleton opacity-50" />
     </div>
   );
 }
@@ -52,7 +52,7 @@ function UnitsToggle({ hidden }: { hidden?: boolean }) {
     >
       <span
         className={`text-[11px] font-medium transition-colors duration-200 ${
-          !isImperial ? "text-sky-400" : "text-base-content/40"
+          !isImperial ? "text-primary" : "text-base-content/40"
         }`}
       >
         °C
@@ -66,7 +66,7 @@ function UnitsToggle({ hidden }: { hidden?: boolean }) {
       />
       <span
         className={`text-[11px] font-medium transition-colors duration-200 ${
-          isImperial ? "text-sky-400" : "text-base-content/40"
+          isImperial ? "text-primary" : "text-base-content/40"
         }`}
       >
         °F

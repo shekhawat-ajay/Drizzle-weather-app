@@ -8,16 +8,16 @@ export default function MeteorShowers() {
   const upcoming = getNextShowers(3);
 
   return (
-    <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+    <div className="card bg-base-200 border border-base-content/5 p-5">
       <SectionHeader icon={Sparkles} label="Meteor Showers — Next Up" color="text-accent" />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {upcoming.map(({ shower, peakDate, active }) => (
           <div
             key={shower.name}
-            className={`relative overflow-hidden rounded-xl border p-4 flex flex-col ${active ? "bg-accent/10 border-accent/20" : "bg-base-300 border-base-content/5"}`}
+            className={`card relative overflow-hidden border p-4 ${active ? "bg-accent/10 border-accent/20" : "bg-base-300 border-base-content/5"}`}
           >
             {active ? (
-              <span className="absolute top-2 right-2 text-[10px] font-bold uppercase tracking-wider bg-accent text-accent-content px-1.5 py-0.5 rounded-full">
+              <span className="badge badge-accent absolute top-2 right-2">
                 Active
               </span>
             ) : null}
@@ -46,7 +46,7 @@ export default function MeteorShowers() {
               <p className="font-medium text-xs">Peak {fmtShortDate(peakDate)}</p>
             </div>
             <div className="mt-3">
-              <CountdownBadge target={peakDate} className={active ? "bg-accent/20 text-accent" : "bg-base-content/10 text-base-content/60"} />
+              <CountdownBadge target={peakDate} className={active ? "badge-accent" : "badge-ghost"} />
             </div>
           </div>
         ))}

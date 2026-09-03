@@ -27,7 +27,7 @@ export default function OverviewPage() {
 
       {/* Celestial table — full width card */}
       <div className="col-span-12">
-        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+        <div className="card bg-base-200 border border-base-content/5 p-5">
           <SectionHeader icon={Globe} label="Celestial Overview" color="text-primary" />
           <CelestialTable data={astronomyData} celestial={celestialData} timezone={tz} />
         </div>
@@ -40,7 +40,7 @@ export default function OverviewPage() {
 
       {/* Upcoming — consolidated: Season + Solar & Lunar eclipses */}
       <div className="col-span-12">
-        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+        <div className="card bg-base-200 border border-base-content/5 p-5">
           <SectionHeader
             icon={CalendarDays}
             label="Upcoming"
@@ -59,7 +59,7 @@ export default function OverviewPage() {
               badge={
                 <CountdownBadge
                   target={nextSeason.date}
-                  className="bg-primary/12 text-primary"
+                  className="badge-primary"
                 />
               }
               info="Equinoxes mark when day and night are roughly equal. Solstices mark the longest and shortest days of the year."
@@ -78,13 +78,13 @@ export default function OverviewPage() {
                 badge={
                   <CountdownBadge
                     target={nextSolar.peak}
-                    className={nextSolar.isLocal ? "bg-accent/12 text-accent" : "bg-base-content/10 text-base-content/50"}
+                    className={nextSolar.isLocal ? "badge-accent" : "badge-ghost"}
                   />
                 }
                 accent={nextSolar.isLocal ? "accent" : "muted"}
               />
             ) : (
-              <div className="rounded-xl border border-base-content/5 bg-base-300 p-5 flex items-center justify-center">
+              <div className="card border border-base-content/5 bg-base-300 p-5 items-center justify-center">
                 <p className="text-base-content/40 text-sm">No upcoming solar eclipse</p>
               </div>
             )}
@@ -101,13 +101,13 @@ export default function OverviewPage() {
                 badge={
                   <CountdownBadge
                     target={nextLunar.peak}
-                    className={nextLunar.isLocal ? "bg-primary/12 text-primary" : "bg-base-content/10 text-base-content/50"}
+                    className={nextLunar.isLocal ? "badge-primary" : "badge-ghost"}
                   />
                 }
                 accent={nextLunar.isLocal ? "primary" : "muted"}
               />
             ) : (
-              <div className="rounded-xl border border-base-content/5 bg-base-300 p-5 flex items-center justify-center">
+              <div className="card border border-base-content/5 bg-base-300 p-5 items-center justify-center">
                 <p className="text-base-content/40 text-sm">No upcoming lunar eclipse</p>
               </div>
             )}

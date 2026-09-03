@@ -54,12 +54,12 @@ export default function CountdownBadge({
 
   if (!result) return null;
 
-  const futureColors = className || "bg-amber-500/10 text-amber-400";
-  const pastColors = "bg-base-content/5 text-base-content/35";
+  const futureColors = className || "badge-accent";
+  const pastColors = "badge-ghost";
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+      className={`badge badge-xs gap-1 shrink-0 ${
         result.isFuture ? futureColors : pastColors
       }`}
     >

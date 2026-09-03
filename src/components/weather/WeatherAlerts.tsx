@@ -10,7 +10,7 @@ export default function WeatherAlerts() {
   const { data: daily } = useDailyForecast(location.latitude, location.longitude);
   const { data: current } = useCurrentWeather(location.latitude, location.longitude);
 
-  const alerts: { icon: React.ElementType; text: string; tone: string }[] = [];
+  const alerts: { icon: React.ElementType; text: string; kind: "info" | "warning" | "error" }[] = [];
 
   const d = daily?.daily;
   if (d) {
@@ -22,23 +22,23 @@ export default function WeatherAlerts() {
     const wind = d.windSpeed10mMax?.[i] ?? 0;
     const uv = d.uvIndexMax?.[i] ?? 0;
     const code = d.weatherCode?.[i] ?? 0;
-    if (prob >= 70) alerts.push({ icon: CloudRain, text: `High rain chance ${prob}% today`, tone: "border-sky-500/20 bg-sky-500/10 text-sky-300" });
-    if (wind >= 40) alerts.push({ icon: Wind, text: `Strong wind ${Math.round(wind)} km/h expected`, tone: "border-amber-500/20 bg-amber-500/10 text-amber-300" });
-    if (uv >= 8) alerts.push({ icon: Sun, text: `Very high UV index ${uv.toFixed(1)} — limit sun exposure`, tone: "border-orange-500/20 bg-orange-500/10 text-orange-300" });
-    if ([95, 96, 99].includes(code)) alerts.push({ icon: TriangleAlert, text: "Thunderstorm expected — stay indoors if possible", tone: "border-red-500/20 bg-red-500/10 text-red-300" });
+    if (prob >= 70) alerts.push({ icon: CloudRain, text: `High rain chance ${prob}% today`, kind: "info" });
+    if (wind >= 40) alerts.push({ icon: Wind, text: `Strong wind ${Math.round(wind)} km/h expected`, kind: "warning" });
+    if (uv >= 8) alerts.push({ icon: Sun, text: `Very high UV index ${uv.toFixed(1)} — limit sun exposure`, kind: "warning" });
+    if ([95, 96, 99].includes(code)) alerts.push({ icon: TriangleAlert, text: "Thunderstorm expected — stay indoors if possible", kind: "error" });
   }
 
   const w = current?.current;
   if (w && [95, 96, 99].includes(w.weatherCode) && !alerts.some(a => a.text.includes("Thunderstorm"))) {
-    alerts.push({ icon: TriangleAlert, text: "Current thunderstorm activity", tone: "border-red-500/20 bg-red-500/10 text-red-300" });
+    alerts.push({ icon: TriangleAlert, text: "Current thunderstorm activity", kind: "error" });
   }
 
   if (alerts.length === 0) return null;
 
   return (
     <div className="grid gap-2">
-      {alerts.map(({ icon: Icon, text, tone }, idx) => (
-        <div key={idx} className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${tone}`}>
+      {alerts.map(({ icon: Icon, text, kind }, idx) => (
+        <div key={idx} role="alert" className={`alert alert-${kind} sm:alert-horizontal text-sm`}>
           <Icon size={16} className="shrink-0" />
           <span>{text}</span>
         </div>

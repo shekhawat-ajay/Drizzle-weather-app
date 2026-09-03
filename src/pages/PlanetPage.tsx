@@ -56,7 +56,7 @@ export default function PlanetPage() {
   return (
     <div className="grid grid-cols-12 gap-4">
       <div className="col-span-12">
-        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+        <div className="card bg-base-200 border border-base-content/5 p-5">
           <SectionHeader
             icon={PlanetIcon}
             label={`${planetName} Overview`}
@@ -87,7 +87,7 @@ export default function PlanetPage() {
                  celestial.futureEvent?.timestamp ? (
                    <CountdownBadge
                      target={celestial.futureEvent.timestamp}
-                     className="bg-primary/12 text-primary"
+                     className="badge-primary"
                    />
                  ) : undefined
                }
@@ -103,9 +103,9 @@ export default function PlanetPage() {
               sub={`Azimuth: ${positional.azimuth.toFixed(1)}° (${fmtAzimuth(positional.azimuth)})`}
               badge={
                 isAbove ? (
-                  <span className="text-xs text-primary font-medium px-2 py-0.5 rounded-full bg-primary/12 uppercase tracking-wide">Above Horizon</span>
+                  <span className="badge badge-primary">Above Horizon</span>
                 ) : (
-                  <span className="text-xs text-base-content/40 font-medium px-2 py-0.5 rounded-full bg-base-content/5 uppercase tracking-wide">Below Horizon</span>
+                  <span className="badge badge-ghost">Below Horizon</span>
                 )
               }
               accent={isAbove ? "primary" : "muted"}
@@ -118,7 +118,7 @@ export default function PlanetPage() {
               sub={celestial.visibilityNote || "No visibility notes"}
               badge={
                 celestial.elongation !== null ? (
-                  <span className="inline-flex items-center gap-1 text-accent text-[10px] font-medium px-1.5 py-0.5 rounded bg-accent/12">
+                  <span className="badge badge-accent gap-1">
                     <Sun size={10} />
                     {celestial.elongation.toFixed(0)}° from Sun
                   </span>

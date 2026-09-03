@@ -7,15 +7,6 @@ interface StargazingBannerProps {
 }
 
 export default function StargazingBanner({ stargazing, isDaytime }: StargazingBannerProps) {
-  // Map index impacts to colors
-  const impactColor = (impact: string) => {
-    switch (impact) {
-      case "positive": return "text-primary bg-primary/12";
-      case "negative": return "text-accent bg-accent/12";
-      default: return "text-base-content/60 bg-base-300/50";
-    }
-  };
-
   const impactIcon = (impact: string) => {
     switch (impact) {
       case "positive": return <ArrowUp className="w-3 h-3" />;
@@ -49,13 +40,13 @@ export default function StargazingBanner({ stargazing, isDaytime }: StargazingBa
       {!isDaytime && stargazing.factors.length > 0 ? (
         <div className="flex flex-wrap gap-2 md:max-w-[40%] justify-start md:justify-end">
           {stargazing.factors.slice(0, 3).map((factor) => (
-            <div
+            <span
               key={factor.param}
-              className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium ${impactColor(factor.impact)}`}
+              className={`badge badge-xs ${factor.impact === "positive" ? "badge-primary" : factor.impact === "negative" ? "badge-accent" : "badge-ghost"}`}
             >
               {impactIcon(factor.impact)}
-              <span>{factor.param}</span>
-            </div>
+              {factor.param}
+            </span>
           ))}
         </div>
       ) : null}

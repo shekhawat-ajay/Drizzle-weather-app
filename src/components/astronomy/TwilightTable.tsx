@@ -125,9 +125,9 @@ export default function TwilightTable({
 
 
   return (
-    <div className="card rounded-2xl bg-base-200/50 shadow-sm border border-base-content/5 mt-6">
+    <div className="card bg-base-200/50 border border-base-content/5 mt-6">
       <div className="card-body p-0">
-        <div className="px-6 py-4 border-b border-base-content/10 bg-base-300/30 rounded-t-2xl">
+        <div className="px-6 py-4 border-b border-base-content/10 bg-base-300/30 rounded-t-box">
           <h2 className="text-sm font-semibold text-base-content tracking-wide uppercase">
             Twilight Phases
           </h2>
@@ -149,14 +149,14 @@ export default function TwilightTable({
                   key={r.id}
                   className={`
                     transition-colors duration-200 ease-in-out
-                    ${r.isActive ? "bg-amber-400/10" : "hover:bg-base-300/40"}
+                    ${r.isActive ? "bg-primary/10" : "hover:bg-base-300/40"}
                   `}
                 >
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-1.5 whitespace-nowrap">
                       <span
                         className={`font-medium ${
-                          r.isActive ? "text-amber-500" : "text-base-content"
+                          r.isActive ? "text-primary" : "text-base-content"
                         }`}
                       >
                         {r.name}

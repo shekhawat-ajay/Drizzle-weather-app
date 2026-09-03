@@ -22,30 +22,20 @@ export default function Header() {
             ? "Explore the cosmos & celestial events"
             : "Real-time weather updates and forecasts"}
         </p>
-        <nav aria-label="Primary" className="bg-base-200/50 mt-2 flex gap-1 rounded-lg p-1 transition-colors duration-300">
+        <nav role="tablist" aria-label="Primary" className="tabs tabs-box mt-2">
           <NavLink
             to="/"
             end
-            className={({ isActive }) =>
-              `flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 ${
-                isActive
-                  ? "bg-primary/15 text-primary shadow-sm"
-                  : "text-base-content/50 hover:text-base-content/80"
-              }`
-            }
+            role="tab"
+            className={({ isActive }) => `tab gap-1.5 ${isActive ? "tab-active" : ""}`}
           >
             <CloudSun size={16} />
             Weather
           </NavLink>
           <NavLink
             to="/astronomy"
-            className={({ isActive }) =>
-              `flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 ${
-                isActive
-                  ? "bg-accent/15 text-accent shadow-sm"
-                  : "text-base-content/50 hover:text-base-content/80"
-              }`
-            }
+            role="tab"
+            className={({ isActive }) => `tab gap-1.5 ${isActive ? "tab-active" : ""}`}
           >
             <Telescope size={16} />
             Astronomy

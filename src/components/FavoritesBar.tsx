@@ -24,7 +24,7 @@ export default function FavoritesBar() {
       {favs.map((f) => (
         <span
           key={f.id}
-          className="inline-flex items-center gap-1 rounded-full bg-base-200 border border-base-content/5 pl-3 pr-1 py-1 text-xs"
+          className="badge gap-1 py-3 pl-3"
         >
           <button
             onClick={() => handleSelect(f)}
@@ -45,7 +45,7 @@ export default function FavoritesBar() {
       {favs.length >= 2 ? (
         <Link
           to={`/compare?ids=${favs.slice(0, 2).map((f) => f.id).join(",")}`}
-          className="inline-flex items-center gap-1 rounded-full bg-primary/12 text-primary border border-primary/15 px-3 py-1 text-xs font-medium hover:bg-primary/20"
+          className="badge badge-primary gap-1"
         >
           <GitCompare size={12} /> Compare
         </Link>

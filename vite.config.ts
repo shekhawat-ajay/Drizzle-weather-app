@@ -28,6 +28,7 @@ export default defineConfig({
           if (id.includes("node_modules/recharts")) return "recharts";
           if (id.includes("node_modules/leaflet") || id.includes("node_modules/react-leaflet")) return "leaflet";
           if (id.includes("node_modules/astronomy-engine")) return "astronomy";
+          if (id.includes("node_modules/satellite.js")) return "satellite";
           if (id.includes("node_modules/axios") || id.includes("node_modules/swr")) return "utils";
         },
       },

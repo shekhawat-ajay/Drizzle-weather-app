@@ -28,7 +28,7 @@ export default function SunPage() {
   return (
     <div className="grid grid-cols-12 gap-4">
       <div className="col-span-12">
-        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+        <div className="card bg-base-200 border border-base-content/5 p-5">
           <SectionHeader icon={Sun} label="Sun" color="text-accent" />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <AstroCard
@@ -68,7 +68,7 @@ export default function SunPage() {
       </div>
 
       <div className="col-span-12">
-        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+        <div className="card bg-base-200 border border-base-content/5 p-5">
           <TwilightTable
             sun={sun}
             sunPosition={sunPosition}
@@ -80,11 +80,11 @@ export default function SunPage() {
 
       {astronomyData.upcomingEclipses.filter(e => e.kind === "solar").length > 0 ? (
         <div className="col-span-12">
-          <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+          <div className="card bg-base-200 border border-base-content/5 p-5">
             <SectionHeader icon={Eclipse} label="Upcoming Solar Eclipses" color="text-accent" />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mt-3">
               {astronomyData.upcomingEclipses.filter(e => e.kind === "solar").slice(0, 2).map((eclipse, i) => (
-                <div key={eclipse.peak.getTime()} className="rounded-xl border border-accent/15 bg-base-300 p-5">
+                <div key={eclipse.peak.getTime()} className="card border border-accent/15 bg-base-300 p-5">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <div className="bg-accent/12 p-2 rounded-lg text-accent">
@@ -95,7 +95,7 @@ export default function SunPage() {
                       </p>
                     </div>
                     {eclipse.isLocal ? (
-                      <div className="badge badge-sm bg-accent/15 text-accent border-accent/15">Visible Locally</div>
+                      <div className="badge badge-sm badge-accent">Visible Locally</div>
                     ) : null}
                   </div>
                   <p className="text-base-content text-xl font-semibold capitalize flex items-center gap-2">
@@ -105,7 +105,7 @@ export default function SunPage() {
                     {fmtShortDate(eclipse.peak)}
                   </p>
                   <div className="mt-1">
-                    <CountdownBadge target={eclipse.peak} className="bg-accent/12 text-accent" />
+                    <CountdownBadge target={eclipse.peak} className="badge-accent" />
                   </div>
                 </div>
               ))}
