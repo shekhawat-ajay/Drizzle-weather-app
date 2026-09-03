@@ -18,7 +18,7 @@ function CompareCard({ loc }: { loc: ResultType }) {
   const max = daily?.daily?.apparentTemperatureMax?.[idx];
   const min = daily?.daily?.apparentTemperatureMin?.[idx];
   return (
-    <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+    <div className="card bg-base-200 border border-base-content/5 p-5">
       <h3 className="font-semibold">{loc.name}<span className="text-base-content/50 font-normal">, {loc.admin1}</span></h3>
       <p className="text-base-content/50 text-xs">{loc.country}</p>
       <div className="mt-3 flex items-center gap-4">
@@ -51,7 +51,7 @@ export default function ComparePage() {
 
   if (favs.length < 2) {
     return (
-      <div className="rounded-xl border border-base-content/5 bg-base-200 p-8 text-center">
+      <div className="card border border-base-content/5 bg-base-200 p-8 text-center items-center">
         <p className="text-base-content/60 text-sm">Add at least 2 favorites to compare.</p>
         <p className="text-base-content/40 text-xs mt-1">Star cities from the current weather card.</p>
         <Link to="/" className="btn btn-sm btn-primary mt-4">Back to Weather</Link>
@@ -61,7 +61,7 @@ export default function ComparePage() {
 
   if (selected.length < 2) {
     return (
-      <div className="rounded-xl border border-base-content/5 bg-base-200 p-8 text-center">
+      <div className="card border border-base-content/5 bg-base-200 p-8 text-center items-center">
         <p className="text-base-content/60 text-sm">Select 2 favorites to compare.</p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           {favs.map((f) => (

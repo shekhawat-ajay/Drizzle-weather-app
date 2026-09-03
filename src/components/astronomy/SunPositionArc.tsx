@@ -18,11 +18,11 @@ interface SunPositionArcProps {
 
 const SUN_THEME: CelestialTheme = {
   bgGradient: "from-[#0a478c] to-[#042859]",
-  footerBorder: "border-sky-800/30",
-  tooltipBorder: "border-sky-800/50",
+  footerBorder: "border-primary/15",
+  tooltipBorder: "border-primary/20",
   tooltipBg: "#041a33",
-  tooltipDot: "bg-amber-400",
-  tooltipText: "text-sky-200",
+  tooltipDot: "bg-accent",
+  tooltipText: "text-base-content/70",
   arcStart: "#f59e0b",
   arcEnd: "#fbbf24",
   activeDotFill: "#fef3c7",
@@ -30,10 +30,10 @@ const SUN_THEME: CelestialTheme = {
   eventDotFill: "#fbbf24",
   subLabelColor: "#fbbf24",
   transitColor: "rgba(251,191,36,0.4)",
-  statusAbove: "text-amber-400 font-semibold",
-  statusBelow: "text-sky-300/60",
-  footerStatColor: "text-sky-200/50",
-  footerStatDim: "text-sky-200/40",
+  statusAbove: "text-accent font-semibold",
+  statusBelow: "text-base-content/40",
+  footerStatColor: "text-base-content/50",
+  footerStatDim: "text-base-content/40",
 };
 
 export default function SunPositionArc({
@@ -114,7 +114,7 @@ export default function SunPositionArc({
   } else if (altitude > -6) {
     status = {
       text: "Twilight",
-      colorClass: "text-indigo-300 font-medium",
+      colorClass: "text-primary font-medium",
     };
   } else {
     status = {

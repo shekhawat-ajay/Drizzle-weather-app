@@ -1,3 +1,5 @@
+import { TriangleAlert } from "lucide-react";
+
 type Props = {
   message?: string;
   onRetry?: () => void;
@@ -5,12 +7,15 @@ type Props = {
 };
 
 export default function ErrorRetry({ message, onRetry, variant = "dark" }: Props) {
-  const textClass = variant === "light" ? "text-white/90" : "text-error";
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-8">
-      <p className={`text-sm ${textClass}`}>{message || "Something went wrong!"}</p>
+    <div
+      role="alert"
+      className={`alert ${variant === "light" ? "alert-soft" : "alert-error"} my-4 sm:alert-horizontal`}
+    >
+      <TriangleAlert size={16} className="shrink-0" />
+      <span className="text-sm">{message || "Something went wrong!"}</span>
       {onRetry && (
-        <button onClick={onRetry} className="btn btn-xs btn-outline">
+        <button onClick={onRetry} className="btn btn-xs">
           Retry
         </button>
       )}

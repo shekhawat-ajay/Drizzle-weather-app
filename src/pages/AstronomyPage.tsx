@@ -67,7 +67,7 @@ export default function AstronomyPage() {
 
       {/* Location context */}
       <div className="flex items-center gap-2 px-1">
-        <div className="animate-pulse-soft h-1.5 w-1.5 rounded-full bg-violet-400" />
+        <div className="animate-pulse-soft h-1.5 w-1.5 rounded-full bg-primary" />
         <p className="text-base-content/40 text-xs">
           Showing data for{" "}
           <span className="text-base-content/70 font-medium">

@@ -76,9 +76,9 @@ function AstroCardInner({
 
   return (
     <div
-      className={`group relative overflow-visible rounded-xl border ${a.border} bg-base-300 hover:bg-base-200 p-5 transition-colors duration-200`}
+      className={`card group border ${a.border} bg-base-300 hover:bg-base-200 transition-colors duration-200`}
     >
-      <div className="flex items-start gap-4">
+      <div className="card-body flex-row items-start gap-4 p-5">
         <div
           className={`flex shrink-0 items-center justify-center rounded-lg ${a.iconBg} ${
             isLg ? "h-14 w-14 rounded-full" : "h-10 w-10"

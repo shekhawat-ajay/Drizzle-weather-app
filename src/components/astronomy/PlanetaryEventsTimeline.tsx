@@ -4,7 +4,7 @@ import CelestialIcon from "@/components/astronomy/CelestialIcon";
 import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import SectionHeader from "@/components/astronomy/SectionHeader";
 import { Orbit, CalendarDays, Eye, Star, Info, Sun } from "lucide-react";
-import { fmtShortDate, fmtTime } from "@/utils/formatters";
+import { fmtShortDate } from "@/utils/formatters";
 
 type EventKind = "Opposition" | "Conjunction" | "Max Elongation";
 
@@ -113,45 +113,42 @@ export default function PlanetaryEventsTimeline() {
   if (events.length === 0) return null;
 
   return (
-    <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+    <div className="card bg-base-200 border border-base-content/5 p-5">
       <SectionHeader icon={Orbit} label="Planetary Events — Next 12 Months" color="text-primary" />
-      <div className="relative">
-        <div className="absolute left-4 top-6 bottom-6 w-px bg-base-content/10 hidden sm:block" />
-        <div className="space-y-3">
-          {events.map((ev) => (
-            <div key={`${ev.planet}-${ev.kind}-${ev.date.toISOString()}`} className="relative flex gap-3">
-              <div className={`hidden sm:flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-base-300 ${kindStyle(ev.kind)}`}>
-                <CelestialIcon name={ev.planet} size={14} />
-              </div>
-              <div className={`flex flex-1 flex-col rounded-xl border bg-base-300 p-3 sm:p-4 ${kindStyle(ev.kind)}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-sm">{ev.planet}</span>
-                      <span className={`badge badge-xs ${ev.kind === "Opposition" ? "badge-primary" : ev.kind === "Max Elongation" ? "badge-accent" : "badge-ghost"}`}>{ev.kind}</span>
-                      <span className="inline-flex items-center gap-1 text-xs opacity-60"><Sun size={10} /> {ev.elongation.toFixed(0)}°</span>
-                      {ev.magnitude != null ? (
-                        <span className="inline-flex items-center gap-1 text-xs opacity-60"><Star size={10} /> mag {ev.magnitude.toFixed(1)}</span>
-                      ) : null}
-                    </div>
-                    <p className="text-xs opacity-60 flex items-center gap-1 mt-1">
-                      <CalendarDays size={12} /> {fmtShortDate(ev.date)} · {fmtTime(ev.date)}
-                    </p>
-                    <p className="text-xs leading-relaxed opacity-80 mt-1.5">{ev.description}</p>
-                    <p className="text-xs mt-1 inline-flex items-center gap-1 rounded-full bg-base-100 px-2 py-0.5">
-                      <Eye size={10} /> {ev.viewing}
-                    </p>
-                  </div>
-                  <CountdownBadge target={ev.date} className="bg-base-100/50 text-base-content/70 text-xs shrink-0" />
-                </div>
-                <div className="mt-2 flex items-center gap-1 text-[10px] opacity-40">
-                  <Info size={10} /> Elongation = Sun-Earth-Planet angle; Opposition ~180° best, Conjunction ~0° hidden.
-                </div>
-              </div>
+      <ul className="timeline timeline-vertical timeline-compact">
+        {events.map((ev) => (
+          <li key={`${ev.planet}-${ev.kind}-${ev.date.toISOString()}`}>
+            <div className="timeline-start flex flex-col items-end gap-1">
+              <span className="text-xs font-medium whitespace-nowrap flex items-center gap-1">
+                <CalendarDays size={12} /> {fmtShortDate(ev.date)}
+              </span>
+              <CountdownBadge target={ev.date} className="badge-ghost" />
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="timeline-middle">
+              <span className={`flex h-8 w-8 items-center justify-center rounded-full border ${kindStyle(ev.kind)}`}>
+                <CelestialIcon name={ev.planet} size={14} />
+              </span>
+            </div>
+            <div className={`timeline-end timeline-box mb-4 text-left ${kindStyle(ev.kind)}`}>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-sm">{ev.planet}</span>
+                <span className={`badge badge-xs ${ev.kind === "Opposition" ? "badge-primary" : ev.kind === "Max Elongation" ? "badge-accent" : "badge-ghost"}`}>{ev.kind}</span>
+                <span className="inline-flex items-center gap-1 text-xs opacity-60"><Sun size={10} /> {ev.elongation.toFixed(0)}°</span>
+                {ev.magnitude != null ? (
+                  <span className="inline-flex items-center gap-1 text-xs opacity-60"><Star size={10} /> mag {ev.magnitude.toFixed(1)}</span>
+                ) : null}
+              </div>
+              <p className="text-xs leading-relaxed opacity-80 mt-1.5">{ev.description}</p>
+              <p className="mt-1">
+                <span className="badge badge-ghost gap-1"><Eye size={10} /> {ev.viewing}</span>
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 flex items-center gap-1 text-[10px] text-base-content/40">
+        <Info size={10} /> Elongation = Sun-Earth-Planet angle; Opposition ~180° best, Conjunction ~0° hidden.
+      </p>
     </div>
   );
 }

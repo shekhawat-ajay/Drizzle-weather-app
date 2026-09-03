@@ -5,6 +5,7 @@ import AstroCard from "@/components/astronomy/AstroCard";
 import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import MoonPositionArc from "@/components/astronomy/MoonPositionArc";
 import MoonPhaseTimeline from "@/components/astronomy/MoonPhaseTimeline";
+import MoonCalendar from "@/components/astronomy/MoonCalendar";
 import { fmtTime, fmtShortDate } from "@/utils/formatters";
 import type { AstronomyOutletContext } from "@/pages/AstronomyPage";
 
@@ -24,7 +25,7 @@ export default function MoonPage() {
   return (
     <div className="grid grid-cols-12 gap-4">
       <div className="col-span-12">
-        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+        <div className="card bg-base-200 border border-base-content/5 p-5">
           <SectionHeader icon={Moon} label="Moon" color="text-primary" />
 
           <div className="flex flex-col items-center gap-3 mb-5">
@@ -77,7 +78,7 @@ export default function MoonPage() {
               badge={
                 <CountdownBadge
                   target={moonriseTime}
-                  className="bg-primary/12 text-primary"
+                  className="badge-primary"
                 />
               }
               accent="primary"
@@ -89,7 +90,7 @@ export default function MoonPage() {
               badge={
                 <CountdownBadge
                   target={moonsetTime}
-                  className="bg-primary/12 text-primary"
+                  className="badge-primary"
                 />
               }
               accent="primary"
@@ -107,14 +108,18 @@ export default function MoonPage() {
           <div className="mt-4">
             <MoonPhaseTimeline phases={fullMoonCycle.upcoming} />
           </div>
+
+          <div className="mt-4">
+            <MoonCalendar />
+          </div>
         </div>
       </div>
 
       <div className="col-span-12">
-        <div className="border-base-content/5 bg-base-200 rounded-xl border p-5">
+        <div className="card bg-base-200 border border-base-content/5 p-5">
           <SectionHeader icon={Sparkles} label="Highlights" color="text-primary" />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-primary/15 bg-base-300 p-5">
+            <div className="card border border-primary/15 bg-base-300 p-5">
               <div className="flex items-center gap-2 mb-1">
                 <div className="bg-primary/12 p-2 rounded-lg text-primary">
                   <ArrowDownToLine size={16} />
@@ -132,12 +137,12 @@ export default function MoonPage() {
               <p className="text-base-content/40 text-xs">{fmtShortDate(distanceExtremes.nextPerigee.time)}</p>
               {distanceExtremes.nextPerigee.isClosest ? (
                 <div className="mt-1">
-                  <div className="badge badge-sm bg-primary/15 text-primary border-primary/15">Year&apos;s Closest</div>
+                  <div className="badge badge-sm badge-primary">Year&apos;s Closest</div>
                 </div>
               ) : null}
             </div>
 
-            <div className="rounded-xl border border-primary/15 bg-base-300 p-5">
+            <div className="card border border-primary/15 bg-base-300 p-5">
               <div className="flex items-center gap-2 mb-1">
                 <div className="bg-primary/12 p-2 rounded-lg text-primary">
                   <ArrowUpFromLine size={16} />
@@ -167,7 +172,7 @@ export default function MoonPage() {
                     </p>
                   </div>
                   {eclipse.isLocal ? (
-                    <div className="badge badge-sm bg-accent/15 text-accent border-accent/15 text-xs">Visible</div>
+                    <div className="badge badge-sm badge-accent">Visible</div>
                   ) : null}
                 </div>
                 <p className="text-base-content text-xl font-semibold capitalize flex items-center gap-2">
@@ -177,13 +182,13 @@ export default function MoonPage() {
                   {fmtShortDate(eclipse.peak)}
                 </p>
                 <div className="mt-1">
-                  <CountdownBadge target={eclipse.peak} className="bg-primary/12 text-primary" />
+                  <CountdownBadge target={eclipse.peak} className="badge-primary" />
                 </div>
               </div>
             ))}
 
             {supermoonInfo.nextSupermoon ? (
-              <div className="rounded-xl border border-accent/15 bg-base-300 p-5">
+              <div className="card border border-accent/15 bg-base-300 p-5">
                  <div className="flex items-center gap-2 mb-1">
                   <div className="bg-accent/12 p-2 rounded-lg text-accent">
                     <Sparkles size={16} />
@@ -195,7 +200,7 @@ export default function MoonPage() {
                   +{(supermoonInfo.nextSupermoon.sizeRatioVsAverage - 1).toFixed(2)}x visual scale
                 </p>
                 <div className="mt-1">
-                  <CountdownBadge target={supermoonInfo.nextSupermoon.fullMoonTime} className="bg-accent/12 text-accent" />
+                  <CountdownBadge target={supermoonInfo.nextSupermoon.fullMoonTime} className="badge-accent" />
                 </div>
               </div>
             ) : null}

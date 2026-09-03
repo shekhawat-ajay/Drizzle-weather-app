@@ -63,6 +63,14 @@ function getMoonPhaseName(degrees: number): {
   return { name: "New Moon", icon: "/moon-new.webp", iconFallback: "/moon-new.svg" };
 }
 
+export function getMoonPhaseInfo(degrees: number): {
+  name: string;
+  icon: string;
+  iconFallback: string;
+} {
+  return getMoonPhaseName(degrees);
+}
+
 function toDateOrNull(
   astroTime: ReturnType<typeof SearchRiseSet>,
 ): Date | null {
@@ -847,6 +855,12 @@ export interface StargazingParams {
   dewPoint: number;
   isDay: boolean;
   moonIllumination: number;
+  /** Moon altitude in degrees (optional). When provided, moonlight penalty is
+   *  scaled by how high the moon is — a full moon below the horizon costs nothing. */
+  moonAltitudeDeg?: number | null;
+  /** Sun altitude in degrees (optional). When provided, it replaces the binary
+   *  isDay gate with twilight-aware penalties (civil/nautical/astronomical). */
+  sunAltitudeDeg?: number | null;
 }
 
 function getStargazingLabel(score: number): { label: string; description: string } {
@@ -861,8 +875,30 @@ export function computeStargazingIndex(params: StargazingParams): StargazingResu
   const factors: StargazingFactor[] = [];
   let score = 100;
 
-  // ── Day/night gate (heaviest weight) ──
-  if (params.isDay) {
+  // ── Sun gate: twilight-aware when altitude is known, binary fallback otherwise ──
+  const sunAlt = params.sunAltitudeDeg;
+  if (sunAlt != null) {
+    if (sunAlt > 0) {
+      return {
+        score: 0,
+        label: "Daytime",
+        description: "Sun is still up — stargazing not possible",
+        factors: [{ param: "Daylight", impact: "negative", detail: `Sun ${sunAlt.toFixed(1)}° above horizon` }],
+      };
+    }
+    if (sunAlt > -6) {
+      score -= 45;
+      factors.push({ param: "Twilight", impact: "negative", detail: `Civil twilight (sun ${sunAlt.toFixed(1)}°) — sky too bright` });
+    } else if (sunAlt > -12) {
+      score -= 15;
+      factors.push({ param: "Twilight", impact: "negative", detail: `Nautical twilight (sun ${sunAlt.toFixed(1)}°) — horizon glow` });
+    } else if (sunAlt > -18) {
+      score -= 5;
+      factors.push({ param: "Twilight", impact: "neutral", detail: `Astronomical twilight (sun ${sunAlt.toFixed(1)}°)` });
+    } else {
+      factors.push({ param: "Darkness", impact: "positive", detail: `Astronomical night (sun ${sunAlt.toFixed(1)}°)` });
+    }
+  } else if (params.isDay) {
     return {
       score: 0,
       label: "Daytime",
@@ -887,16 +923,32 @@ export function computeStargazingIndex(params: StargazingParams): StargazingResu
     factors.push({ param: "Cloud", impact: "negative", detail: `${params.cloudCover}% cloud cover` });
   }
 
-  // ── Moon illumination (#2 factor) ──
-  if (params.moonIllumination > 0.8) {
-    score -= 20;
-    factors.push({ param: "Moon", impact: "negative", detail: "Bright moon washing out stars" });
+  // ── Moon illumination, scaled by moon altitude ──
+  // A full moon below the horizon contributes no skyglow.
+  const moonAlt = params.moonAltitudeDeg;
+  const moonUp = moonAlt == null || moonAlt > 0;
+  const moonScale =
+    moonAlt == null
+      ? 1
+      : moonAlt <= 0
+        ? 0
+        : Math.max(0.15, Math.min(1, Math.sin((moonAlt * Math.PI) / 180)));
+  const moonNote =
+    moonAlt != null && moonAlt <= 0 ? " (below horizon)" : moonAlt != null ? ` (${moonAlt.toFixed(0)}° up)` : "";
+  if (!moonUp) {
+    factors.push({ param: "Moon", impact: "positive", detail: `Moon below horizon${moonNote} — no moonlight` });
+  } else if (params.moonIllumination > 0.8) {
+    const p = Math.round(20 * moonScale);
+    score -= p;
+    factors.push({ param: "Moon", impact: "negative", detail: `Bright moon washing out stars${moonNote} (−${p})` });
   } else if (params.moonIllumination > 0.5) {
-    score -= 12;
-    factors.push({ param: "Moon", impact: "negative", detail: "Moderate moonlight" });
+    const p = Math.round(12 * moonScale);
+    score -= p;
+    factors.push({ param: "Moon", impact: "negative", detail: `Moderate moonlight${moonNote} (−${p})` });
   } else if (params.moonIllumination > 0.25) {
-    score -= 5;
-    factors.push({ param: "Moon", impact: "neutral", detail: "Quarter moon" });
+    const p = Math.round(5 * moonScale);
+    score -= p;
+    factors.push({ param: "Moon", impact: "neutral", detail: `Quarter moon${moonNote} (−${p})` });
   } else {
     factors.push({ param: "Moon", impact: "positive", detail: "Dark sky, minimal moonlight" });
   }
@@ -956,12 +1008,19 @@ export function computeStargazingIndex(params: StargazingParams): StargazingResu
   return { score, label, description, factors };
 }
 
-/** Lightweight backward-compatible wrapper (used by useAstronomy) */
+/**
+ * Lightweight backward-compatible wrapper (used by useAstronomy).
+ * NOTE: this uses placeholder atmosphere values — the NightSky component
+ * recomputes with full hourly data. Pass moon/sun altitudes when known so
+ * both paths agree.
+ */
 export function getStargazingQuality(
   moonIllumination: number,
   sunset: Date | null,
   date: Date,
   cloudCover?: number | null,
+  moonAltitudeDeg?: number | null,
+  sunAltitudeDeg?: number | null,
 ): StargazingResult {
   const isDay = sunset ? date.getTime() < sunset.getTime() : true;
   const cc = cloudCover ?? 50;
@@ -979,6 +1038,8 @@ export function getStargazingQuality(
     dewPoint: 10,
     isDay,
     moonIllumination,
+    moonAltitudeDeg: moonAltitudeDeg ?? null,
+    sunAltitudeDeg: sunAltitudeDeg ?? null,
   });
   return result;
 }

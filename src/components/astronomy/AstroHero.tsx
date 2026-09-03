@@ -32,12 +32,12 @@ export function StarField() {
 
 export default function AstroHero() {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-base-content/5 bg-gradient-to-br from-primary/15 via-base-200 to-base-200 px-6 py-8">
+    <div className="hero relative overflow-hidden rounded-xl border border-base-content/5 bg-gradient-to-br from-primary/15 via-base-200 to-base-200 px-6 py-8">
       <StarField />
       <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-accent/8 blur-3xl" />
 
-      <div className="relative z-10 flex flex-col items-center text-center">
+      <div className="hero-content relative z-10 flex-col text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/20">
           <Telescope className="h-7 w-7 text-primary" />
         </div>

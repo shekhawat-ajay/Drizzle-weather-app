@@ -19,11 +19,11 @@ interface MoonPositionArcProps {
 
 const MOON_THEME: CelestialTheme = {
   bgGradient: "from-[#1e1b4b] to-[#0f172a]",
-  footerBorder: "border-violet-800/30",
-  tooltipBorder: "border-violet-800/50",
+  footerBorder: "border-primary/15",
+  tooltipBorder: "border-primary/20",
   tooltipBg: "#0f172a",
-  tooltipDot: "bg-violet-400",
-  tooltipText: "text-violet-200",
+  tooltipDot: "bg-primary",
+  tooltipText: "text-base-content/70",
   arcStart: "#8b5cf6",
   arcEnd: "#a78bfa",
   activeDotFill: "#c4b5fd",
@@ -31,10 +31,10 @@ const MOON_THEME: CelestialTheme = {
   eventDotFill: "#6366f1",
   subLabelColor: "#a78bfa",
   transitColor: "rgba(139,92,246,0.4)",
-  statusAbove: "text-violet-400 font-semibold",
-  statusBelow: "text-indigo-300/60",
-  footerStatColor: "text-violet-200/50",
-  footerStatDim: "text-violet-200/40",
+  statusAbove: "text-primary font-semibold",
+  statusBelow: "text-base-content/40",
+  footerStatColor: "text-base-content/50",
+  footerStatDim: "text-base-content/40",
 };
 
 export default function MoonPositionArc({

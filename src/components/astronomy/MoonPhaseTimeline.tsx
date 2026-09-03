@@ -10,14 +10,14 @@ export default function MoonPhaseTimeline({
   phases,
 }: MoonPhaseTimelineProps) {
   return (
-    <div className="card card-border border-violet-500/10 bg-base-200/40">
+    <div className="card border border-primary/10 bg-base-200">
       <div className="card-body">
         <p className="text-base-content/50 text-xs font-medium tracking-wider uppercase">
           Upcoming Moon Phases
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {phases.map((p) => (
-            <div key={`${p.phaseName}-${p.time}`} className="card bg-base-300/40 shadow-sm border border-violet-500/5">
+            <div key={`${p.phaseName}-${p.time}`} className="card bg-base-300 border border-primary/5">
               <figure className="pt-5">
                 <img
                   src={p.icon}
@@ -42,7 +42,7 @@ export default function MoonPhaseTimeline({
                 <div className="card-actions mt-2">
                   <CountdownBadge
                     target={p.time}
-                    className="bg-violet-500/10 text-violet-400"
+                    className="badge-primary"
                   />
                 </div>
               </div>

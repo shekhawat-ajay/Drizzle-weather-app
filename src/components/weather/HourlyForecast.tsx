@@ -325,8 +325,8 @@ export default function HourlyForecast() {
                             <p
                               className={`text-xs font-medium ${
                                 d.isHighest
-                                  ? "text-orange-400"
-                                  : "text-cyan-400"
+                                  ? "text-accent"
+                                  : "text-primary"
                               }`}
                             >
                               {extremeLabel}

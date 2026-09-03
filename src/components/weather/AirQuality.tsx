@@ -242,8 +242,8 @@ export default function AirQuality() {
             <div className="mt-6">
               <div className="flex items-center gap-3 mb-2">
                 <p className="text-base-content/50 text-xs font-medium uppercase tracking-wider">AQI trend — 24h</p>
-                <span className="flex items-center gap-1 text-[10px]"><span className="h-2 w-2 rounded-full bg-violet-400" /> EU</span>
-                <span className="flex items-center gap-1 text-[10px]"><span className="h-2 w-2 rounded-full bg-amber-400" /> US</span>
+                <span className="flex items-center gap-1 text-[10px]"><span className="h-2 w-2 rounded-full bg-primary" /> EU</span>
+                <span className="flex items-center gap-1 text-[10px]"><span className="h-2 w-2 rounded-full bg-accent" /> US</span>
                 <span className="flex items-center gap-1 text-[10px] text-base-content/50"><span className="h-0.5 w-3 bg-primary/40" /> NAQI {data.aqi}</span>
               </div>
               <div className="h-[90px] w-full">
@@ -268,8 +268,8 @@ export default function AirQuality() {
                         return (
                           <div className="bg-base-300 border border-base-content/10 rounded-lg px-2 py-1 text-xs shadow">
                             <p className="text-base-content/60">{fmtTimeFromISO(p.time)}</p>
-                            <p className="font-mono font-semibold text-violet-400">EU {p.eu ?? "--"}</p>
-                            <p className="font-mono font-semibold text-amber-400">US {p.us ?? "--"}</p>
+                            <p className="font-mono font-semibold text-primary">EU {p.eu ?? "--"}</p>
+                            <p className="font-mono font-semibold text-accent">US {p.us ?? "--"}</p>
                           </div>
                         );
                       }}

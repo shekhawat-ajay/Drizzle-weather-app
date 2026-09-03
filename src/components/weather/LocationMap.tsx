@@ -116,30 +116,27 @@ export default function LocationMap() {
           <div className="absolute top-2 left-2 z-[400]">
             <button
               onClick={() => setShowPicker((v) => !v)}
-              className="flex items-center gap-1.5 rounded-lg bg-base-300/90 px-2.5 py-1.5 text-xs font-medium text-base-content shadow-lg backdrop-blur-sm transition-colors hover:bg-base-300 border border-base-content/15 cursor-pointer"
+              className="btn btn-sm shadow-lg backdrop-blur-sm"
             >
               <Layers className="size-3.5" />
               {activeTile}
             </button>
             {showPicker && (
-              <div className="mt-1 overflow-hidden rounded-lg bg-base-300/95 shadow-xl backdrop-blur-sm border border-base-content/15">
+              <ul className="menu menu-sm bg-base-300 rounded-box mt-1 shadow-xl border border-base-content/15 w-32">
                 {(Object.keys(TILE_LAYERS) as TileKey[]).map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setActiveTile(key);
-                      setShowPicker(false);
-                    }}
-                    className={`block w-full px-3 py-1.5 text-left text-xs transition-colors cursor-pointer ${
-                      key === activeTile
-                        ? "bg-base-content/20 font-semibold text-base-content"
-                        : "text-base-content/70 hover:bg-base-content/10 hover:text-base-content"
-                    }`}
-                  >
-                    {key}
-                  </button>
+                  <li key={key}>
+                    <button
+                      onClick={() => {
+                        setActiveTile(key);
+                        setShowPicker(false);
+                      }}
+                      className={key === activeTile ? "menu-active" : ""}
+                    >
+                      {key}
+                    </button>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
         </div>

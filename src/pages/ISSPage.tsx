@@ -221,30 +221,27 @@ export default function ISSPage() {
         <div className="absolute top-4 left-4 z-[1000]">
           <button
             onClick={() => setShowPicker((v) => !v)}
-            className="flex items-center gap-1.5 rounded-lg bg-base-300/90 px-2.5 py-1.5 text-[10px] font-bold text-base-content shadow-lg backdrop-blur-md border border-base-content/15 transition-colors hover:bg-base-300 uppercase tracking-tighter cursor-pointer"
+            className="btn btn-sm shadow-lg backdrop-blur-md"
           >
             <Layers className="size-3.5" />
             {activeTile}
           </button>
           {showPicker ? (
-            <div className="mt-1 overflow-hidden rounded-lg bg-base-300/95 shadow-xl backdrop-blur-sm border border-base-content/15">
+            <ul className="menu menu-sm bg-base-300 rounded-box mt-1 shadow-xl border border-base-content/15 w-32">
               {(Object.keys(TILE_LAYERS) as TileKey[]).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => {
-                    setActiveTile(key);
-                    setShowPicker(false);
-                  }}
-                  className={`block w-full px-3 py-1.5 text-left text-[10px] font-bold uppercase tracking-tighter transition-colors cursor-pointer ${
-                    key === activeTile
-                      ? "bg-base-content/20 text-base-content"
-                      : "text-base-content/70 hover:bg-base-content/10 hover:text-base-content"
-                  }`}
-                >
-                  {key}
-                </button>
+                <li key={key}>
+                  <button
+                    onClick={() => {
+                      setActiveTile(key);
+                      setShowPicker(false);
+                    }}
+                    className={key === activeTile ? "menu-active" : ""}
+                  >
+                    {key}
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : null}
         </div>
 
@@ -258,28 +255,28 @@ export default function ISSPage() {
           title="Coordinates"
           value={data ? `${data.latitude.toFixed(2)}°, ${data.longitude.toFixed(2)}°` : "--"}
           sub="Current ground track"
-          accent="teal"
+          accent="primary"
         />
         <AstroCard
           icon={ArrowUpRight}
           title="Altitude"
           value={data ? `${Math.round(data.altitude)} km` : "--"}
           sub="Above sea level"
-          accent="cyan"
+          accent="primary"
         />
         <AstroCard
           icon={Zap}
           title="Velocity"
           value={data ? `${Math.round(data.velocity).toLocaleString()} km/h` : "--"}
           sub="Orbital speed"
-          accent="amber"
+          accent="accent"
         />
         <AstroCard
           icon={Eye}
           title="Visibility"
           value={data ? capitalize(data.visibility) : "--"}
           sub="Current orbital phase"
-          accent={data?.visibility === "eclipsed" ? "violet" : "amber"}
+          accent={data?.visibility === "eclipsed" ? "primary" : "accent"}
         />
       </div>
 
