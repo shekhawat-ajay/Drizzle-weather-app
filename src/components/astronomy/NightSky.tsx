@@ -14,9 +14,11 @@ import { ResultType } from "@/schema/location";
 import { useOutletContext } from "react-router";
 import { Body, Observer, Equator, Horizon } from "astronomy-engine";
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
-import { getNowAsUTC, parseAsUTC, fmtTimeFromISO, fmtTime } from "@/utils/formatters";
+import { getNowAsUTC, parseAsUTC, fmtTimeFromISO, fmtTime, fmtDateShortFromISO } from "@/utils/formatters";
 import { computeStargazingIndex } from "@/utils/astronomy";
-import type { StargazingResult, StargazingParams } from "@/utils/astronomy";
+import type { StargazingParams } from "@/utils/astronomy";
+import CountdownBadge from "@/components/astronomy/CountdownBadge";
+import useStargazingIndex from "@/hooks/astronomy/useStargazingIndex";
 import SectionHeader from "@/components/astronomy/SectionHeader";
 import AstroCard from "@/components/astronomy/AstroCard";
 import type { AstronomyOutletContext } from "@/pages/AstronomyPage";
@@ -56,6 +58,7 @@ function getScoreColor(score: number): string {
 interface HourPoint {
   ts: number;
   time: string;
+  sunAlt: number;
   cloudCover: number;
   cloudCoverLow: number;
   cloudCoverMid: number;
@@ -113,14 +116,12 @@ export default function NightSky() {
   const minutely15 = data?.minutely15;
 
   const moonIllumination = astronomyData.moon.illuminationFraction;
-  const sunset = astronomyData.sun.sunset;
-  const astronomicalDusk = astronomyData.sun.astronomicalDusk;
   const liveSunAlt = astronomyData.sunPosition.altitude;
   const liveMoonAlt = astronomyData.moonPosition.altitude;
   const sunUpNow = astronomyData.sunPosition.isAboveHorizon;
 
-  const { chartPoints, cards, currentResult, bestWindow } = useMemo(() => {
-    if (!hourly) return { chartPoints: [], cards: [], currentResult: null as StargazingResult | null, bestWindow: null as HourPoint | null };
+  const { chartPoints, cards, bestWindow } = useMemo(() => {
+    if (!hourly) return { chartPoints: [], cards: [], bestWindow: null as HourPoint | null };
 
     const nowMs = getNowAsUTC(tz);
     const endMs = nowMs + 24 * 60 * 60 * 1000;
@@ -179,6 +180,7 @@ export default function NightSky() {
         points.push({
           ts: ms,
           time: hourly.time[i]!,
+          sunAlt,
           cloudCover: hourly.cloudCover[i]!,
           cloudCoverLow: hourly.cloudCoverLow[i]!,
           cloudCoverMid: hourly.cloudCoverMid[i]!,
@@ -195,50 +197,32 @@ export default function NightSky() {
       }
     }
 
-    // Current hour: last point at/before now, fallback to first future point
-    let cur: HourPoint | undefined;
-    for (let i = 0; i < points.length; i++) {
-      if (points[i]!.ts <= nowMs) cur = points[i];
-      else break;
-    }
-    if (!cur) cur = points[0];
-    let currentRes: StargazingResult | null = null;
-    if (cur) {
-      // Live altitudes (freshest, not the quantized hourly API flag)
-      currentRes = computeStargazingIndex({
-        cloudCover: cur.cloudCover,
-        cloudCoverLow: cur.cloudCoverLow,
-        cloudCoverMid: cur.cloudCoverMid,
-        cloudCoverHigh: cur.cloudCoverHigh,
-        humidity: cur.humidity,
-        pressure: cur.pressure,
-        wind: cur.wind,
-        visibility: visMap.get(Math.floor(cur.ts / 3600000) * 3600000) ?? 20000,
-        precipProb: precipMap.get(Math.floor(cur.ts / 3600000) * 3600000) ?? 0,
-        temperature: cur.temperature,
-        dewPoint: cur.dewPoint,
-        isDay: sunUpNow,
-        moonIllumination,
-        moonAltitudeDeg: liveMoonAlt,
-        sunAltitudeDeg: liveSunAlt,
-      });
-    }
-
-    // Best viewing window — highest scoring nighttime hour
+    // Best viewing window — highest score in true darkness, else any night hour
+    const dark = points.filter((p) => p.sunAlt <= -12);
+    const night = points.filter((p) => p.sunAlt < 0);
+    const pool = dark.length > 0 ? dark : night;
     let bestHour: HourPoint | null = null;
-    for (const pt of points) {
-      if (pt.isDay === 0 && (bestHour === null || pt.score > bestHour.score)) {
-        bestHour = pt;
-      }
+    for (const pt of pool) {
+      if (bestHour === null || pt.score > bestHour.score) bestHour = pt;
     }
 
     return {
       chartPoints: points,
       cards: points,
-      currentResult: currentRes,
       bestWindow: bestHour,
     };
-  }, [hourly, minutely15, tz, moonIllumination, liveSunAlt, liveMoonAlt, sunUpNow, location.latitude, location.longitude]);
+  }, [hourly, minutely15, tz, moonIllumination, location.latitude, location.longitude]);
+
+  // Single source of truth for "right now" — same hook the Overview banner uses
+  const currentResult = useStargazingIndex(
+    location.latitude,
+    location.longitude,
+    tz,
+    moonIllumination,
+    liveSunAlt,
+    liveMoonAlt,
+    sunUpNow,
+  );
 
   if (!hourly) {
     return (
@@ -260,6 +244,20 @@ export default function NightSky() {
     else break;
   }
   const isDaytime = sunUpNow;
+
+  // Stargazing starts at true darkness, not sunset (sunset can be hours
+  // earlier, and the static sunset value may belong to a past day)
+  const nowReal = Date.now();
+  const dusk = astronomyData.sun.astronomicalDusk;
+  const set = astronomyData.sun.sunset;
+  const nextRise = astronomyData.nextRiseSet.nextSunrise;
+  const startsAt =
+    dusk && dusk.getTime() > nowReal
+      ? dusk
+      : set && set.getTime() > nowReal
+        ? set
+        : nextRise;
+  const startsAtIsDusk = startsAt != null && startsAt === dusk;
 
   return (
     <div>
@@ -311,13 +309,20 @@ export default function NightSky() {
             {isDaytime ? (
               <>
                 <p className="text-2xl font-bold mt-1">
-                  {sunset ? fmtTime(sunset, tz) : "--"}
+                  {startsAt ? fmtTime(startsAt, tz) : "--"}
                 </p>
                 <p className="text-xs text-base-content/50">
-                  {astronomicalDusk
-                    ? `Dark skies after ${fmtTime(astronomicalDusk, tz)}`
-                    : "Sunset time"}
+                  {startsAtIsDusk
+                    ? "Astronomical dusk — true darkness"
+                    : startsAt
+                      ? "Sunset — dark skies after astronomical dusk"
+                      : "Sun does not set today"}
                 </p>
+                {startsAt ? (
+                  <div className="mt-1">
+                    <CountdownBadge target={startsAt} className="badge-primary" />
+                  </div>
+                ) : null}
               </>
             ) : bestWindow ? (
               <>
@@ -325,7 +330,7 @@ export default function NightSky() {
                   {fmtTimeFromISO(bestWindow.time)}
                 </p>
                 <p className="text-xs text-base-content/50">
-                  Best score: {bestWindow.score}/100 ({bestWindow.label})
+                  {fmtDateShortFromISO(bestWindow.time)} · Score {bestWindow.score}/100 ({bestWindow.label})
                 </p>
               </>
             ) : (
@@ -355,13 +360,33 @@ export default function NightSky() {
             <Info size={12} /> How is the stargazing score calculated?
           </summary>
           <div className="collapse-content">
-            <ul className="space-y-1 text-base-content/50 leading-relaxed list-disc pl-4">
-            <li>Starts at 100. Daylight (sun above horizon) forces 0; twilight penalizes −45 civil, −15 nautical, −5 astronomical.</li>
-            <li>Clouds: weighted low×50% + mid×30% + high×20%, times 0.40 (up to −40).</li>
-            <li>Moonlight scaled by moon altitude — a full moon below the horizon costs 0; overhead bright moon costs −20.</li>
-            <li>Humidity &gt;80% (−0.5/pt), low pressure &lt;1005 (−10), wind &gt;25 km/h (−0.3/pt), visibility &lt;10 km (−15), rain chance &gt;50% (−0.3/pt), dew spread &lt;3° (−15).</li>
-            <li>Labels: ≥80 Excellent · ≥60 Good · ≥40 Fair · ≥20 Poor · else Very Poor. The Overview banner uses the same formula with live sun/moon altitudes.</li>
-          </ul>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ul className="space-y-1 text-base-content/50 leading-relaxed list-disc pl-4">
+                <li>Starts at 100. Daylight (sun above horizon) forces 0; twilight penalizes −45 civil, −15 nautical, −5 astronomical.</li>
+                <li>Clouds: weighted low×50% + mid×30% + high×20%, times 0.40 (up to −40).</li>
+                <li>Moonlight scaled by moon altitude — a full moon below the horizon costs 0; overhead bright moon costs −20.</li>
+                <li>Humidity &gt;80% (−0.5/pt), low pressure &lt;1005 (−10), wind &gt;25 km/h (−0.3/pt), visibility &lt;10 km (−15), rain chance &gt;50% (−0.3/pt), dew spread &lt;3° (−15).</li>
+              </ul>
+              <div>
+                <p className="text-xs font-semibold mb-2">Score scale</p>
+                <ul className="space-y-1.5">
+                  {[
+                    { label: "Excellent", range: "80+", cls: "bg-primary" },
+                    { label: "Good", range: "60+", cls: "bg-primary/60" },
+                    { label: "Fair", range: "40+", cls: "bg-accent" },
+                    { label: "Poor", range: "20+", cls: "bg-accent/60" },
+                    { label: "Very Poor", range: "<20", cls: "bg-base-content/30" },
+                  ].map((r) => (
+                    <li key={r.label} className="flex items-center gap-2 text-xs">
+                      <span className={`h-2 w-2 rounded-full ${r.cls}`} />
+                      <span className="font-medium">{r.label}</span>
+                      <span className="text-base-content/40 font-mono">{r.range}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-[10px] text-base-content/40 mt-2">The Overview banner uses this same score.</p>
+              </div>
+            </div>
           </div>
         </details>
 
@@ -373,6 +398,7 @@ export default function NightSky() {
               (Next 24-Hours)
             </span>
           </h3>
+          <p className="text-[10px] text-base-content/40 -mt-2 mb-2">★ = stargazing score for that hour (0–100, higher is better)</p>
 
           <div className="mb-4 h-[120px] w-full">
             <ResponsiveContainer width="100%" height="100%">

@@ -42,7 +42,7 @@ function UnitsToggle({ hidden }: { hidden?: boolean }) {
   const isImperial = units === "imperial";
 
   if (hidden) {
-    return <div className="invisible flex items-center gap-1 rounded-lg border border-transparent px-2 py-2" aria-hidden="true"><span className="text-[11px]">°C</span><span className="toggle toggle-xs w-8" /><span className="text-[11px]">°F</span></div>;
+    return null;
   }
 
   return (
