@@ -36,11 +36,11 @@ export default function WeatherAlerts() {
   if (alerts.length === 0) return null;
 
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-2 justify-items-center">
       {alerts.map(({ icon: Icon, text, kind }, idx) => (
-        <div key={idx} role="alert" className={`alert alert-${kind} sm:alert-horizontal text-sm`}>
+        <div key={idx} role="alert" className={`alert alert-${kind} sm:alert-horizontal mx-auto max-w-2xl justify-center text-center items-center text-sm w-full`}>
           <Icon size={16} className="shrink-0" />
-          <span>{text}</span>
+          <span className="text-center">{text}</span>
         </div>
       ))}
     </div>

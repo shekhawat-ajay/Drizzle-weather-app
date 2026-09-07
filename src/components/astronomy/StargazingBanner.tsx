@@ -19,8 +19,8 @@ export default function StargazingBanner({ stargazing, isDaytime }: StargazingBa
   const bgMainColor = isDaytime ? "bg-accent/12 border-accent/20" : (stargazing.score >= 60 ? "bg-primary/12 border-primary/20" : stargazing.score >= 40 ? "bg-accent/12 border-accent/20" : "bg-base-content/5 border-base-content/10");
 
   return (
-    <div className={`rounded-xl border ${bgMainColor} p-4 md:p-5 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center`}>
-      <div className="flex items-center gap-4">
+    <div className={`rounded-xl border ${bgMainColor} p-4 md:p-5 flex flex-col gap-4 items-center text-center`}>
+      <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
         <div className={`rounded-full p-3 ${isDaytime ? "bg-accent/15 text-accent" : "bg-base-300"}`}>
           {isDaytime ? <Sun size={28} /> : <Sparkles size={28} className={mainColor} />}
         </div>
@@ -38,7 +38,7 @@ export default function StargazingBanner({ stargazing, isDaytime }: StargazingBa
       </div>
 
       {!isDaytime && stargazing.factors.length > 0 ? (
-        <div className="flex flex-wrap gap-2 md:max-w-[40%] justify-start md:justify-end">
+        <div className="flex flex-wrap gap-2 justify-center">
           {stargazing.factors.slice(0, 3).map((factor) => (
             <span
               key={factor.param}

@@ -6,15 +6,26 @@ import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import CelestialTable from "@/components/astronomy/CelestialTable";
 import NightSky from "@/components/astronomy/NightSky";
 import StargazingBanner from "@/components/astronomy/StargazingBanner";
+import useStargazingIndex from "@/hooks/astronomy/useStargazingIndex";
 import PlanetaryEventsTimeline from "@/components/astronomy/PlanetaryEventsTimeline";
 import MeteorShowers from "@/components/astronomy/MeteorShowers";
 import type { AstronomyOutletContext } from "@/pages/AstronomyPage";
 
 export default function OverviewPage() {
-  const { tz, astronomyData, celestialData } = useOutletContext<AstronomyOutletContext>();
+  const { tz, location, astronomyData, celestialData } = useOutletContext<AstronomyOutletContext>();
   const { nextSeason, upcomingEclipses, stargazing, sunPosition } = astronomyData;
 
   const isDaytime = sunPosition.isAboveHorizon;
+  // Same source of truth as the NightSky card (falls back while hourly loads)
+  const liveStargazing = useStargazingIndex(
+    location.latitude,
+    location.longitude,
+    tz,
+    astronomyData.moon.illuminationFraction,
+    astronomyData.sunPosition.altitude,
+    astronomyData.moonPosition.altitude,
+    sunPosition.isAboveHorizon,
+  );
   const nextSolar = upcomingEclipses.find((e) => e.kind === "solar") ?? null;
   const nextLunar = upcomingEclipses.find((e) => e.kind === "lunar") ?? null;
 
@@ -22,7 +33,7 @@ export default function OverviewPage() {
     <div className="grid grid-cols-12 gap-4">
       {/* Stargazing banner — full width, like weather hero */}
       <div className="col-span-12">
-        <StargazingBanner stargazing={stargazing} isDaytime={isDaytime} />
+        <StargazingBanner stargazing={liveStargazing ?? stargazing} isDaytime={isDaytime} />
       </div>
 
       {/* Celestial table — full width card */}

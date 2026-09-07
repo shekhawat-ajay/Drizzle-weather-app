@@ -33,19 +33,18 @@ function describeEvent(planet: string, kind: EventKind, elongation: number): { d
   if (kind === "Opposition") {
     return {
       description: `${planet} opposite the Sun — rises at sunset, visible all night high in the sky.`,
-      viewing: elongation > 170 ? "Excellent all-night visibility" : "Good evening visibility",
+      viewing: elongation > 170 ? "Excellent" : "Good",
     };
   }
   if (kind === "Max Elongation") {
-    const isMercury = planet === "Mercury";
     return {
-      description: `${planet} farthest from the Sun in the sky — best chance to spot it low near horizon at ${isMercury ? "dawn or dusk" : "evening/morning"}.`,
-      viewing: elongation >= 30 ? "Prominent — easy with naked eye (Venus)" : elongation >= 18 ? "Best window for Mercury — find dark horizon" : "Low, needs clear horizon",
+      description: `${planet} farthest from the Sun — best chance low near horizon at dawn/dusk.`,
+      viewing: elongation >= 30 ? "Prominent" : elongation >= 18 ? "Best window" : "Low",
     };
   }
   return {
-    description: `${planet} behind the Sun — not observable, lost in solar glare.`,
-    viewing: "Not visible — too close to Sun",
+    description: `${planet} behind the Sun — not observable.`,
+    viewing: "Not visible",
   };
 }
 
@@ -115,34 +114,36 @@ export default function PlanetaryEventsTimeline() {
   return (
     <div className="card bg-base-200 border border-base-content/5 p-5">
       <SectionHeader icon={Orbit} label="Planetary Events — Next 12 Months" color="text-primary" />
-      <ul className="timeline timeline-vertical timeline-compact">
+      <ul className="timeline timeline-vertical timeline-compact timeline-snap-icon">
         {events.map((ev) => (
           <li key={`${ev.planet}-${ev.kind}-${ev.date.toISOString()}`}>
+            <hr />
             <div className="timeline-start flex flex-col items-end gap-1">
               <span className="text-xs font-medium whitespace-nowrap flex items-center gap-1">
                 <CalendarDays size={12} /> {fmtShortDate(ev.date)}
               </span>
-              <CountdownBadge target={ev.date} className="badge-ghost" />
             </div>
             <div className="timeline-middle">
               <span className={`flex h-8 w-8 items-center justify-center rounded-full border ${kindStyle(ev.kind)}`}>
                 <CelestialIcon name={ev.planet} size={14} />
               </span>
             </div>
-            <div className={`timeline-end timeline-box mb-4 text-left ${kindStyle(ev.kind)}`}>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-sm">{ev.planet}</span>
-                <span className={`badge badge-xs ${ev.kind === "Opposition" ? "badge-primary" : ev.kind === "Max Elongation" ? "badge-accent" : "badge-ghost"}`}>{ev.kind}</span>
-                <span className="inline-flex items-center gap-1 text-xs opacity-60"><Sun size={10} /> {ev.elongation.toFixed(0)}°</span>
+            <div className={`timeline-end timeline-box mb-4 min-w-0 text-left ${kindStyle(ev.kind)}`}>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="font-semibold text-[13px] sm:text-sm">{ev.planet}</span>
+                <span className={`badge badge-xs max-w-full whitespace-normal text-center leading-tight ${ev.kind === "Opposition" ? "badge-primary" : ev.kind === "Max Elongation" ? "badge-accent" : "badge-ghost"}`}>{ev.kind}</span>
+                <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs opacity-60"><Sun size={10} /> {ev.elongation.toFixed(0)}°</span>
                 {ev.magnitude != null ? (
-                  <span className="inline-flex items-center gap-1 text-xs opacity-60"><Star size={10} /> mag {ev.magnitude.toFixed(1)}</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs opacity-60"><Star size={10} /> mag {ev.magnitude.toFixed(1)}</span>
                 ) : null}
+                <span className="ml-auto shrink-0"><CountdownBadge target={ev.date} className="badge-ghost" /></span>
               </div>
               <p className="text-xs leading-relaxed opacity-80 mt-1.5">{ev.description}</p>
               <p className="mt-1">
-                <span className="badge badge-ghost gap-1"><Eye size={10} /> {ev.viewing}</span>
+                <span className="badge badge-ghost gap-1 max-w-full whitespace-nowrap overflow-hidden text-ellipsis text-[10px] sm:text-xs"><Eye size={10} className="shrink-0" /> {ev.viewing}</span>
               </p>
             </div>
+            <hr />
           </li>
         ))}
       </ul>
