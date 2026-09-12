@@ -62,7 +62,7 @@ export default function AstronomyPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 overflow-x-clip">
       <AstroHero />
 
       {/* Location context */}

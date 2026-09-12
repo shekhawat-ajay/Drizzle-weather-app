@@ -482,10 +482,10 @@ export default function CelestialPositionArc({
       </div>
 
       <div
-        className={`mt-auto flex items-center justify-between border-t ${theme.footerBorder} bg-[#020617]/40 px-6 pt-5 pb-4 text-xs`}
+        className={`mt-auto flex flex-wrap items-center justify-between gap-2 border-t ${theme.footerBorder} bg-[#020617]/40 px-6 pt-5 pb-4 text-xs`}
       >
         <span className={status.colorClass}>{status.text}</span>
-        <div className="flex gap-4 font-medium">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 font-medium">
           <span className={theme.footerStatColor}>
             Azimuth {Math.round(current.azimuth)}&deg;{" "}
             {fmtAzimuth(current.azimuth)}

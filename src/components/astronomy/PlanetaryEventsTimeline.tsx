@@ -118,7 +118,7 @@ export default function PlanetaryEventsTimeline() {
         {events.map((ev) => (
           <li key={`${ev.planet}-${ev.kind}-${ev.date.toISOString()}`}>
             <hr />
-            <div className="timeline-start flex flex-col items-end gap-1">
+            <div className="timeline-start flex min-w-0 flex-col items-end gap-1">
               <span className="text-xs font-medium whitespace-nowrap flex items-center gap-1">
                 <CalendarDays size={12} /> {fmtShortDate(ev.date)}
               </span>

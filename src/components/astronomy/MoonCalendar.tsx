@@ -87,7 +87,7 @@ export default function MoonCalendar() {
 
   return (
     <div className="card bg-base-200 border border-base-content/5 p-5">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <SectionHeader icon={CalendarDays} label="Moon Calendar" color="text-primary" />
         <div className="flex items-center gap-1 mb-3">
           <button
@@ -127,7 +127,7 @@ export default function MoonCalendar() {
             key={d.date}
             title={`${d.phaseName} — ${Math.round(d.illumination)}% illuminated`}
             className={cn(
-              "flex flex-col items-center rounded-lg border px-1 py-2 transition-colors",
+              "flex min-w-0 flex-col items-center overflow-hidden rounded-lg border px-1 py-2 transition-colors",
               d.isToday
                 ? "border-primary/40 bg-primary/10"
                 : "border-base-content/5 bg-base-300",
@@ -154,9 +154,15 @@ export default function MoonCalendar() {
               {Math.round(d.illumination)}%
             </span>
             {d.isFullMoon ? (
-              <span className="badge badge-accent badge-xs mt-1">Full</span>
+              <>
+                <span className="badge badge-accent badge-xs mt-1 hidden sm:inline-flex">Full</span>
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent sm:hidden" title="Full moon" />
+              </>
             ) : d.isNewMoon ? (
-              <span className="badge badge-ghost badge-xs mt-1">New</span>
+              <>
+                <span className="badge badge-ghost badge-xs mt-1 hidden sm:inline-flex">New</span>
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-base-content/40 sm:hidden" title="New moon" />
+              </>
             ) : null}
           </div>
         ))}
