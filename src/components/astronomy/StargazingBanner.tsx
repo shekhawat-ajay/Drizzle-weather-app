@@ -25,7 +25,7 @@ export default function StargazingBanner({ stargazing, isDaytime }: StargazingBa
           {isDaytime ? <Sun size={28} /> : <Sparkles size={28} className={mainColor} />}
         </div>
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center sm:justify-start gap-2">
             <h3 className="text-xl font-semibold text-base-content">{stargazing.label}</h3>
             {!isDaytime ? (
               <span className={`text-sm font-semibold px-2 py-0.5 rounded-full ${bgMainColor} ${mainColor}`}>

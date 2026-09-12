@@ -9,7 +9,7 @@ import {
 import { cn } from "@/utils/cn";
 import { ResultType } from "@/schema/location";
 import ErrorRetry from "@/components/ErrorRetry";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine } from "recharts";
 import { fmtTimeFromISO, parseAsUTC, getNowAsUTC } from "@/utils/formatters";
 
 export default function AirQuality() {
@@ -35,12 +35,16 @@ export default function AirQuality() {
   const sparkline = useMemo(() => {
     if (!raw?.hourly?.time) return [];
     const nowMs = getNowAsUTC(raw.timezone ?? "UTC");
+    const startMs = nowMs - 24 * 3600000;
     const endMs = nowMs + 24 * 3600000;
     const pts: { ts: number; time: string; eu: number | null; us: number | null }[] = [];
     for (let i = 0; i < raw.hourly.time.length; i++) {
       const ms = parseAsUTC(raw.hourly.time[i]!).getTime();
-      if (ms < nowMs - 3600000 || ms > endMs) continue;
-      pts.push({ ts: ms, time: raw.hourly.time[i]!, eu: raw.hourly.europeanAqi[i] ?? null, us: raw.hourly.usAqi[i] ?? null });
+      if (ms < startMs || ms > endMs) continue;
+      const eu = raw.hourly.europeanAqi[i] ?? null;
+      const us = raw.hourly.usAqi[i] ?? null;
+      if (eu == null && us == null) continue;
+      pts.push({ ts: ms, time: raw.hourly.time[i]!, eu, us });
     }
     return pts;
   }, [raw]);
@@ -241,10 +245,10 @@ export default function AirQuality() {
           {sparkline.length > 1 ? (
             <div className="mt-6">
               <div className="flex items-center gap-3 mb-2">
-                <p className="text-base-content/50 text-xs font-medium uppercase tracking-wider">AQI trend — 24h</p>
-                <span className="flex items-center gap-1 text-[10px]"><span className="h-2 w-2 rounded-full bg-primary" /> EU</span>
-                <span className="flex items-center gap-1 text-[10px]"><span className="h-2 w-2 rounded-full bg-accent" /> US</span>
-                <span className="flex items-center gap-1 text-[10px] text-base-content/50"><span className="h-0.5 w-3 bg-primary/40" /> NAQI {data.aqi}</span>
+                <p className="text-base-content/50 text-xs font-medium uppercase tracking-wider">AQI trend · 48h</p>
+                <span className="flex items-center gap-1 text-[10px]"><span className="h-2 w-2 rounded-full bg-violet-400" /> EU</span>
+                <span className="flex items-center gap-1 text-[10px]"><span className="h-2 w-2 rounded-full bg-amber-400" /> US</span>
+                <span className="flex items-center gap-1 text-[10px] text-base-content/50"><span className="h-0.5 w-3 border-t border-dashed border-primary/60" /> NAQI {data.aqi}</span>
               </div>
               <div className="h-[90px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -261,21 +265,22 @@ export default function AirQuality() {
                     </defs>
                     <XAxis dataKey="ts" type="number" domain={["dataMin","dataMax"]} hide />
                     <YAxis hide domain={[0, "dataMax + 2"]} />
-                    <Tooltip
+                      <Tooltip
                       content={({ active, payload }) => {
                         if (!active || !payload?.length) return null;
                         const p = payload[0]!.payload as { time: string; eu: number | null; us: number | null };
                         return (
                           <div className="bg-base-300 border border-base-content/10 rounded-lg px-2 py-1 text-xs shadow">
                             <p className="text-base-content/60">{fmtTimeFromISO(p.time)}</p>
-                            <p className="font-mono font-semibold text-primary">EU {p.eu ?? "--"}</p>
-                            <p className="font-mono font-semibold text-accent">US {p.us ?? "--"}</p>
+                            <p className="font-mono font-semibold text-violet-400">EU {p.eu ?? "--"}</p>
+                            <p className="font-mono font-semibold text-amber-400">US {p.us ?? "--"}</p>
                           </div>
                         );
                       }}
                     />
-                    <Area type="monotone" dataKey="eu" stroke="#a78bfa" strokeWidth={1.5} fill="url(#aqiGradEU)" dot={false} isAnimationActive={false} />
-                    <Area type="monotone" dataKey="us" stroke="#fbbf24" strokeWidth={1.2} fill="url(#aqiGradUS)" dot={false} isAnimationActive={false} />
+                    <ReferenceLine y={data.aqi} stroke="rgba(139,92,246,0.5)" strokeDasharray="6 4" strokeWidth={1} />
+                    <Area type="monotone" dataKey="eu" stroke="#a78bfa" strokeWidth={1.5} fill="url(#aqiGradEU)" dot={false} connectNulls isAnimationActive={false} />
+                    <Area type="monotone" dataKey="us" stroke="#fbbf24" strokeWidth={1.5} fill="url(#aqiGradUS)" dot={false} connectNulls isAnimationActive={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>

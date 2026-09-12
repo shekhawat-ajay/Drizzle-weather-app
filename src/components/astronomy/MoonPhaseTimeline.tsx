@@ -22,7 +22,7 @@ export default function MoonPhaseTimeline({
                 <img
                   src={p.icon}
                   alt={p.phaseName}
-                  className="size-64 rounded-full object-cover"
+                  className="size-48 sm:size-64 max-w-full rounded-full object-cover"
                   onError={(e) => {
                     e.currentTarget.src = p.iconFallback;
                   }}
