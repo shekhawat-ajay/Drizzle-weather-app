@@ -117,9 +117,18 @@ export default function CurrentWeather() {
                 onClick={() => toggle(location)}
                 aria-label={fav ? "Remove from favorites" : "Add to favorites"}
                 title={fav ? "Remove favorite" : "Add favorite"}
-                className={`btn btn-circle btn-sm btn-ghost ${fav ? "text-accent" : "text-white"}`}
+                className={`btn btn-circle btn-sm border backdrop-blur-sm transition-colors ${
+                  fav
+                    ? "bg-amber-400 border-amber-300 text-white shadow-sm"
+                    : "bg-white/15 border-white/20 text-white hover:bg-white/25"
+                }`}
               >
-                <Star size={16} fill={fav ? "currentColor" : "none"} />
+                <Star
+                  size={16}
+                  fill={fav ? "currentColor" : "none"}
+                  strokeWidth={fav ? 1.5 : 1.8}
+                  className="shrink-0"
+                />
               </button>
             </div>
             <p className="text-sm text-white/80">

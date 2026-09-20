@@ -9,6 +9,12 @@ export default function useLocation(query: string) {
   const { data, isLoading, error } = useSWR(
     !query || query.trim().length < 2 ? null : apiRoutes.location(query.trim()),
     fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 10_000,
+      keepPreviousData: true,
+    },
   );
 
   const parsedData = useMemo<LocationType | undefined>(() => {

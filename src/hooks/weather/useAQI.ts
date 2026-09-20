@@ -12,6 +12,17 @@ export default function useAQI(latitude: number, longitude: number) {
   const { data, isLoading, error, mutate } = useSWR(
     apiRoutes.aqi(latitude, longitude),
     fetcher,
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      revalidateIfStale: true,
+      dedupingInterval: 10_000,
+      focusThrottleInterval: 5_000,
+      refreshInterval: 10 * 60_000,
+      refreshWhenHidden: false,
+      refreshWhenOffline: false,
+      keepPreviousData: true,
+    },
   );
 
   const { naqiResult, calcError, raw } = useMemo(() => {
