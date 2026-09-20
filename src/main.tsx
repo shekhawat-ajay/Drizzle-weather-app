@@ -9,8 +9,11 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <SWRConfig
       value={{
-        revalidateOnFocus: false,
-        dedupingInterval: 60_000,
+        revalidateOnFocus: true,
+        revalidateOnReconnect: true,
+        revalidateIfStale: true,
+        dedupingInterval: 5_000,
+        focusThrottleInterval: 5_000,
         errorRetryCount: 2,
         errorRetryInterval: 3_000,
         shouldRetryOnError: true,

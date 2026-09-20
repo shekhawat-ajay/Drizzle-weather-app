@@ -19,7 +19,7 @@ export default function FavoritesBar() {
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 py-2 text-center">
+    <div className="flex flex-wrap items-center justify-center gap-2 py-2 mb-3 text-center">
       <span className="text-base-content/40 text-xs font-medium uppercase tracking-wider flex items-center gap-1">
         <Star size={12} /> Favorites
       </span>
