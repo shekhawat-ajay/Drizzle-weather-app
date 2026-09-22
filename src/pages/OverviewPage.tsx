@@ -9,6 +9,9 @@ import StargazingBanner from "@/components/astronomy/StargazingBanner";
 import useStargazingIndex from "@/hooks/astronomy/useStargazingIndex";
 import PlanetaryEventsTimeline from "@/components/astronomy/PlanetaryEventsTimeline";
 import MeteorShowers from "@/components/astronomy/MeteorShowers";
+import TonightStrip from "@/components/astronomy/TonightStrip";
+import VisibleTonight from "@/components/astronomy/VisibleTonight";
+import SevenNightOutlook from "@/components/astronomy/SevenNightOutlook";
 import type { AstronomyOutletContext } from "@/pages/AstronomyPage";
 
 export default function OverviewPage() {
@@ -36,6 +39,16 @@ export default function OverviewPage() {
         <StargazingBanner stargazing={liveStargazing ?? stargazing} isDaytime={isDaytime} />
       </div>
 
+      {/* Tonight at a glance — chronological strip */}
+      <div className="col-span-12">
+        <TonightStrip astronomyData={astronomyData} timezone={tz} />
+      </div>
+
+      {/* Visible tonight — naked-eye filter */}
+      <div className="col-span-12">
+        <VisibleTonight astronomyData={astronomyData} celestialData={celestialData} timezone={tz} />
+      </div>
+
       {/* Celestial table — full width card */}
       <div className="col-span-12">
         <div className="card bg-base-200 border border-base-content/5 p-5">
@@ -47,6 +60,11 @@ export default function OverviewPage() {
       {/* Night Sky — full width */}
       <div className="col-span-12">
         <NightSky />
+      </div>
+
+      {/* 7-night outlook — best dark-hour score per night */}
+      <div className="col-span-12">
+        <SevenNightOutlook />
       </div>
 
       {/* Upcoming — consolidated: Season + Solar & Lunar eclipses */}

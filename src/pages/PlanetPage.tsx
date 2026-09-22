@@ -5,6 +5,7 @@ import AstroCard from "@/components/astronomy/AstroCard";
 import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import CelestialIcon from "@/components/astronomy/CelestialIcon";
 import PlanetPositionArc from "@/components/astronomy/PlanetPositionArc";
+import PlanetNextEvents from "@/components/astronomy/PlanetNextEvents";
 import { fmtTime, fmtAzimuth } from "@/utils/formatters";
 import type { AstronomyOutletContext } from "@/pages/AstronomyPage";
 
@@ -140,6 +141,9 @@ export default function PlanetPage() {
             />
           </div>
         </div>
+      </div>
+      <div className="col-span-12">
+        <PlanetNextEvents planetName={planetName} />
       </div>
     </div>
   );

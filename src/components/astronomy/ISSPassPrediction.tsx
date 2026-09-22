@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fmtTime, fmtShortDate } from "@/utils/formatters";
 import { Clock, Eye, Satellite } from "lucide-react";
+import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import { predictISSPasses, type ISSPass } from "@/utils/issPredict";
 
 export default function ISSPassPrediction({ latitude, longitude, timezone }: { latitude: number; longitude: number; timezone?: string }) {
@@ -66,11 +67,28 @@ export default function ISSPassPrediction({ latitude, longitude, timezone }: { l
 
   const next = passes[0]!;
   const visibleCount = passes.filter((p) => p.visible).length;
+  const nextVisible = useMemo(() => passes.find((p) => p.visible) ?? null, [passes]);
 
   return (
     <div className="space-y-3">
+      {nextVisible && nextVisible.startMs !== next.startMs ? (
+        <div className="card border border-primary/20 bg-primary/10 p-4">
+          <div className="flex flex-wrap items-center gap-2 text-primary">
+            <Eye size={14} />
+            <span className="text-xs font-semibold uppercase tracking-wider">Next visible pass</span>
+            <span className="badge badge-xs badge-primary">Naked eye</span>
+            <span className="ml-auto">
+              <CountdownBadge target={new Date(nextVisible.startMs)} className="badge-primary" />
+            </span>
+          </div>
+          <p className="mt-2 font-mono text-sm font-semibold">
+            {fmtTime(new Date(nextVisible.startMs), timezone)} · {fmtShortDate(new Date(nextVisible.startMs))}
+            <span className="text-base-content/50 font-normal"> · {nextVisible.maxElevDeg}° elev · {nextVisible.durationMin} min</span>
+          </p>
+        </div>
+      ) : null}
       <div className="card border border-primary/15 bg-base-300 p-4">
-        <div className="flex items-center gap-2 text-primary">
+        <div className="flex flex-wrap items-center gap-2 text-primary">
           <Eye size={14} />
           <span className="text-xs font-semibold uppercase tracking-wider">Next Pass</span>
           {next.visible ? (
@@ -78,6 +96,12 @@ export default function ISSPassPrediction({ latitude, longitude, timezone }: { l
           ) : (
             <span className="badge badge-xs">Low / daylight</span>
           )}
+          <span className="ml-auto">
+            <CountdownBadge
+              target={new Date(next.startMs)}
+              className={next.visible ? "badge-primary" : "badge-ghost"}
+            />
+          </span>
         </div>
         <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
           <div>

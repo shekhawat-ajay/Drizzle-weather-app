@@ -58,6 +58,34 @@ export default function SunPage() {
               accent="accent"
             />
           </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mt-3">
+            <AstroCard
+              imageSrc="/sunrise.svg"
+              title="Morning Blue Hour"
+              value={
+                sun.civilDawn && sun.sunrise
+                  ? `${fmtTime(sun.civilDawn, tz)} – ${fmtTime(sun.sunrise, tz)}`
+                  : "--"
+              }
+              sub="Civil dawn to sunrise — soft blue light for photos"
+              badge={<CountdownBadge target={sun.civilDawn} label="Starts" />}
+              info="Blue hour is the period when the sun is 0–6° below the horizon. The sky turns deep blue — ideal for city and landscape photography."
+              accent="primary"
+            />
+            <AstroCard
+              imageSrc="/sunset.svg"
+              title="Evening Blue Hour"
+              value={
+                sun.sunset && sun.civilDusk
+                  ? `${fmtTime(sun.sunset, tz)} – ${fmtTime(sun.civilDusk, tz)}`
+                  : "--"
+              }
+              sub="Sunset to civil dusk — soft blue light for photos"
+              badge={<CountdownBadge target={sun.sunset} label="Starts" />}
+              info="Evening blue hour runs from sunset to civil dusk. Pair with golden hour (6° sun) just before for warm-to-blue transition shots."
+              accent="primary"
+            />
+          </div>
           <div className="mt-4">
             <SunPositionArc
               sunPosition={sunPosition}

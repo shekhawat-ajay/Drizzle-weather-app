@@ -114,6 +114,9 @@ export default function NightSky() {
   const { data } = useHourlyForecast(location.latitude, location.longitude);
   const hourly = data?.hourly;
   const minutely15 = data?.minutely15;
+  // API times are wall-clock local pretended as UTC (see formatters.ts).
+  // astronomy-engine needs true UTC, so shift back by the zone offset for engine calls only.
+  const utcOffsetMs = (data?.utcOffsetSeconds ?? 0) * 1000;
 
   const moonIllumination = astronomyData.moon.illuminationFraction;
   const liveSunAlt = astronomyData.sunPosition.altitude;
@@ -140,10 +143,11 @@ export default function NightSky() {
       }
     }
 
-    // Per-hour sun/moon altitude via local SGP-style sampling (cheap: 24 × 4 calls)
+    // Per-hour sun/moon altitude (cheap: 24 × 4 calls).
+    // ms is pretend-UTC wall-clock — convert to true UTC for the engine.
     const sunMoonAlt = (ms: number): { sunAlt: number; moonAlt: number } => {
       try {
-        const d = new Date(ms);
+        const d = new Date(ms - utcOffsetMs);
         const sunEqu = Equator(Body.Sun, d, observer, true, true);
         const sunHor = Horizon(d, observer, sunEqu.ra, sunEqu.dec, "normal");
         const moonEqu = Equator(Body.Moon, d, observer, true, true);
@@ -211,7 +215,7 @@ export default function NightSky() {
       cards: points,
       bestWindow: bestHour,
     };
-  }, [hourly, minutely15, tz, moonIllumination, location.latitude, location.longitude]);
+  }, [hourly, minutely15, tz, moonIllumination, location.latitude, location.longitude, utcOffsetMs]);
 
   // Single source of truth for "right now" — same hook the Overview banner uses
   const currentResult = useStargazingIndex(
