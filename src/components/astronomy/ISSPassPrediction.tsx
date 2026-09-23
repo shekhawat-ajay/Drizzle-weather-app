@@ -27,6 +27,10 @@ export default function ISSPassPrediction({ latitude, longitude, timezone }: { l
     };
   }, [latitude, longitude]);
 
+  // Hooks must run before any early return — otherwise React error #310
+  // (more hooks after passes loads than during skeleton).
+  const nextVisible = useMemo(() => passes?.find((p) => p.visible) ?? null, [passes]);
+
   if (error) {
     return (
       <div className="card border border-base-content/5 bg-base-200 p-4">
@@ -67,7 +71,6 @@ export default function ISSPassPrediction({ latitude, longitude, timezone }: { l
 
   const next = passes[0]!;
   const visibleCount = passes.filter((p) => p.visible).length;
-  const nextVisible = useMemo(() => passes.find((p) => p.visible) ?? null, [passes]);
 
   return (
     <div className="space-y-3">
