@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import useDailyForecast from "@/hooks/weather/useDailyForecast";
 import useCurrentWeather from "@/hooks/weather/useCurrentWeather";
+import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
+import useAQI from "@/hooks/weather/useAQI";
+import { fmtTimeFromISO, getNowAsUTC, parseAsUTC } from "@/utils/formatters";
 import { getNextShowers } from "@/data/meteorShowers";
 
 const STORAGE_KEY_PERM = "drizzle-push-enabled";
@@ -46,6 +49,8 @@ export default function usePushAlerts(latitude: number, longitude: number, timez
 
   const { data: daily } = useDailyForecast(latitude, longitude);
   const { data: current } = useCurrentWeather(latitude, longitude);
+  const { data: hourlyData } = useHourlyForecast(latitude, longitude);
+  const { data: aqiData } = useAQI(latitude, longitude);
 
   const request = useCallback(async () => {
     if (!("Notification" in window)) {
@@ -74,7 +79,7 @@ export default function usePushAlerts(latitude: number, longitude: number, timez
     else request();
   }, [enabled, request, disable]);
 
-  // Check alerts when data changes and when enabled
+  // Check alerts when data changes and when enabled — thresholds mirror in-app severe levels
   useEffect(() => {
     if (!enabled || !canNotify()) return;
     if (!daily?.daily) return;
@@ -86,31 +91,104 @@ export default function usePushAlerts(latitude: number, longitude: number, timez
     const prob = daily.daily.precipitationProbabilityMax?.[i] ?? 0;
     const wind = daily.daily.windSpeed10mMax?.[i] ?? 0;
     const code = daily.daily.weatherCode?.[i] ?? 0;
-    const uv = daily.daily.uvIndexMax?.[i] ?? 0;
 
-    if (prob >= 80 && shouldNotify(`rain-${todayStr}`, 12)) {
-      showNotification("Heavy rain expected", `Rain chance ${prob}% today — bring an umbrella.`, `rain-${todayStr}`);
+    const minutely = hourlyData?.minutely15;
+    const hourly = hourlyData?.hourly;
+    const nowMs = getNowAsUTC(tz);
+    const futureHasCode = (codes: Set<number>, hours: number): string => {
+      if (!minutely) return "";
+      const endMs = nowMs + hours * 3600_000;
+      for (let k = 0; k < minutely.time.length; k++) {
+        const ms = parseAsUTC(minutely.time[k]!).getTime();
+        if (ms < nowMs || ms > endMs) continue;
+        if (codes.has(minutely.weatherCode[k]!)) return minutely.time[k]!;
+      }
+      return "";
+    };
+    let maxProb3 = 0;
+    let minVis3 = Infinity;
+    if (minutely) {
+      const endMs = nowMs + 3 * 3600_000;
+      for (let k = 0; k < minutely.time.length; k++) {
+        const ms = parseAsUTC(minutely.time[k]!).getTime();
+        if (ms < nowMs || ms > endMs) continue;
+        maxProb3 = Math.max(maxProb3, minutely.precipitationProbability[k]!);
+        minVis3 = Math.min(minVis3, minutely.visibility[k]!);
+      }
+    }
+
+    const STORM = new Set([95, 96, 99]);
+    const SNOW = new Set([71, 73, 75, 77, 85, 86]);
+    const ICE = new Set([56, 57, 66, 67]);
+
+    // Rain — in-app severe is 70% (3h) / daily 70 — was 80, now parity at 70
+    if ((prob >= 70 || maxProb3 >= 70) && shouldNotify(`rain-${todayStr}`, 12)) {
+      showNotification("Heavy rain expected", `Rain chance ${Math.max(prob, maxProb3)}% — bring an umbrella.`, `rain-${todayStr}`);
       markNotified(`rain-${todayStr}`);
     }
-    if (wind >= 50 && shouldNotify(`wind-${todayStr}`, 12)) {
+    // Wind — in-app strong is 40 daily / 30 hourly — was 50, now parity at 40
+    if (wind >= 40 && shouldNotify(`wind-${todayStr}`, 12)) {
       showNotification("Strong wind alert", `Wind up to ${Math.round(wind)} km/h expected today.`, `wind-${todayStr}`);
       markNotified(`wind-${todayStr}`);
     }
-    if ([95, 96, 99].includes(code) && shouldNotify(`storm-${todayStr}`, 12)) {
-      showNotification("Thunderstorm warning", "Thunderstorm expected today — stay safe indoors.", `storm-${todayStr}`);
+    // Storm — daily or timed future
+    const stormTime = futureHasCode(STORM, 6);
+    if ((STORM.has(code) || stormTime) && shouldNotify(`storm-${todayStr}`, 12)) {
+      showNotification(
+        "Thunderstorm warning",
+        stormTime ? `Thunderstorm around ${fmtTimeFromISO(stormTime)} — stay safe indoors.` : "Thunderstorm expected today — stay safe indoors.",
+        `storm-${todayStr}`,
+      );
       markNotified(`storm-${todayStr}`);
     }
-    if (uv >= 8 && shouldNotify(`uv-${todayStr}`, 12)) {
-      showNotification("High UV index", `UV ${uv.toFixed(1)} — limit sun exposure, use sunscreen.`, `uv-${todayStr}`);
-      markNotified(`uv-${todayStr}`);
+    // Fog — was missing, now parity (dense <800m next 3h)
+    if (minVis3 < 800 && shouldNotify(`fog-${todayStr}`, 12)) {
+      showNotification("Dense fog", "Visibility under 0.8 km in next 3h — drive careful.", `fog-${todayStr}`);
+      markNotified(`fog-${todayStr}`);
+    }
+    // Snow / ice — was missing
+    const snowTime = futureHasCode(SNOW, 6);
+    const iceTime = futureHasCode(ICE, 6);
+    if ((iceTime || ICE.has(code)) && shouldNotify(`ice-${todayStr}`, 12)) {
+      showNotification("Freezing rain", iceTime ? `Ice risk around ${fmtTimeFromISO(iceTime)} — avoid travel.` : "Freezing rain expected — ice risk.", `ice-${todayStr}`);
+      markNotified(`ice-${todayStr}`);
+    } else if ((snowTime || SNOW.has(code)) && shouldNotify(`snow-${todayStr}`, 12)) {
+      showNotification("Snow expected", snowTime ? `Snow around ${fmtTimeFromISO(snowTime)} — dress warm.` : "Snow expected today.", `snow-${todayStr}`);
+      markNotified(`snow-${todayStr}`);
+    }
+    // AQI — was missing, parity at 201+
+    if (aqiData && aqiData.aqi >= 201 && shouldNotify(`aqi-${todayStr}`, 12)) {
+      showNotification("Poor air quality", `AQI ${aqiData.aqi} (${aqiData.prominentPollutant}) — limit outdoor.`, `aqi-${todayStr}`);
+      markNotified(`aqi-${todayStr}`);
+    }
+    // UV — current + future precedence (peak usually 12-3). No stale daily-max ping at night.
+    const nowUv = current?.current?.uvIndex ?? -1;
+    const isDayNow = current?.current?.isDay === 1;
+    let futUv = -1, futTime = "";
+    if (hourly?.uvIndex) {
+      const endMs = nowMs + 6 * 3600_000;
+      for (let k = 0; k < hourly.time.length; k++) {
+        const ms = parseAsUTC(hourly.time[k]!).getTime();
+        if (ms <= nowMs || ms > endMs) continue;
+        if ((hourly.isDay[k] as number) !== 1) continue;
+        const v = hourly.uvIndex[k] ?? -1;
+        if (v > futUv) { futUv = v; futTime = hourly.time[k]!; }
+      }
+    }
+    if (isDayNow && nowUv >= 8 && shouldNotify(`uv-now-${todayStr}`, 12)) {
+      showNotification("Very high UV now", `UV ${nowUv.toFixed(1)} — limit sun exposure, use sunscreen.`, `uv-now-${todayStr}`);
+      markNotified(`uv-now-${todayStr}`);
+    } else if (isDayNow && futUv >= 8 && futTime && shouldNotify(`uv-ahead-${todayStr}`, 12)) {
+      showNotification("Very high UV coming", `UV ${futUv.toFixed(1)} around ${fmtTimeFromISO(futTime)} — plan shade.`, `uv-ahead-${todayStr}`);
+      markNotified(`uv-ahead-${todayStr}`);
     }
 
     const w = current?.current;
-    if (w && [95, 96, 99].includes(w.weatherCode) && shouldNotify(`current-storm-${todayStr}`, 6)) {
+    if (w && STORM.has(w.weatherCode) && shouldNotify(`current-storm-${todayStr}`, 6)) {
       showNotification("Thunderstorm now", "Thunderstorm activity detected near you.", `current-storm-${todayStr}`);
       markNotified(`current-storm-${todayStr}`);
     }
-  }, [enabled, daily, current, timezone]);
+  }, [enabled, daily, current, hourlyData, aqiData, timezone]);
 
   // Meteor shower peaks within 2 days
   useEffect(() => {
@@ -127,9 +205,6 @@ export default function usePushAlerts(latitude: number, longitude: number, timez
       }
     }
   }, [enabled]);
-
-  // ISS pass: we rely on ISSPassPrediction's 7-day fetch, but also check here for next pass within 60 min via lightweight check
-  // To avoid duplicate fetch, we just check if enabled and let ISSPassPrediction handle detailed; hook here provides toggle state
 
   return { enabled, permission, request, disable, toggle, canNotify: canNotify() };
 }

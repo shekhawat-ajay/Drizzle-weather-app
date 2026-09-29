@@ -22,10 +22,15 @@ import {
   Sparkles,
   CloudSun,
   Umbrella,
+  Snowflake,
 } from "lucide-react";
 
 type AlertKind = "info" | "warning" | "error" | "success";
-type Alert = { icon: React.ElementType; text: string; kind: AlertKind; priority: number };
+type AlertTag =
+  | "storm" | "fog" | "rain" | "wind" | "snow" | "ice" | "drizzle"
+  | "aqi" | "pressure" | "overcast" | "muggy" | "heat" | "cold"
+  | "uv" | "swing" | "sun";
+type Alert = { icon: React.ElementType; text: string; kind: AlertKind; priority: number; tag: AlertTag };
 
 // Helpers to slice next N hours from hourly/minutely15
 function hourlySliceNextHours(hourly: { time: string[]; [k: string]: unknown }, tz: string, hours: number) {
@@ -52,6 +57,21 @@ function minutelySliceNextHours(minutely15: { time: string[] }, tz: string, hour
   return indices;
 }
 
+/** NOAA Rothfusz heat index (°C in, °C out). Below 27°C returns air temp. */
+function heatIndexC(tC: number, rh: number): number {
+  if (tC < 27) return tC;
+  const tF = tC * 9 / 5 + 32;
+  let hiF =
+    -42.379 + 2.04901523 * tF + 10.14333127 * rh
+    - 0.22475541 * tF * rh - 0.00683783 * tF * tF
+    - 0.05481717 * rh * rh + 0.00122874 * tF * tF * rh
+    + 0.00085282 * tF * rh * rh - 0.00000199 * tF * tF * rh * rh;
+  // Low-humidity / high-humidity adjustments
+  if (rh < 13 && tF >= 80 && tF <= 112) hiF -= ((13 - rh) / 4) * Math.sqrt((17 - Math.abs(tF - 95)) / 17);
+  else if (rh > 85 && tF >= 80 && tF <= 87) hiF += ((rh - 85) / 10) * ((87 - tF) / 5);
+  return (hiF - 32) * 5 / 9;
+}
+
 export default function WeatherAlerts() {
   const { location } = useContext(LocationContext) as unknown as { location: ResultType };
   const tz = location.timezone ?? "UTC";
@@ -66,6 +86,7 @@ export default function WeatherAlerts() {
     const d = daily?.daily;
     const minutely = hourlyData?.minutely15;
     const hourly = hourlyData?.hourly;
+    const hasTag = (...tags: AlertTag[]) => list.some(a => tags.includes(a.tag));
 
     // ——— Today index ———
     const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
@@ -79,19 +100,38 @@ export default function WeatherAlerts() {
     const srTodayMs = d?.sunrise?.[todayIdx] ? parseAsUTC(d.sunrise[todayIdx]!).getTime() : 0;
     const ssTodayMs = d?.sunset?.[todayIdx] ? parseAsUTC(d.sunset[todayIdx]!).getTime() : 0;
     const isDaytimeNow = srTodayMs && ssTodayMs ? (nowMs >= srTodayMs && nowMs < ssTodayMs) : (w?.isDay === 1);
-    // Also consider tomorrow sunrise if after midnight and before sunrise
     const isNight = !isDaytimeNow;
+    // Actionable = still daylight left (>30min to sunset). Kills stale "today" pills in the evening.
+    const actionableDay = Boolean(isDaytimeNow && ssTodayMs && nowMs < ssTodayMs - 30 * 60_000);
+
+    const futureHasMinutelyCode = (codes: Set<number>, hours: number): string => {
+      if (!minutely) return "";
+      for (const i of minutelySliceNextHours(minutely, tz, hours)) {
+        if (codes.has(minutely.weatherCode[i]!)) return minutely.time[i]!;
+      }
+      return "";
+    };
+    const maxProbNextHours = (hours: number): number => {
+      if (!minutely) return 0;
+      let m = 0;
+      for (const i of minutelySliceNextHours(minutely, tz, hours)) m = Math.max(m, minutely.precipitationProbability[i]!);
+      return m;
+    };
 
     // ════════════════════════════════════════════════════════
     // TIER S — SEVERE / ERROR (red)
     // ════════════════════════════════════════════════════════
-    if (w && [95, 96, 99].includes(w.weatherCode)) {
-      list.push({ icon: TriangleAlert, text: "Thunderstorm right now — stay indoors if possible", kind: "error", priority: 100 });
+    const STORM = new Set([95, 96, 99]);
+    if (w && STORM.has(w.weatherCode)) {
+      list.push({ icon: TriangleAlert, text: "Thunderstorm right now — stay indoors if possible", kind: "error", priority: 100, tag: "storm" });
     }
-    if (d) {
-      const code = d.weatherCode?.[todayIdx] ?? 0;
-      if ([95, 96, 99].includes(code) && !list.some(a => a.priority === 100)) {
-        list.push({ icon: TriangleAlert, text: "Thunderstorm expected today — stay indoors if possible", kind: "error", priority: 99 });
+    if (d && !hasTag("storm")) {
+      const futureStorm = futureHasMinutelyCode(STORM, 6);
+      if (futureStorm) {
+        list.push({ icon: TriangleAlert, text: `Thunderstorm around ${fmtTimeFromISO(futureStorm)} — stay indoors if possible`, kind: "error", priority: 99, tag: "storm" });
+      } else if ((d.weatherCode?.[todayIdx] !== undefined && STORM.has(d.weatherCode[todayIdx]!)) && actionableDay) {
+        // Daily fallback only while storm is still possible today (not after it passed)
+        list.push({ icon: TriangleAlert, text: "Thunderstorm expected today — stay indoors if possible", kind: "error", priority: 99, tag: "storm" });
       }
     }
 
@@ -106,14 +146,12 @@ export default function WeatherAlerts() {
       }
       if (minVis < 800) {
         const visText = units === "imperial" ? `${(minVis / 1609.34).toFixed(1)} mi` : `${(minVis / 1000).toFixed(1)} km`;
-        list.push({ icon: Eye, text: `Dense fog until ${fmtTimeFromISO(minVisTime)} — visibility ${visText}`, kind: "error", priority: 98 });
+        list.push({ icon: Eye, text: `Dense fog until ${fmtTimeFromISO(minVisTime)} — visibility ${visText}`, kind: "error", priority: 98, tag: "fog" });
       } else if (minVis < 1500) {
         const visText = units === "imperial" ? `${(minVis / 1609.34).toFixed(1)} mi` : `${(minVis / 1000).toFixed(1)} km`;
-        // warning but slightly lower priority, still hourly
-        list.push({ icon: Eye, text: `Foggy next few hours — visibility ${visText} around ${fmtTimeFromISO(minVisTime)}`, kind: "warning", priority: 72 });
+        list.push({ icon: Eye, text: `Foggy next few hours — visibility ${visText} around ${fmtTimeFromISO(minVisTime)}`, kind: "warning", priority: 72, tag: "fog" });
       }
-      // Current immediate visibility (nearest minutely15) — catches "Fog now" vs future min; only if fog not already alerted
-      if (minutely && !list.some(a => a.text.toLowerCase().includes("fog"))) {
+      if (minutely && !hasTag("fog")) {
         const nowMsFog = getNowAsUTC(tz);
         let closestIdx = 0, minDiff = Infinity;
         for (let i = 0; i < minutely.time.length; i++) {
@@ -124,41 +162,62 @@ export default function WeatherAlerts() {
         const nowVis = minutely.visibility[closestIdx] ?? 99999;
         if (nowVis < 800) {
           const visText = units === "imperial" ? `${(nowVis / 1609.34).toFixed(1)} mi` : `${(nowVis / 1000).toFixed(1)} km`;
-          list.push({ icon: Eye, text: `Fog now — visibility ${visText}`, kind: "error", priority: 96 });
+          list.push({ icon: Eye, text: `Fog now — visibility ${visText}`, kind: "error", priority: 96, tag: "fog" });
         } else if (nowVis < 1500 && nowVis < minVis) {
           const visText = units === "imperial" ? `${(nowVis / 1609.34).toFixed(1)} mi` : `${(nowVis / 1000).toFixed(1)} km`;
-          list.push({ icon: Eye, text: `Low visibility now ${visText}`, kind: "warning", priority: 71 });
+          list.push({ icon: Eye, text: `Low visibility now ${visText}`, kind: "warning", priority: 73, tag: "fog" });
         }
       }
     }
 
-    // Heavy precipitation sum today
-    if (d) {
+    // Heavy precipitation sum today — time-gated (total includes past rain)
+    if (d && !hasTag("storm")) {
       const sum = d.precipitationSum?.[todayIdx] ?? 0;
-      if (sum >= 20) {
+      const futureRain = maxProbNextHours(6);
+      const stillRelevant = actionableDay || futureRain >= 50;
+      if (sum >= 20 && stillRelevant) {
         const conv = convertPrecipitation(sum, units);
-        list.push({ icon: CloudRain, text: `Heavy rain today — ${conv} ${precipUnit(units)} expected`, kind: "error", priority: 95 });
-      } else if (sum >= 10 && sum < 20) {
+        list.push({ icon: CloudRain, text: `Heavy rain today — ${conv} ${precipUnit(units)} expected`, kind: "error", priority: 95, tag: "rain" });
+      } else if (sum >= 10 && sum < 20 && stillRelevant) {
         const conv = convertPrecipitation(sum, units);
-        list.push({ icon: CloudRain, text: `Wet day ahead — ${conv} ${precipUnit(units)} rainfall today`, kind: "warning", priority: 58 });
+        list.push({ icon: CloudRain, text: `Wet day ahead — ${conv} ${precipUnit(units)} rainfall today`, kind: "warning", priority: 58, tag: "rain" });
       }
     }
 
-    // Wind — daily strong + hourly gust timing — suppressed when dense fog (mutual exclusive: fog needs calm <15km/h)
-    const hasDenseFog = list.some(a => a.priority === 98 || a.priority === 72);
-    if (d && !hasDenseFog) {
-      const wind = d.windSpeed10mMax?.[todayIdx] ?? 0;
-      if (wind >= 50) {
-        const conv = convertWindSpeed(wind, units);
-        list.push({ icon: Wind, text: `Damaging wind — ${conv} ${speedUnit(units)} gusts expected today`, kind: "error", priority: 90 });
-      } else if (wind >= 40) {
-        const conv = convertWindSpeed(wind, units);
-        list.push({ icon: Wind, text: `Strong wind ${conv} ${speedUnit(units)} expected`, kind: "warning", priority: 70 });
+    // Freezing rain / ice — WMO 56/57/66/67 (most dangerous for driving)
+    {
+      const ICE = new Set([56, 57, 66, 67]);
+      const iceHourly = futureHasMinutelyCode(ICE, 6);
+      if (iceHourly) {
+        list.push({ icon: Snowflake, text: `Freezing rain around ${fmtTimeFromISO(iceHourly)} — ice risk, avoid travel`, kind: "error", priority: 92, tag: "ice" });
+      } else if (d && ICE.has(d.weatherCode?.[todayIdx] ?? 999) && (actionableDay || maxProbNextHours(6) >= 40) && !hasTag("ice", "storm")) {
+        list.push({ icon: Snowflake, text: `Freezing rain expected today — ice risk`, kind: "warning", priority: 89, tag: "ice" });
       }
-      // Breezy ≥30 info 45 pruned — too noisy, hourly Gusty 68 is precise enough
+      // Drizzle 51/53/55 — low severity info
+      const DRIZZLE = new Set([51, 53, 55]);
+      if (!hasTag("ice", "storm", "rain") && d && DRIZZLE.has(d.weatherCode?.[todayIdx] ?? 999) && actionableDay) {
+        const dz = futureHasMinutelyCode(DRIZZLE, 3);
+        list.push({
+          icon: Droplets,
+          text: dz ? `Drizzle around ${fmtTimeFromISO(dz)} — damp roads` : `Drizzle expected today — damp roads`,
+          kind: "info", priority: 48, tag: "drizzle",
+        });
+      }
     }
-    // Hourly wind timing next 6h — more precise than daily — suppressed when fog
-    if (hourly && !hasDenseFog) {
+
+    // Wind — daily strong + hourly gust timing — suppressed when fog (fog needs calm)
+    const hasDenseFog = hasTag("fog");
+    if (d && !hasDenseFog && !hasTag("storm")) {
+      const wind = d.windSpeed10mMax?.[todayIdx] ?? 0;
+      if (wind >= 50 && actionableDay) {
+        const conv = convertWindSpeed(wind, units);
+        list.push({ icon: Wind, text: `Damaging wind — ${conv} ${speedUnit(units)} gusts expected today`, kind: "error", priority: 90, tag: "wind" });
+      } else if (wind >= 40 && actionableDay) {
+        const conv = convertWindSpeed(wind, units);
+        list.push({ icon: Wind, text: `Strong wind ${conv} ${speedUnit(units)} expected`, kind: "warning", priority: 70, tag: "wind" });
+      }
+    }
+    if (hourly && !hasDenseFog && !hasTag("storm")) {
       const idx6h = hourlySliceNextHours(hourly, tz, 6);
       let maxWind = -1;
       let maxWindTime = "";
@@ -167,19 +226,14 @@ export default function WeatherAlerts() {
         if (ws > maxWind) { maxWind = ws; maxWindTime = hourly.time[i]!; }
       }
       if (maxWind >= 30) {
-        // hourly gust + dense fog contradictory → fog already wins, but if maxWind >=30 and fog we skipped whole block via hasDenseFog guard
-        // suppress the soft daily 30 if we have timing — also collapse daily strong into single timed alert to avoid slot waste
-        const existingStrongIdx = list.findIndex(a => a.priority === 70 || a.priority === 90);
-        const existingSoft = list.findIndex(a => a.priority === 45);
-        if (existingSoft >= 0) list.splice(existingSoft, 1);
+        const existingStrongIdx = list.findIndex(a => a.tag === "wind");
         const conv = convertWindSpeed(maxWind, units);
         if (existingStrongIdx >= 0) {
-          // upgrade daily wind to timed version instead of two wind pills
           const dup = list[existingStrongIdx]!;
           dup.text = `Strong wind up to ${conv} ${speedUnit(units)} around ${fmtTimeFromISO(maxWindTime)}`;
-          dup.priority = 71; // keep high but slightly above hourly gust to preserve order
+          dup.priority = 71;
         } else {
-          list.push({ icon: Wind, text: `Gusty around ${fmtTimeFromISO(maxWindTime)} — up to ${conv} ${speedUnit(units)} in next 6h`, kind: "warning", priority: 68 });
+          list.push({ icon: Wind, text: `Gusty around ${fmtTimeFromISO(maxWindTime)} — up to ${conv} ${speedUnit(units)} in next 6h`, kind: "warning", priority: 64, tag: "wind" });
         }
       }
     }
@@ -188,38 +242,36 @@ export default function WeatherAlerts() {
     // TIER A — HOURLY PRECISION WARNINGS (amber/blue)
     // ════════════════════════════════════════════════════════
 
-    // AQI — NAQI Poor/Very Poor/Severe (already fetched 10-min) — worthy for health, not daily weather
     if (aqiData) {
       const aqi = aqiData.aqi;
       const prom = aqiData.prominentPollutant;
       if (aqi >= 301) {
-        list.push({ icon: TriangleAlert, text: `Very poor air — AQI ${aqi} (${prom}) — avoid outdoor`, kind: "error", priority: 82 });
+        list.push({ icon: TriangleAlert, text: `Very poor air — AQI ${aqi} (${prom}) — avoid outdoor`, kind: "error", priority: 82, tag: "aqi" });
       } else if (aqi >= 201) {
-        list.push({ icon: Eye, text: `Poor air — AQI ${aqi} (${prom}) — limit outdoor`, kind: "warning", priority: 61 });
+        list.push({ icon: Eye, text: `Poor air — AQI ${aqi} (${prom}) — limit outdoor`, kind: "warning", priority: 61, tag: "aqi" });
       }
-      // Moderate 101-200 not alertworthy alone; Very Good/Good suppressed
     }
 
-    // Snow — WMO 71/73/75/77/85/86 — daily today or next 3h minutely
+    // Snow — WMO 71/73/75/77/85/86 — timed, daily fallback only while actionable
     {
       const snowCodes = new Set([71, 73, 75, 77, 85, 86]);
-      let snowDaily = false, snowHourly = false;
+      let snowDaily = false;
       let snowTime = "";
       if (d && snowCodes.has(d.weatherCode?.[todayIdx] ?? 999)) snowDaily = true;
       if (minutely) {
         const idx3 = minutelySliceNextHours(minutely, tz, 3);
-        for (const i of idx3) if (snowCodes.has(minutely.weatherCode[i]!)) { snowHourly = true; snowTime = minutely.time[i]!; break; }
+        for (const i of idx3) if (snowCodes.has(minutely.weatherCode[i]!)) { snowTime = minutely.time[i]!; break; }
       }
-      if (snowHourly) {
-        list.push({ icon: CloudRain, text: `Snow expected around ${fmtTimeFromISO(snowTime)} — dress warm`, kind: "warning", priority: 85 });
-      } else if (snowDaily) {
-        list.push({ icon: CloudRain, text: `Snow expected today — dress warm`, kind: "info", priority: 63 });
+      if (snowTime) {
+        list.push({ icon: CloudRain, text: `Snow expected around ${fmtTimeFromISO(snowTime)} — dress warm`, kind: "warning", priority: 85, tag: "snow" });
+      } else if (snowDaily && actionableDay && !hasTag("storm")) {
+        list.push({ icon: CloudRain, text: `Snow expected today — dress warm`, kind: "info", priority: 63, tag: "snow" });
       }
     }
 
-    // Pressure dropping >8 hPa in 6h — suppressed if thunderstorm/heavy rain already alerts (same system), bucket-aware wording
+    // Pressure dropping — require sustained fall (not noise spike), skip when storm/wind/rain already explains it
     if (hourly) {
-      const hasStorm = list.some(a => a.priority === 100 || a.priority === 99 || a.priority === 95 || a.priority === 85);
+      const hasStorm = hasTag("storm", "rain", "wind", "snow", "ice");
       if (!hasStorm) {
         const idx6h = hourlySliceNextHours(hourly, tz, 6);
         if (idx6h.length >= 2) {
@@ -229,21 +281,23 @@ export default function WeatherAlerts() {
           const firstP = hourly.surfacePressure[idx6h[0]!]!;
           const lastP = hourly.surfacePressure[idx6h[idx6h.length - 1]!]!;
           const netDrop = firstP - lastP;
-          if (drop >= 8 || netDrop >= 6) {
+          // Sustained fall: net drop ≥6 AND range ≥5 AND ending lower (filters spikes)
+          if (netDrop >= 6 && drop >= 5 && lastP < firstP - 3) {
             const h = parseInt(new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hour12: false }).format(new Date()), 10);
+            const hh = Number.isNaN(h) ? 12 : (h === 24 ? 0 : h);
             let when = "this evening";
-            if (h >= 0 && h < 6) when = "later today";
-            else if (h >= 6 && h < 12) when = "this afternoon";
-            else if (h >= 12 && h < 18) when = "this evening";
+            if (hh >= 0 && hh < 6) when = "later today";
+            else if (hh >= 6 && hh < 12) when = "this afternoon";
+            else if (hh >= 12 && hh < 18) when = "this evening";
             else when = "tonight";
-            list.push({ icon: Gauge, text: `Pressure dropping ${drop.toFixed(1)} hPa in 6h — change coming ${when}`, kind: "warning", priority: 78 });
+            list.push({ icon: Gauge, text: `Pressure dropping ${netDrop.toFixed(1)} hPa in 6h — change coming ${when}`, kind: "warning", priority: 78, tag: "pressure" });
           }
         }
       }
     }
 
     // Rain timing next 3h / 6h via minutely15
-    if (minutely) {
+    if (minutely && !hasTag("storm", "ice", "snow")) {
       const idx3h = minutelySliceNextHours(minutely, tz, 3);
       let maxProb3 = -1, maxProb3Time = "";
       for (const i of idx3h) { const p = minutely.precipitationProbability[i]!; if (p > maxProb3) { maxProb3 = p; maxProb3Time = minutely.time[i]!; } }
@@ -252,162 +306,162 @@ export default function WeatherAlerts() {
       for (const i of idx6h) { const p = minutely.precipitationProbability[i]!; if (p > maxProb6) maxProb6 = p; }
 
       if (maxProb3 >= 70) {
-        list.push({ icon: Umbrella, text: `Rain likely around ${fmtTimeFromISO(maxProb3Time)} — ${maxProb3}% in next 3h`, kind: "warning", priority: 75 });
+        list.push({ icon: Umbrella, text: `Rain likely around ${fmtTimeFromISO(maxProb3Time)} — ${maxProb3}% in next 3h`, kind: "warning", priority: 75, tag: "rain" });
       } else if (maxProb3 >= 50) {
-        list.push({ icon: CloudRain, text: `Slight rain chance ${maxProb3}% around ${fmtTimeFromISO(maxProb3Time)} (next 3h)`, kind: "info", priority: 62 });
+        list.push({ icon: CloudRain, text: `Slight rain chance ${maxProb3}% around ${fmtTimeFromISO(maxProb3Time)} (next 3h)`, kind: "info", priority: 62, tag: "rain" });
       } else if (maxProb6 >= 70) {
-        list.push({ icon: Umbrella, text: `Rain expected later — up to ${maxProb6}% in next 6h`, kind: "info", priority: 60 });
+        list.push({ icon: Umbrella, text: `Rain expected later — up to ${maxProb6}% in next 6h`, kind: "info", priority: 57, tag: "rain" });
       }
-      // if hourly timing added, suppress daily high rain duplicates below
     }
 
-    // Daily high rain fallback only if hourly not already covered high rain
-    if (d) {
-      const hasHourlyRain = list.some(a => a.text.includes("next 3h") || a.text.includes("next 6h"));
+    // Daily high rain fallback only if hourly not already covered + still actionable
+    if (d && !hasTag("storm", "ice", "snow", "rain") && actionableDay) {
       const prob = d.precipitationProbabilityMax?.[todayIdx] ?? 0;
-      if (prob >= 70 && !hasHourlyRain) {
-        list.push({ icon: CloudRain, text: `High rain chance ${prob}% today`, kind: "info", priority: 66 });
+      if (prob >= 70) {
+        list.push({ icon: CloudRain, text: `High rain chance ${prob}% today`, kind: "info", priority: 66, tag: "rain" });
       }
-      // Moderate 50-70% info 48 pruned — hourly Slight rain 62 is precise, daily moderate wastes slot
     }
 
-    // Overcast: cloudCover >=85% for 4+ of next 6h — only when sun is up, suppressed at night, bucket-aware phrasing
+    // Overcast: cloudCover >=85% for 4+ of next 6h — only when sun is up
     if (hourly && isDaytimeNow) {
       const all6 = hourlySliceNextHours(hourly, tz, 6);
       const day6 = all6.filter(i => (hourly.isDay[i] as number) === 1);
-      // Require at least 3 daytime slots in next 6h; else not "afternoon" — prevents 1 AM → "afternoon" nonsense
       if (day6.length >= 3) {
         let overCount = 0;
         for (const i of day6) if (hourly.cloudCover[i]! >= 85) overCount++;
-        // bucket-aware wording: 0-6 overnight, 6-12 morning, 12-18 afternoon, 18-24 evening — use real wall-clock, not UTC-pretend nowMs
         const hourNow = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hour12: false }).format(new Date());
-        const h = parseInt(hourNow, 10);
+        const hRaw = parseInt(hourNow, 10);
+        const h = Number.isNaN(hRaw) ? 12 : (hRaw === 24 ? 0 : hRaw);
         let textAfternoon = "Overcast all afternoon — no sun till evening";
-        let textMostly = `Mostly cloudy next 6h — cloud ${hourly.cloudCover[day6[0]!] ?? 0}%`;
-        if (h >= 5 && h < 12) { textAfternoon = "Overcast this morning — cloudy for hours"; textMostly = `Mostly cloudy this morning — ${hourly.cloudCover[day6[0]!] ?? 0}% cloud`; }
+        if (h >= 5 && h < 12) { textAfternoon = "Overcast this morning — cloudy for hours"; }
         else if (h >= 18) { textAfternoon = "Overcast this evening — no clearing yet"; }
         if (overCount >= 4) {
-          list.push({ icon: CloudSun, text: textAfternoon, kind: "info", priority: 65 });
+          list.push({ icon: CloudSun, text: textAfternoon, kind: "info", priority: 65, tag: "overcast" });
         }
-        // Mostly cloudy 42 pruned — keep only Overcast 65, less noise
       }
-      // At 12:59 AM isDaytimeNow false → this whole block skipped, so Overcast won't pair with High UV at night (Nebraska bug)
     }
 
-    // Muggy / dew point discomfort + heat — heat is daytime-only and overcast-suppressed
+    // Cold / frost — freezing in next 12h + extreme apparent cold
+    {
+      let minT = Infinity, minTTime = "";
+      if (hourly) {
+        for (const i of hourlySliceNextHours(hourly, tz, 12)) {
+          const t = hourly.temperature2M[i]!;
+          if (t < minT) { minT = t; minTTime = hourly.time[i]!; }
+        }
+      }
+      const appMin = d?.apparentTemperatureMin?.[todayIdx] ?? 999;
+      if (minT <= 0 && minTTime) {
+        list.push({ icon: Snowflake, text: `Freezing ${Math.round(minT)}°C around ${fmtTimeFromISO(minTTime)} — frost/ice risk`, kind: "warning", priority: 84, tag: "cold" });
+      } else if (appMin <= -10 && !hasTag("cold")) {
+        list.push({ icon: Thermometer, text: `Extreme cold ${Math.round(appMin)}°C today — limit exposure`, kind: "error", priority: 91, tag: "cold" });
+      }
+    }
+
+    // Muggy / heat — humidity-aware via heat index + dew point
     if (hourly) {
       const idx3h = hourlySliceNextHours(hourly, tz, 3);
       const day3h = idx3h.filter(i => (hourly.isDay[i] as number) === 1);
-      // Muggy can be night (high humidity) — keep 3h all, but suppress if strong wind (disperses)
-      const hasStrongWind = list.some(a => a.priority === 70 || a.priority === 71 || a.priority === 90 || a.priority === 68);
+      const hasStrongWind = hasTag("wind");
       for (const i of idx3h) {
         const t = hourly.temperature2M[i]!;
         const dp = hourly.dewPoint2M[i]!;
         const rh = hourly.relativeHumidity2M[i]!;
-        const spread = t - dp;
-        if (rh >= 85 && spread <= 2 && t >= 22 && !hasStrongWind) {
-          list.push({ icon: Droplets, text: `Muggy now — dew point ${Math.round(dp)}° near ${Math.round(t)}°, humidity ${rh}%`, kind: "info", priority: 60 });
+        const muggy = (dp >= 20 && t >= 26) || (rh >= 80 && t >= 28) || (rh >= 85 && (t - dp) <= 2 && t >= 22);
+        if (muggy && !hasStrongWind) {
+          list.push({ icon: Droplets, text: `Muggy now — dew point ${Math.round(dp)}° near ${Math.round(t)}°, humidity ${rh}%`, kind: "info", priority: 59, tag: "muggy" });
           break;
         }
       }
-      // Heat: only when sun is up and not overcast — 35°C at 2 AM is impossible
-      const hasOvercastHeat = list.some(a => a.text.includes("Overcast") || a.text.includes("Gloomy"));
+      // Heat: max heat-index in daytime 3h, suppressed by overcast/fog/rain
+      const hasOvercastHeat = hasTag("overcast", "fog", "rain", "storm");
       if (isDaytimeNow && !hasOvercastHeat && day3h.length > 0) {
-        let maxT = -Infinity, maxTTime = "";
-        for (const i of day3h) { const t = hourly.temperature2M[i]!; if (t > maxT) { maxT = t; maxTTime = hourly.time[i]!; } }
-        if (maxT >= 35) {
-          list.push({ icon: Thermometer, text: `Heat peak ${Math.round(maxT)}°C around ${fmtTimeFromISO(maxTTime)} — stay hydrated`, kind: "warning", priority: 69 });
+        let maxHI = -Infinity, maxHITime = "", maxT = -Infinity;
+        for (const i of day3h) {
+          const t = hourly.temperature2M[i]!;
+          const rh = hourly.relativeHumidity2M[i]!;
+          const hi = heatIndexC(t, rh);
+          if (hi > maxHI) { maxHI = hi; maxHITime = hourly.time[i]!; maxT = t; }
         }
-        // Warm spell 32 info 44 pruned — 32°C not warning level for summer, keep only 35
+        if (maxHI >= 35 || maxT >= 35) {
+          const show = Math.round(Math.max(maxHI, maxT));
+          list.push({ icon: Thermometer, text: `Heat peak ${show}°C around ${fmtTimeFromISO(maxHITime)} — stay hydrated`, kind: "warning", priority: 69, tag: "heat" });
+        }
       }
     }
 
-    // UV — hourly timing (uv_index vs uv_index_clear_sky) + daily fallback.
-    // Suppressed at night, when overcast, raining, or clouds heavily attenuate UV.
+    // UV — current + future precedence (peak usually 12-3).
+    // NOW danger outranks FUTURE heads-up; past daily max is never used.
     {
-      const hasOvercast = list.some(a => a.text.includes("Overcast") || a.text.includes("Gloomy") || a.text.includes("Mostly cloudy"));
-      const hasRain = list.some(a => a.text.includes("Rain") || a.text.includes("Thunderstorm") || a.text.includes("Snow"));
-      const hasUv = list.some(a => a.text.includes("UV"));
-      if (!isNight && !hasOvercast && !hasRain && !hasUv) {
-        // Hourly peak in next 6h daytime slots (cloud-attenuated actuals)
-        let maxUv = -1, maxUvTime = "", maxUvClear = 0, maxUvCloud = 0;
+      const hasBlocker = hasTag("overcast", "fog", "rain", "storm", "snow", "ice");
+      const hasUv = hasTag("uv");
+      if (!isNight && isDaytimeNow && w?.isDay !== 0 && !hasBlocker && !hasUv) {
+        let nowUv = w?.uvIndex ?? -1;
+        if ((nowUv < 0 || Number.isNaN(nowUv)) && hourly?.uvIndex) {
+          let bestI = -1, bestDiff = Infinity;
+          for (let i = 0; i < hourly.time.length; i++) {
+            const diff = Math.abs(parseAsUTC(hourly.time[i]!).getTime() - nowMs);
+            if (diff < bestDiff) { bestDiff = diff; bestI = i; }
+          }
+          if (bestI >= 0) nowUv = hourly.uvIndex[bestI] ?? -1;
+        }
+        let futUv = -1, futTime = "", futClear = 0, futCloud = 0;
         if (hourly?.uvIndex) {
-          const idx6h = hourlySliceNextHours(hourly, tz, 6).filter(i => (hourly.isDay[i] as number) === 1);
+          const idx6h = hourlySliceNextHours(hourly, tz, 6).filter(i =>
+            (hourly.isDay[i] as number) === 1 && parseAsUTC(hourly.time[i]!).getTime() > nowMs
+          );
           for (const i of idx6h) {
             const v = hourly.uvIndex[i] ?? -1;
-            if (v > maxUv) {
-              maxUv = v;
-              maxUvTime = hourly.time[i]!;
-              maxUvClear = hourly.uvIndexClearSky?.[i] ?? v;
-              maxUvCloud = hourly.cloudCover[i] ?? 0;
+            if (v > futUv) {
+              futUv = v;
+              futTime = hourly.time[i]!;
+              futClear = hourly.uvIndexClearSky?.[i] ?? v;
+              futCloud = hourly.cloudCover[i] ?? 0;
             }
           }
         }
-        const pushUv = (val: number, timeStr: string, clear: number, cloud: number) => {
-          // Heavy cloud attenuation → real UV is low despite clear-sky potential; soften to info or skip
-          const attenuated = clear > 0 && val < clear * 0.4 && cloud >= 70;
-          if (val >= 8) {
-            list.push({ icon: Sun, text: `Very high UV ${val.toFixed(1)} around ${fmtTimeFromISO(timeStr)} — limit sun`, kind: "warning", priority: 67 });
-          } else if (val >= 6) {
-            if (attenuated) {
-              list.push({ icon: Sun, text: `UV ${val.toFixed(1)} around ${fmtTimeFromISO(timeStr)} but cloudy — burn risk lower`, kind: "info", priority: 50 });
-            } else {
-              list.push({ icon: Sun, text: `High UV ${val.toFixed(1)} around ${fmtTimeFromISO(timeStr)} — sunglasses & sunscreen`, kind: "info", priority: 52 });
-            }
-          }
-        };
-        if (maxUv >= 6 && isDaytimeNow && w?.isDay !== 0) {
-          pushUv(maxUv, maxUvTime, maxUvClear, maxUvCloud);
-        } else if (d && isDaytimeNow && w?.isDay !== 0) {
-          // Daily fallback only when hourly has no daytime slots (e.g. evening, next sun is tomorrow morning)
-          const uv = d.uvIndexMax?.[todayIdx] ?? 0;
-          const currentCloud = (() => {
-            if (!hourly) return 0;
-            const idx = hourlySliceNextHours(hourly, tz, 2).filter(i => (hourly.isDay[i] as number) === 1);
-            if (idx.length === 0) return 0;
-            return idx.reduce((s, i) => s + (hourly.cloudCover[i] ?? 0), 0) / idx.length;
-          })();
-          const isSunUp = currentCloud < 80;
-          if (isSunUp) {
-            if (uv >= 8) {
-              list.push({ icon: Sun, text: `Very high UV ${uv.toFixed(1)} today — limit midday sun`, kind: "warning", priority: 67 });
-            } else if (uv >= 6) {
-              list.push({ icon: Sun, text: `High UV ${uv.toFixed(1)} today — sunglasses & sunscreen`, kind: "info", priority: 52 });
-            }
+        const attenuated = (val: number, clear: number, cloud: number) =>
+          clear > 0 && val < clear * 0.4 && cloud >= 70;
+        const nowTier = nowUv >= 8 ? 2 : nowUv >= 6 ? 1 : 0;
+        const futTier = futUv >= 8 ? 2 : futUv >= 6 ? 1 : 0;
+        if (nowTier === 2) {
+          list.push({ icon: Sun, text: `Very high UV ${nowUv.toFixed(1)} now — limit sun`, kind: "warning", priority: 68, tag: "uv" });
+        } else if (futTier === 2 && futTime) {
+          list.push({ icon: Sun, text: `Very high UV ${futUv.toFixed(1)} around ${fmtTimeFromISO(futTime)} — limit sun`, kind: "warning", priority: 67, tag: "uv" });
+        } else if (nowTier === 1) {
+          list.push({ icon: Sun, text: `High UV ${nowUv.toFixed(1)} now — sunglasses & sunscreen`, kind: "info", priority: 60, tag: "uv" });
+        } else if (futTier === 1 && futTime) {
+          if (attenuated(futUv, futClear, futCloud)) {
+            list.push({ icon: Sun, text: `UV ${futUv.toFixed(1)} around ${fmtTimeFromISO(futTime)} but cloudy — burn risk lower`, kind: "info", priority: 50, tag: "uv" });
+          } else {
+            list.push({ icon: Sun, text: `High UV ${futUv.toFixed(1)} around ${fmtTimeFromISO(futTime)} — sunglasses & sunscreen`, kind: "info", priority: 52, tag: "uv" });
           }
         }
       }
-      // At 12:59 AM, isNight true → this block is skipped, fixing Overcast+High UV contradiction in Nebraska screenshot
     }
 
     // ════════════════════════════════════════════════════════
-    // TIER B — DAILY FALLBACKS (if hourly not severe) — bucket-aware
+    // TIER B — DAILY FALLBACKS — bucket-aware
     // ════════════════════════════════════════════════════════
-    // Gloomy 55 pruned — overcast 65 is hourly-precise, daily sunshine redundant at 00-06
     if (d) {
       const tMax = d.apparentTemperatureMax?.[todayIdx] ?? 0;
       const tMin = d.apparentTemperatureMin?.[todayIdx] ?? 0;
       const swing = tMax - tMin;
-      // Wide swing is daytime-relevant; suppress overnight when Overcast already explains temp cap, to avoid 0-6 bucket double pill
-      const hasCloud = list.some(a => a.text.includes("Overcast") || a.text.includes("cloudy"));
+      const hasCloud = hasTag("overcast", "fog", "rain");
       if (isDaytimeNow && !hasCloud && swing >= 12) {
-        list.push({ icon: Thermometer, text: `Wide temp swing ${Math.round(tMin)}° → ${Math.round(tMax)}° — layers recommended`, kind: "info", priority: 54 });
+        list.push({ icon: Thermometer, text: `Wide temp swing ${Math.round(tMin)}° → ${Math.round(tMax)}° — layers recommended`, kind: "info", priority: 54, tag: "swing" });
       } else if (!isDaytimeNow && !hasCloud && swing >= 15) {
-        // higher threshold at night (0-6, 18-24) — still worthy if extreme swing
-        list.push({ icon: Thermometer, text: `Wide temp swing ${Math.round(tMin)}° → ${Math.round(tMax)}° tomorrow — layers`, kind: "info", priority: 54 });
+        list.push({ icon: Thermometer, text: `Wide temp swing ${Math.round(tMin)}° → ${Math.round(tMax)}° tomorrow — layers`, kind: "info", priority: 54, tag: "swing" });
       }
     }
 
     // ════════════════════════════════════════════════════════
     // TIER C — DELIGHT / LOOKAHEAD — only if no A/B above
-    // Current has priority, then hourly, then daily — C always shows next sun event
     // ════════════════════════════════════════════════════════
     const hasAorB = list.length > 0;
     if (!hasAorB && d) {
       const delight: Alert[] = [];
 
-      // Always show next sunrise/sunset — whichever is first in the future
-      // Moscow 07:34 after sunrise → next is sunset today; evening → sunrise tomorrow
       const candidates: { timeStr: string; ms: number; kind: "sunrise" | "sunset" }[] = [];
       const pushCand = (iso: string | undefined, kind: "sunrise" | "sunset") => {
         if (!iso) return;
@@ -417,11 +471,9 @@ export default function WeatherAlerts() {
       pushCand(d.sunset?.[todayIdx], "sunset");
       pushCand(d.sunrise?.[tomorrowIdx], "sunrise");
       pushCand(d.sunset?.[tomorrowIdx], "sunset");
-      // +2 days fallback if needed
       if (d.sunrise?.[tomorrowIdx + 1]) pushCand(d.sunrise?.[tomorrowIdx + 1], "sunrise");
       if (d.sunset?.[tomorrowIdx + 1]) pushCand(d.sunset?.[tomorrowIdx + 1], "sunset");
 
-      // sort future first
       const future = candidates.filter(c => c.ms > nowMs).sort((a, b) => a.ms - b.ms);
       const next = future[0] ?? candidates.sort((a, b) => a.ms - b.ms)[0];
       if (next) {
@@ -441,6 +493,7 @@ export default function WeatherAlerts() {
             text: `Don't miss sunrise at ${fmtTimeFromISO(next.timeStr)} ${when} — clear morning light`,
             kind: "success",
             priority: 20,
+            tag: "sun",
           });
         } else {
           delight.push({
@@ -448,11 +501,11 @@ export default function WeatherAlerts() {
             text: `Don't miss sunset at ${fmtTimeFromISO(next.timeStr)} ${when} — golden hour`,
             kind: "success",
             priority: 20,
+            tag: "sun",
           });
         }
       }
 
-      // Stargazing: after sunset, low cloud next 4h — secondary delight if sun event already taken
       const sunsetTodayMs = d.sunset?.[todayIdx] ? parseAsUTC(d.sunset[todayIdx]!).getTime() : 0;
       if (hourly && sunsetTodayMs && nowMs > sunsetTodayMs) {
         const idx4h = minutelySliceNextHours({ time: hourly.time } as unknown as { time: string[] }, tz, 4);
@@ -463,37 +516,34 @@ export default function WeatherAlerts() {
         if (cnt > 0) {
           avgCloud /= cnt;
           if (avgCloud < 20) {
-            delight.push({ icon: Sparkles, text: `Perfect stargazing tonight — cloud ${Math.round(avgCloud)}%, ideal for night sky`, kind: "success", priority: 18 });
+            delight.push({ icon: Sparkles, text: `Perfect stargazing tonight — cloud ${Math.round(avgCloud)}%, ideal for night sky`, kind: "success", priority: 18, tag: "sun" });
           } else if (avgCloud < 40) {
-            delight.push({ icon: Sparkles, text: `Good stargazing window — cloud ${Math.round(avgCloud)}% next few hours`, kind: "info", priority: 17 });
+            delight.push({ icon: Sparkles, text: `Good stargazing window — cloud ${Math.round(avgCloud)}% next few hours`, kind: "info", priority: 17, tag: "sun" });
           }
         }
       }
 
-      // Fallback if somehow no sun candidate (should never happen)
       if (delight.length === 0) {
-        delight.push({ icon: Sun, text: `Calm day — no warnings, enjoy the weather`, kind: "success", priority: 10 });
+        delight.push({ icon: Sun, text: `Calm day — no warnings, enjoy the weather`, kind: "success", priority: 10, tag: "sun" });
       }
-      // C shows exactly 1 pill — the next sun event (plus optional stargazing second pill when relevant)
       delight.sort((a, b) => b.priority - a.priority);
       const top = delight[0]!;
       list.push(top);
-      // allow second pill only for stargazing when sun event is primary
       if (delight.length >= 2 && top.priority === 20 && delight[1]!.priority >= 17) {
         list.push(delight[1]!);
       }
     }
 
-    // Final sort, dedup, limit 2
+    // Final sort, dedup, limit — allow 3 pills when 2+ errors (don't hide 3rd severe)
     list.sort((a, b) => b.priority - a.priority);
-    // Deduplicate identical text
     const seen = new Set<string>();
     const uniq: Alert[] = [];
     for (const a of list) {
       if (!seen.has(a.text)) { seen.add(a.text); uniq.push(a); }
     }
-    return uniq.slice(0, 2);
-  }, [daily, current, hourlyData, tz, units]);
+    const errCount = uniq.filter(a => a.kind === "error").length;
+    return uniq.slice(0, errCount >= 2 ? 3 : 2);
+  }, [daily, current, hourlyData, aqiData, tz, units]);
 
   if (alerts.length === 0) return null;
 
@@ -539,9 +589,7 @@ export default function WeatherAlerts() {
             className={`group animate-fade-in relative flex w-full max-w-2xl items-center justify-center gap-3 overflow-hidden rounded-full border px-4 py-2.5 text-sm font-medium tracking-tight shadow-lg backdrop-blur-md transition-all duration-300 hover:shadow-xl hover:scale-[1.01] ${s.wrap} ${s.shadow}`}
             style={{ animationDelay: `${idx * 80}ms` }}
           >
-            {/* left accent */}
             <div className={`absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b ${s.accent} opacity-80 group-hover:opacity-100 transition-opacity`} />
-            {/* icon pill */}
             <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${s.iconWrap}`}>
               <Icon size={14} className={`shrink-0 ${s.icon}`} strokeWidth={2} />
             </span>
