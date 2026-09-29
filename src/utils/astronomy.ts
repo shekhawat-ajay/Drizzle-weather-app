@@ -115,8 +115,8 @@ export function findNextEvent(
 
 /* ─── Core calculators ─── */
 
-export function calcSunData(lat: number, lon: number, date: Date): SunData {
-  const observer = new Observer(lat, lon, 0);
+export function calcSunData(lat: number, lon: number, date: Date, elevM = 0): SunData {
+  const observer = new Observer(lat, lon, elevM);
 
   // Sunrise / Sunset
   const sunrise = SearchRiseSet(Body.Sun, observer, +1, date, 1);
@@ -157,8 +157,9 @@ export function calcSunPosition(
   lat: number,
   lon: number,
   now: Date,
+  elevM = 0,
 ): SunPositionData {
-  const observer = new Observer(lat, lon, 0);
+  const observer = new Observer(lat, lon, elevM);
 
   // Current sun altitude and azimuth
   const equ = Equator(Body.Sun, now, observer, true, true);
@@ -266,8 +267,8 @@ export function calcSunPosition(
   };
 }
 
-export function calcMoonData(lat: number, lon: number, date: Date): MoonData {
-  const observer = new Observer(lat, lon, 0);
+export function calcMoonData(lat: number, lon: number, date: Date, elevM = 0): MoonData {
+  const observer = new Observer(lat, lon, elevM);
 
   const moonrise = SearchRiseSet(Body.Moon, observer, +1, date, 1);
   const moonset = SearchRiseSet(Body.Moon, observer, -1, date, 1);
@@ -303,8 +304,9 @@ export function calcMoonPosition(
   lat: number,
   lon: number,
   now: Date,
+  elevM = 0,
 ): MoonPositionData {
-  const observer = new Observer(lat, lon, 0);
+  const observer = new Observer(lat, lon, elevM);
   const equ = Equator(Body.Moon, now, observer, true, true);
   const hor = Horizon(now, observer, equ.ra, equ.dec, "normal");
   const altitude = hor.altitude;
@@ -420,8 +422,9 @@ export function calcPlanetData(
   lon: number,
   date: Date,
   now: Date,
+  elevM = 0,
 ): PlanetData[] {
-  const observer = new Observer(lat, lon, 0);
+  const observer = new Observer(lat, lon, elevM);
   const planets = [
     Body.Mercury,
     Body.Venus,
@@ -729,8 +732,8 @@ export function getNextSupermoon(now: Date): SupermoonInfo {
   return { nextSupermoon: null };
 }
 
-export function calcUpcomingEclipses(lat: number, lon: number, now: Date): EclipseEvent[] {
-  const observer = new Observer(lat, lon, 0);
+export function calcUpcomingEclipses(lat: number, lon: number, now: Date, elevM = 0): EclipseEvent[] {
+  const observer = new Observer(lat, lon, elevM);
   const events: EclipseEvent[] = [];
 
   // Lunar eclipses (Global eclipses)
@@ -1048,8 +1051,9 @@ export function calcNextRiseSet(
   lat: number,
   lon: number,
   now: Date,
+  elevM = 0,
 ): NextRiseSetData {
-  const observer = new Observer(lat, lon, 0);
+  const observer = new Observer(lat, lon, elevM);
 
   // Next events: search forward from `now`
   const nextSunrise = SearchRiseSet(Body.Sun, observer, +1, now, 1);

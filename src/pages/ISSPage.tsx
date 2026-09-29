@@ -130,12 +130,13 @@ export default function ISSPage() {
   const { points } = useISSTrajectory();
   const [activeTile, setActiveTile] = useState<TileKey>("Street");
   const [showPicker, setShowPicker] = useState(false);
-  let passLat = 28.6, passLon = 77.2, passTz: string | undefined;
+  let passLat = 28.6, passLon = 77.2, passTz: string | undefined, passElev = 0;
   try {
     const ctx = useOutletContext<AstronomyOutletContext>();
     passLat = ctx.location.latitude;
     passLon = ctx.location.longitude;
     passTz = ctx.tz;
+    passElev = ctx.elevationM ?? 0;
   } catch { /* standalone */ }
 
   // Split trajectory into segments if it crosses the Date Line
@@ -280,7 +281,7 @@ export default function ISSPage() {
         />
       </div>
 
-      <ISSPassPrediction latitude={passLat} longitude={passLon} timezone={passTz} />
+      <ISSPassPrediction latitude={passLat} longitude={passLon} timezone={passTz} elevationM={passElev} />
 
       {/* ── Mission Details ── */}
       <div className="bg-base-300 rounded-xl border border-primary/10 p-4">

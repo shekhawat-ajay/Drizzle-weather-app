@@ -4,7 +4,7 @@ import { Clock, Eye, Satellite } from "lucide-react";
 import CountdownBadge from "@/components/astronomy/CountdownBadge";
 import { predictISSPasses, type ISSPass } from "@/utils/issPredict";
 
-export default function ISSPassPrediction({ latitude, longitude, timezone }: { latitude: number; longitude: number; timezone?: string }) {
+export default function ISSPassPrediction({ latitude, longitude, timezone, elevationM = 0 }: { latitude: number; longitude: number; timezone?: string; elevationM?: number }) {
   const [passes, setPasses] = useState<ISSPass[] | null>(null);
   const [tleAge, setTleAge] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -13,7 +13,7 @@ export default function ISSPassPrediction({ latitude, longitude, timezone }: { l
     let cancelled = false;
     setPasses(null);
     setError(null);
-    predictISSPasses(latitude, longitude, 7, 60, 10)
+    predictISSPasses(latitude, longitude, 7, 60, 10, elevationM)
       .then(({ passes, tleAge }) => {
         if (cancelled) return;
         setPasses(passes);
@@ -25,7 +25,7 @@ export default function ISSPassPrediction({ latitude, longitude, timezone }: { l
     return () => {
       cancelled = true;
     };
-  }, [latitude, longitude]);
+  }, [latitude, longitude, elevationM]);
 
   // Hooks must run before any early return — otherwise React error #310
   // (more hooks after passes loads than during skeleton).

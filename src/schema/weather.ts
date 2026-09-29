@@ -148,6 +148,8 @@ export const HourlyForecastSchema = z.object({
     surfacePressure: z.string(),
     windSpeed10M: z.string(),
     temperature2M: z.string(),
+    uvIndex: z.string().optional(),
+    uvIndexClearSky: z.string().optional(),
   }).optional(),
   hourly: z.object({
     time: z.array(z.string()),
@@ -161,6 +163,8 @@ export const HourlyForecastSchema = z.object({
     surfacePressure: z.array(z.number()),
     windSpeed10M: z.array(z.number()),
     temperature2M: z.array(z.number()),
+    uvIndex: z.array(z.number()).optional(),
+    uvIndexClearSky: z.array(z.number()).optional(),
   }).passthrough().optional(),
 }).passthrough();
 

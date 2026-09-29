@@ -29,7 +29,7 @@ const PlanetIcon = (props: { className?: string; size?: number }) => {
 
 export default function PlanetPage() {
   const { planet } = useParams<{ planet: string }>();
-  const { tz, astronomyData, celestialData, location } = useOutletContext<AstronomyOutletContext>();
+  const { tz, astronomyData, celestialData, location, elevationM } = useOutletContext<AstronomyOutletContext>();
 
   // Title case the parameter (e.g., "mars" -> "Mars")
   const planetName = planet
@@ -138,6 +138,7 @@ export default function PlanetPage() {
               celestial={celestial}
               positional={positional}
               timezone={tz}
+              elevationM={elevationM ?? 0}
             />
           </div>
         </div>
