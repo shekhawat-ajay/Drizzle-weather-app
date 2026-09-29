@@ -130,12 +130,13 @@ export async function predictISSPasses(
   days = 7,
   stepSec = 60,
   minElevDeg = 10,
+  elevM = 0,
 ): Promise<{ passes: ISSPass[]; tleAge: string }> {
   const tle = await fetchTLE();
   if (!tle) return { passes: [], tleAge: "unavailable" };
 
   const satrec = twoline2satrec(tle.line1, tle.line2);
-  const observer = new Observer(latitude, longitude, 0);
+  const observer = new Observer(latitude, longitude, elevM);
   const startMs = Date.now();
   const totalSteps = Math.floor((days * 86400) / stepSec);
 

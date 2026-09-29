@@ -1,9 +1,11 @@
 import { use, useMemo } from "react";
 import { Body, Observer, Equator, Horizon, Illumination } from "astronomy-engine";
+import { useOutletContext } from "react-router";
 import { CalendarDays, Star, Moon, Cloud } from "lucide-react";
 import SectionHeader from "@/components/astronomy/SectionHeader";
 import { LocationContext } from "@/context/LocationContext";
 import { ResultType } from "@/schema/location";
+import type { AstronomyOutletContext } from "@/pages/AstronomyPage";
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
 import { getNowAsUTC, parseAsUTC, fmtTimeFromISO, fmtDateShortFromISO, fmtWeekdayFromISO } from "@/utils/formatters";
 import { computeStargazingIndex } from "@/utils/astronomy";
@@ -51,12 +53,17 @@ export default function SevenNightOutlook() {
   const minutely15 = data?.minutely15;
   // Same pretend-UTC → true-UTC correction as NightSky for engine calls
   const utcOffsetMs = (data?.utcOffsetSeconds ?? 0) * 1000;
+  // Observer elevation from outlet (single fetch in AstronomyPage)
+  let elevM = 0;
+  try {
+    elevM = useOutletContext<AstronomyOutletContext>().elevationM ?? 0;
+  } catch { /* standalone — sea level fallback */ }
 
   const nights = useMemo<NightBest[]>(() => {
     if (!hourly) return [];
     const nowMs = getNowAsUTC(tz);
     const endMs = nowMs + 7 * 24 * 3600_000;
-    const observer = new Observer(location.latitude, location.longitude, 0);
+    const observer = new Observer(location.latitude, location.longitude, elevM);
 
     const visMap = new Map<number, number>();
     const precipMap = new Map<number, number>();
@@ -138,7 +145,7 @@ export default function SevenNightOutlook() {
       .sort((a, b) => a.bestTs - b.bestTs)
       .slice(0, 7)
       .map(({ ts: _ts, ...rest }) => rest);
-  }, [hourly, minutely15, tz, location.latitude, location.longitude, utcOffsetMs]);
+  }, [hourly, minutely15, tz, location.latitude, location.longitude, utcOffsetMs, elevM]);
 
   if (!hourly) return null;
   if (nights.length === 0) return null;

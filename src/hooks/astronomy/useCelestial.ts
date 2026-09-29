@@ -16,15 +16,16 @@ const FULL_RECOMPUTE_MS = 30 * 60_000; // 30 minutes
 export default function useCelestial(
   latitude: number,
   longitude: number,
+  elevationM = 0,
 ): CelestialStatus[] {
   const [statuses, setStatuses] = useState<CelestialStatus[]>(() =>
-    getAllCelestialStatus(latitude, longitude),
+    getAllCelestialStatus(latitude, longitude, elevationM),
   );
   const boundaryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Reset on location change
-    const fresh = getAllCelestialStatus(latitude, longitude);
+    const fresh = getAllCelestialStatus(latitude, longitude, elevationM);
     setStatuses(fresh);
 
     // ── Tier 1: 60s label refresh (cheap — no library calls) ──
@@ -34,7 +35,7 @@ export default function useCelestial(
 
     // ── Tier 3: 30-minute full recompute (safety net) ──
     const recomputeTimer = setInterval(() => {
-      setStatuses(getAllCelestialStatus(latitude, longitude));
+      setStatuses(getAllCelestialStatus(latitude, longitude, elevationM));
     }, FULL_RECOMPUTE_MS);
 
     // ── Event-boundary scheduling ──
@@ -63,7 +64,7 @@ export default function useCelestial(
         // Recompute 60s after the event passes (to be sure it's in the past)
         const delayMs = nearest - now + 60_000;
         boundaryTimerRef.current = setTimeout(() => {
-          const updated = getAllCelestialStatus(latitude, longitude);
+          const updated = getAllCelestialStatus(latitude, longitude, elevationM);
           setStatuses(updated);
           // Re-schedule for the next nearest event
           scheduleEventBoundary(updated);
@@ -80,7 +81,7 @@ export default function useCelestial(
         clearTimeout(boundaryTimerRef.current);
       }
     };
-  }, [latitude, longitude]);
+  }, [latitude, longitude, elevationM]);
 
   return statuses;
 }

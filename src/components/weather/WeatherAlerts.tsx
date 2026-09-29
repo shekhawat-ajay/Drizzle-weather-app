@@ -322,23 +322,59 @@ export default function WeatherAlerts() {
       }
     }
 
-    // UV — daily max + also warn moderate — suppressed at night, when overcast, or when raining
-    if (d) {
-      const uv = d.uvIndexMax?.[todayIdx] ?? 0;
+    // UV — hourly timing (uv_index vs uv_index_clear_sky) + daily fallback.
+    // Suppressed at night, when overcast, raining, or clouds heavily attenuate UV.
+    {
       const hasOvercast = list.some(a => a.text.includes("Overcast") || a.text.includes("Gloomy") || a.text.includes("Mostly cloudy"));
-      const hasRain = list.some(a => a.text.includes("Rain") || a.text.includes("Thunderstorm"));
-      const currentCloud = (() => {
-        if (!hourly) return 0;
-        const idx = hourlySliceNextHours(hourly, tz, 2).filter(i => (hourly.isDay[i] as number) === 1);
-        if (idx.length === 0) return 0;
-        return idx.reduce((s, i) => s + (hourly.cloudCover[i] ?? 0), 0) / idx.length;
-      })();
-      const isSunUp = isDaytimeNow && (w?.isDay !== 0) && currentCloud < 80;
-      if (!isNight && isSunUp && !hasOvercast && !hasRain) {
-        if (uv >= 8 && !list.some(a => a.text.includes("UV"))) {
-          list.push({ icon: Sun, text: `Very high UV ${uv.toFixed(1)} — limit sun 12–3 PM`, kind: "warning", priority: 67 });
-        } else if (uv >= 6 && uv < 8) {
-          list.push({ icon: Sun, text: `High UV ${uv.toFixed(1)} — sunglasses & sunscreen`, kind: "info", priority: 52 });
+      const hasRain = list.some(a => a.text.includes("Rain") || a.text.includes("Thunderstorm") || a.text.includes("Snow"));
+      const hasUv = list.some(a => a.text.includes("UV"));
+      if (!isNight && !hasOvercast && !hasRain && !hasUv) {
+        // Hourly peak in next 6h daytime slots (cloud-attenuated actuals)
+        let maxUv = -1, maxUvTime = "", maxUvClear = 0, maxUvCloud = 0;
+        if (hourly?.uvIndex) {
+          const idx6h = hourlySliceNextHours(hourly, tz, 6).filter(i => (hourly.isDay[i] as number) === 1);
+          for (const i of idx6h) {
+            const v = hourly.uvIndex[i] ?? -1;
+            if (v > maxUv) {
+              maxUv = v;
+              maxUvTime = hourly.time[i]!;
+              maxUvClear = hourly.uvIndexClearSky?.[i] ?? v;
+              maxUvCloud = hourly.cloudCover[i] ?? 0;
+            }
+          }
+        }
+        const pushUv = (val: number, timeStr: string, clear: number, cloud: number) => {
+          // Heavy cloud attenuation → real UV is low despite clear-sky potential; soften to info or skip
+          const attenuated = clear > 0 && val < clear * 0.4 && cloud >= 70;
+          if (val >= 8) {
+            list.push({ icon: Sun, text: `Very high UV ${val.toFixed(1)} around ${fmtTimeFromISO(timeStr)} — limit sun`, kind: "warning", priority: 67 });
+          } else if (val >= 6) {
+            if (attenuated) {
+              list.push({ icon: Sun, text: `UV ${val.toFixed(1)} around ${fmtTimeFromISO(timeStr)} but cloudy — burn risk lower`, kind: "info", priority: 50 });
+            } else {
+              list.push({ icon: Sun, text: `High UV ${val.toFixed(1)} around ${fmtTimeFromISO(timeStr)} — sunglasses & sunscreen`, kind: "info", priority: 52 });
+            }
+          }
+        };
+        if (maxUv >= 6 && isDaytimeNow && w?.isDay !== 0) {
+          pushUv(maxUv, maxUvTime, maxUvClear, maxUvCloud);
+        } else if (d && isDaytimeNow && w?.isDay !== 0) {
+          // Daily fallback only when hourly has no daytime slots (e.g. evening, next sun is tomorrow morning)
+          const uv = d.uvIndexMax?.[todayIdx] ?? 0;
+          const currentCloud = (() => {
+            if (!hourly) return 0;
+            const idx = hourlySliceNextHours(hourly, tz, 2).filter(i => (hourly.isDay[i] as number) === 1);
+            if (idx.length === 0) return 0;
+            return idx.reduce((s, i) => s + (hourly.cloudCover[i] ?? 0), 0) / idx.length;
+          })();
+          const isSunUp = currentCloud < 80;
+          if (isSunUp) {
+            if (uv >= 8) {
+              list.push({ icon: Sun, text: `Very high UV ${uv.toFixed(1)} today — limit midday sun`, kind: "warning", priority: 67 });
+            } else if (uv >= 6) {
+              list.push({ icon: Sun, text: `High UV ${uv.toFixed(1)} today — sunglasses & sunscreen`, kind: "info", priority: 52 });
+            }
+          }
         }
       }
       // At 12:59 AM, isNight true → this block is skipped, fixing Overcast+High UV contradiction in Nebraska screenshot

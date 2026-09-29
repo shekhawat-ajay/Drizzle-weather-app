@@ -4,6 +4,7 @@ import { LocationContext } from "@/context/LocationContext";
 import { ResultType } from "@/schema/location";
 import useAstronomy from "@/hooks/astronomy/useAstronomy";
 import useCelestial from "@/hooks/astronomy/useCelestial";
+import useElevation from "@/hooks/useElevation";
 import useHourlyForecast from "@/hooks/weather/useHourlyForecast";
 import { getNowAsUTC, parseAsUTC } from "@/utils/formatters";
 
@@ -16,6 +17,7 @@ export interface AstronomyOutletContext {
   location: ResultType;
   tz: string;
   cloudCover: number | null;
+  elevationM: number;
   astronomyData: AstronomyData;
   celestialData: CelestialStatus[];
 }
@@ -44,19 +46,24 @@ export default function AstronomyPage() {
     cloudCover = hourly.cloudCover[curIdx] ?? null;
   }
 
+  const { elevation } = useElevation(location.latitude, location.longitude);
+  const elevationM = elevation ?? 0;
+
   const astronomyData = useAstronomy(
     location.latitude,
     location.longitude,
     location.timezone,
-    cloudCover
+    cloudCover,
+    elevationM
   );
 
-  const celestialData = useCelestial(location.latitude, location.longitude);
+  const celestialData = useCelestial(location.latitude, location.longitude, elevationM);
 
   const contextValue: AstronomyOutletContext = {
     location,
     tz,
     cloudCover,
+    elevationM,
     astronomyData,
     celestialData,
   };

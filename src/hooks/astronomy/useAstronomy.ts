@@ -25,6 +25,7 @@ export default function useAstronomy(
   longitude: number,
   timezone?: string,
   cloudCover?: number | null,
+  elevationM = 0,
 ): AstronomyData {
   // ── Timezone & midnight (stable for the session) ──
   const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -59,13 +60,13 @@ export default function useAstronomy(
   // live sun/moon altitudes — the old static path disagreed with NightSky.
   const staticData = useMemo(() => {
     const now = new Date();
-    const sun = calcSunData(latitude, longitude, todayStart);
-    const moon = calcMoonData(latitude, longitude, todayStart);
+    const sun = calcSunData(latitude, longitude, todayStart, elevationM);
+    const moon = calcMoonData(latitude, longitude, todayStart, elevationM);
     const distanceExtremes = getNextDistanceExtremes(todayStart);
     const lunarEclipseInfo = getNextLunarEclipse(todayStart);
     const supermoonInfo = getNextSupermoon(todayStart);
     const nextSeason = calcNextSeason(now);
-    const upcomingEclipses = calcUpcomingEclipses(latitude, longitude, now);
+    const upcomingEclipses = calcUpcomingEclipses(latitude, longitude, now, elevationM);
 
     return {
       sun,
@@ -76,7 +77,7 @@ export default function useAstronomy(
       nextSeason,
       upcomingEclipses,
     };
-  }, [latitude, longitude, todayStart]);
+  }, [latitude, longitude, todayStart, elevationM]);
 
   // ── Tier 2: POSITION data (refreshes every 5 min) ──
   const computePositions = useCallback(() => {
@@ -85,10 +86,11 @@ export default function useAstronomy(
       latitude,
       longitude,
       now,
+      elevationM,
     );
-    const moonPosition = calcMoonPosition(latitude, longitude, now);
-    const planets = calcPlanetData(latitude, longitude, todayStart, now);
-    const nextRiseSet = calcNextRiseSet(latitude, longitude, now);
+    const moonPosition = calcMoonPosition(latitude, longitude, now, elevationM);
+    const planets = calcPlanetData(latitude, longitude, todayStart, now, elevationM);
+    const nextRiseSet = calcNextRiseSet(latitude, longitude, now, elevationM);
     const fullMoonCycle = getFullMoonCycle(now);
 
     return { sunPosition, moonPosition, planets, nextRiseSet, fullMoonCycle };
@@ -96,6 +98,7 @@ export default function useAstronomy(
     latitude,
     longitude,
     todayStart,
+    elevationM,
     staticData.sun.sunrise,
     staticData.sun.sunset,
   ]);

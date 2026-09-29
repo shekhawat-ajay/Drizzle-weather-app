@@ -228,8 +228,9 @@ function getBodyStatus(
 export function getAllCelestialStatus(
   latitude: number,
   longitude: number,
+  elevM = 0,
 ): CelestialStatus[] {
-  const observer = new Observer(latitude, longitude, 0);
+  const observer = new Observer(latitude, longitude, elevM);
   const now = MakeTime(new Date());
   const maxDays = getSearchWindow(latitude);
   const results: CelestialStatus[] = [];

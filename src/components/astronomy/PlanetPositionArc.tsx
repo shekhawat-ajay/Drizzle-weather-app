@@ -55,6 +55,7 @@ interface PlanetPositionArcProps {
   celestial: CelestialStatus;
   positional: PlanetData;
   timezone?: string;
+  elevationM?: number;
 }
 
 export default function PlanetPositionArc({
@@ -64,6 +65,7 @@ export default function PlanetPositionArc({
   celestial,
   positional,
   timezone,
+  elevationM = 0,
 }: PlanetPositionArcProps) {
   const { state, pastEvent, futureEvent } = celestial;
 
@@ -73,7 +75,7 @@ export default function PlanetPositionArc({
     const body = PLANET_BODY_MAP[planetName];
     if (!body) return null;
 
-    const observer = new Observer(latitude, longitude, 0);
+    const observer = new Observer(latitude, longitude, elevationM);
 
     // Determine window from past/future events, fallback to 24h around now
     const prevMs = pastEvent?.timestamp.getTime() ?? nowMs - 12 * 3600000;
@@ -120,7 +122,7 @@ export default function PlanetPositionArc({
     }
 
     return { curve, peakAltitude, minAltitude, windowStartMs, windowEndMs };
-  }, [planetName, latitude, longitude, pastEvent, futureEvent, positional.altitude]);
+  }, [planetName, latitude, longitude, elevationM, pastEvent, futureEvent, positional.altitude]);
 
   if (!arcData) return null;
 
