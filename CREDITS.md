@@ -22,6 +22,12 @@
 - [OpenTopoMap](https://opentopomap.org/) — Terrain layer ([CC-BY-SA](https://creativecommons.org/licenses/by-sa/3.0/))
 - [CARTO basemaps](https://carto.com/) — Dark layer
 
+## Sky Catalog (Sky Map slice 1)
+
+- [Sky Map / Stardroid](https://github.com/sky-map-team/stardroid) `stardroid-v2/source-data` — `stars.csv`, `dso.csv`, `constellations/iau.json` vendored as `public/data/skymap/*.json` via `scripts/convert-skymap.py`. Positions/figures are factual catalog data (public domain, via Hipparcos/Yale BSC lineage).
+- Star proper names: [IAU Working Group on Star Names (WGSN) Catalog of Star Names](https://www.iau.org/public/themes/naming_stars/) (CC BY 4.0).
+- Info-card text/translations from Sky Map are GPLv3 and are NOT vendored here.
+
 ## Libraries & Standards
 
 - [astronomy-engine](https://github.com/cosinekitty/astronomy) (Don Cross) — rise/set, eclipses, moon phases, elongations

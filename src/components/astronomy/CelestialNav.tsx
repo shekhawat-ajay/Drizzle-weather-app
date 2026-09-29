@@ -3,6 +3,7 @@ import CelestialIcon from "@/components/astronomy/CelestialIcon";
 
 const TABS = [
   { name: "Overview", path: "/astronomy/overview" },
+  { name: "Sky Map", path: "/astronomy/skymap" },
   { name: "Sun", path: "/astronomy/sun" },
   { name: "Moon", path: "/astronomy/moon" },
   { name: "Mercury", path: "/astronomy/mercury" },

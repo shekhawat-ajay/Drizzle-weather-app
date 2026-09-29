@@ -15,6 +15,7 @@ import { FavoritesProvider } from "@/context/FavoritesContext";
 const WeatherPage = lazy(() => import("@/pages/WeatherPage.tsx"));
 const AstronomyPage = lazy(() => import("@/pages/AstronomyPage.tsx"));
 const OverviewPage = lazy(() => import("@/pages/OverviewPage.tsx"));
+const SkyMapPage = lazy(() => import("@/pages/SkyMapPage.tsx"));
 const SunPage = lazy(() => import("@/pages/SunPage.tsx"));
 const MoonPage = lazy(() => import("@/pages/MoonPage.tsx"));
 const PlanetPage = lazy(() => import("@/pages/PlanetPage.tsx"));
@@ -180,6 +181,7 @@ function App() {
                     <Route path="/astronomy" element={<AstronomyPage />}>
                       <Route index element={<Navigate to="overview" replace />} />
                       <Route path="overview" element={<OverviewPage />} />
+                      <Route path="skymap" element={<SkyMapPage />} />
                       <Route path="sun" element={<SunPage />} />
                       <Route path="moon" element={<MoonPage />} />
                       <Route path="iss" element={<ISSPage />} />
